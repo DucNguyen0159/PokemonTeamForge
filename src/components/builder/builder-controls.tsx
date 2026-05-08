@@ -4,8 +4,13 @@ import { useMemo, useState } from "react";
 import { Check, Clipboard, ClipboardPaste, Copy, Trash2, X } from "lucide-react";
 
 import { MOCK_ITEMS } from "@/data/mock-items";
+import {
+  useSaveTeamMutation,
+  useUpdateTeamMutation,
+} from "@/hooks/queries/use-user-teams";
 import { formatShowdownExport } from "@/lib/parsing/format-showdown-export";
 import { parseShowdownImport } from "@/lib/parsing/parse-showdown-import";
+import { useAuthStore } from "@/store/auth-store";
 import { useTeamStore } from "@/store/team-store";
 import { Button } from "@/components/ui/button";
 import type { PokemonDetail } from "@/types/pokemon";
@@ -15,6 +20,9 @@ export function BuilderControls() {
   const team = useTeamStore((s) => s.team);
   const clearTeam = useTeamStore((s) => s.clearTeam);
   const loadTeam = useTeamStore((s) => s.loadTeam);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const saveTeamMutation = useSaveTeamMutation();
+  const updateTeamMutation = useUpdateTeamMutation();
 
   const [importText, setImportText] = useState("");
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -24,6 +32,7 @@ export function BuilderControls() {
   const [warningLines, setWarningLines] = useState<string[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const exportText = useMemo(() => formatShowdownExport(team), [team]);
 
@@ -182,6 +191,43 @@ export function BuilderControls() {
     }
   }
 
+  async function handleSaveTeam() {
+    if (!isAuthenticated) {
+      setError("Please log in to save teams to Supabase. Guest mode still autosaves locally.");
+      return;
+    }
+
+    setIsSaving(true);
+    setFeedback(null);
+    setError(null);
+
+    try {
+      if (team.id) {
+        await updateTeamMutation.mutateAsync({ teamId: team.id, team });
+        setFeedback("Saved team updated in Supabase.");
+      } else {
+        const saved = await saveTeamMutation.mutateAsync(team);
+        loadTeam({
+          ...team,
+          id: saved.id,
+          userId: null,
+          createdAt: saved.createdAt,
+          updatedAt: saved.updatedAt,
+          isPublic: saved.isPublic,
+        });
+        setFeedback("Team saved to Supabase.");
+      }
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Unable to save team right now. Please try again.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -243,7 +289,25 @@ export function BuilderControls() {
           <Trash2 className="size-3.5" aria-hidden />
           Clear Team
         </Button>
+
+        <Button
+          size="sm"
+          onClick={handleSaveTeam}
+          className="gap-1.5 rounded-xl text-xs"
+          aria-label="Save current team"
+          disabled={
+            isSaving || saveTeamMutation.isPending || updateTeamMutation.isPending
+          }
+        >
+          {isSaving ? "Saving..." : team.id ? "Update Saved Team" : "Save Team"}
+        </Button>
       </div>
+
+      {!isAuthenticated ? (
+        <p className="text-xs text-muted-foreground">
+          Guest mode is active: your current builder session is saved locally.
+        </p>
+      ) : null}
 
       {feedback ? (
         <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">

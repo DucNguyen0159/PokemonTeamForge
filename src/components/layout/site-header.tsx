@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/auth-store";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
@@ -12,6 +15,11 @@ const NAV_ITEMS = [
 ];
 
 export function SiteHeader() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const profile = useAuthStore((state) => state.profile);
+  const logout = useAuthStore((state) => state.logout);
+  const isLoading = useAuthStore((state) => state.isLoading);
+
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
       <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -31,12 +39,33 @@ export function SiteHeader() {
             ))}
           </ul>
           <div className="flex items-center gap-1 border-l border-border/60 pl-2 lg:border-l lg:pl-3">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button asChild size="sm" className="rounded-xl">
-              <Link href="/register">Register</Link>
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/profile">{profile?.username || "Profile"}</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => {
+                    void logout();
+                  }}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Logging out..." : "Log out"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/login">Log in</Link>
+                </Button>
+                <Button asChild size="sm" className="rounded-xl">
+                  <Link href="/register">Register</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>

@@ -1,0 +1,78 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import {
+  deleteSavedTeam,
+  listUserTeams,
+  loadSavedTeamById,
+  renameSavedTeam,
+  saveTeam,
+  updateSavedTeam,
+} from "@/lib/supabase/team-service";
+import { useAuthStore } from "@/store/auth-store";
+import type { Team } from "@/types/team";
+
+export const USER_TEAMS_QUERY_KEY = ["user-teams"] as const;
+
+export function useUserTeams() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  return useQuery({
+    queryKey: USER_TEAMS_QUERY_KEY,
+    queryFn: listUserTeams,
+    enabled: isAuthenticated,
+  });
+}
+
+export function useSaveTeamMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (team: Team) => saveTeam(team),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: USER_TEAMS_QUERY_KEY });
+    },
+  });
+}
+
+export function useUpdateTeamMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ teamId, team }: { teamId: string; team: Team }) =>
+      updateSavedTeam(teamId, team),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: USER_TEAMS_QUERY_KEY });
+    },
+  });
+}
+
+export function useRenameTeamMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ teamId, name }: { teamId: string; name: string }) =>
+      renameSavedTeam(teamId, name),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: USER_TEAMS_QUERY_KEY });
+    },
+  });
+}
+
+export function useDeleteTeamMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (teamId: string) => deleteSavedTeam(teamId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: USER_TEAMS_QUERY_KEY });
+    },
+  });
+}
+
+export function useLoadTeamMutation() {
+  return useMutation({
+    mutationFn: (teamId: string) => loadSavedTeamById(teamId),
+  });
+}

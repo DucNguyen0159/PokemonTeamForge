@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { AuthInitializer } from "@/components/auth/auth-initializer";
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -11,7 +12,10 @@ type AppProvidersProps = {
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <ThemeProvider>
-      <QueryProvider>{children}</QueryProvider>
+      <QueryProvider>
+        <AuthInitializer />
+        {children}
+      </QueryProvider>
     </ThemeProvider>
   );
 }
