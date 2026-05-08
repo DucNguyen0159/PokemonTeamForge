@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useDeferredValue, useMemo, useState } from "react";
 import Image from "next/image";
 import { Search, X } from "lucide-react";
 
@@ -14,16 +14,31 @@ type PokemonPickerProps = {
   onCancel: () => void;
 };
 
-export function PokemonPicker({ onSelect, onCancel }: PokemonPickerProps) {
-  const [search, setSearch] = useState("");
+const SEARCHABLE_POKEMON = MOCK_POKEMON.map((pokemon) => ({
+  pokemon,
+  searchableText: [
+    pokemon.name,
+    pokemon.primaryType,
+    pokemon.secondaryType ?? "",
+  ]
+    .join(" ")
+    .toLowerCase(),
+}));
 
-  const filtered = search.trim()
-    ? MOCK_POKEMON.filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.primaryType.toLowerCase().includes(search.toLowerCase()) ||
-        (p.secondaryType ?? "").toLowerCase().includes(search.toLowerCase()),
-      )
-    : MOCK_POKEMON;
+function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const normalizedSearch = deferredSearch.trim().toLowerCase();
+
+  const filtered = useMemo(
+    () =>
+      normalizedSearch
+        ? SEARCHABLE_POKEMON.filter((entry) =>
+            entry.searchableText.includes(normalizedSearch),
+          ).map((entry) => entry.pokemon)
+        : MOCK_POKEMON,
+    [normalizedSearch],
+  );
 
   return (
     <div className="flex flex-col gap-2">
@@ -101,3 +116,5 @@ export function PokemonPicker({ onSelect, onCancel }: PokemonPickerProps) {
     </div>
   );
 }
+
+export const PokemonPicker = memo(PokemonPickerComponent);

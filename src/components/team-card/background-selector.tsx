@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { cn } from "@/utils";
 import { BACKGROUND_PRESETS, type BackgroundPreset } from "@/data/team-card-assets";
 
@@ -13,14 +15,19 @@ const CATEGORIES = [
   { key: "elemental", label: "Elemental" },
 ] as const;
 
-export function BackgroundSelector({ selected, onChange }: BackgroundSelectorProps) {
+const BACKGROUNDS_BY_CATEGORY = CATEGORIES.map(({ key, label }) => ({
+  key,
+  label,
+  items: BACKGROUND_PRESETS.filter((bg) => bg.category === key),
+}));
+
+function BackgroundSelectorComponent({ selected, onChange }: BackgroundSelectorProps) {
   return (
     <div className="space-y-3">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Background
       </p>
-      {CATEGORIES.map(({ key, label }) => {
-        const items = BACKGROUND_PRESETS.filter((bg) => bg.category === key);
+      {BACKGROUNDS_BY_CATEGORY.map(({ key, label, items }) => {
         return (
           <div key={key} className="space-y-1.5">
             <p className="text-xs text-muted-foreground/70">{label}</p>
@@ -56,3 +63,5 @@ export function BackgroundSelector({ selected, onChange }: BackgroundSelectorPro
     </div>
   );
 }
+
+export const BackgroundSelector = memo(BackgroundSelectorComponent);

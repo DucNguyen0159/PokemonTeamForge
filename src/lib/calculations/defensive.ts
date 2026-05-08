@@ -13,18 +13,30 @@ export function calculateDefensiveCoverage(team: Team): DefensiveCoverageResult 
   const weaknessThreshold = Math.max(2, Math.ceil(activeSlots.length / 2));
 
   const entries: DefensiveCoverageEntry[] = ALL_POKEMON_TYPES.map((attackingType) => {
-    const affectedPokemon = activeSlots.map((slot) => ({
-      pokemonId: slot.pokemon.id,
-      pokemonName: slot.pokemon.name,
-      multiplier: calculateTypeEffectiveness(attackingType, getPokemonTypes(slot)),
-    }));
+    let weakCount = 0;
+    let resistCount = 0;
+    let immuneCount = 0;
+    let neutralCount = 0;
 
-    const weakCount = affectedPokemon.filter((entry) => entry.multiplier > 1).length;
-    const resistCount = affectedPokemon.filter(
-      (entry) => entry.multiplier > 0 && entry.multiplier < 1,
-    ).length;
-    const immuneCount = affectedPokemon.filter((entry) => entry.multiplier === 0).length;
-    const neutralCount = affectedPokemon.filter((entry) => entry.multiplier === 1).length;
+    const affectedPokemon = activeSlots.map((slot) => {
+      const multiplier = calculateTypeEffectiveness(attackingType, getPokemonTypes(slot));
+
+      if (multiplier > 1) {
+        weakCount += 1;
+      } else if (multiplier === 0) {
+        immuneCount += 1;
+      } else if (multiplier < 1) {
+        resistCount += 1;
+      } else {
+        neutralCount += 1;
+      }
+
+      return {
+        pokemonId: slot.pokemon.id,
+        pokemonName: slot.pokemon.name,
+        multiplier,
+      };
+    });
 
     return {
       type: attackingType,

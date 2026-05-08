@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Shield, Swords } from "lucide-react";
 
 import { TypeBadge } from "@/components/shared/type-badge";
@@ -11,7 +11,11 @@ import { cn } from "@/utils";
 
 type CoverageTab = "defensive" | "offensive";
 
-function DefensiveCoverageRow({ entry }: { entry: DefensiveCoverageEntry }) {
+const DefensiveCoverageRow = memo(function DefensiveCoverageRow({
+  entry,
+}: {
+  entry: DefensiveCoverageEntry;
+}) {
   return (
     <div
       className={cn(
@@ -27,9 +31,13 @@ function DefensiveCoverageRow({ entry }: { entry: DefensiveCoverageEntry }) {
       </div>
     </div>
   );
-}
+});
 
-function OffensiveCoverageRow({ entry }: { entry: OffensiveCoverageEntry }) {
+const OffensiveCoverageRow = memo(function OffensiveCoverageRow({
+  entry,
+}: {
+  entry: OffensiveCoverageEntry;
+}) {
   return (
     <div className="flex items-start justify-between gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-white/[0.03]">
       <TypeBadge type={entry.targetType} />
@@ -56,9 +64,9 @@ function OffensiveCoverageRow({ entry }: { entry: OffensiveCoverageEntry }) {
       </div>
     </div>
   );
-}
+});
 
-function SummaryTypeList({
+const SummaryTypeList = memo(function SummaryTypeList({
   types,
   emptyLabel,
 }: {
@@ -79,7 +87,7 @@ function SummaryTypeList({
       ) : null}
     </div>
   );
-}
+});
 
 export function CoveragePanel() {
   const [tab, setTab] = useState<CoverageTab>("defensive");
@@ -87,11 +95,17 @@ export function CoveragePanel() {
 
   const activePokemonCount = useMemo(
     () => team.pokemon.filter((slot) => slot.pokemon !== null).length,
-    [team],
+    [team.pokemon],
   );
 
-  const defensiveCoverage = useMemo(() => calculateDefensiveCoverage(team), [team]);
-  const offensiveCoverage = useMemo(() => calculateOffensiveCoverage(team), [team]);
+  const defensiveCoverage = useMemo(
+    () => (tab === "defensive" ? calculateDefensiveCoverage(team) : null),
+    [tab, team],
+  );
+  const offensiveCoverage = useMemo(
+    () => (tab === "offensive" ? calculateOffensiveCoverage(team) : null),
+    [tab, team],
+  );
 
   const coverageHint =
     activePokemonCount === 0
@@ -135,7 +149,7 @@ export function CoveragePanel() {
         </div>
       </div>
 
-      {tab === "defensive" ? (
+      {tab === "defensive" && defensiveCoverage ? (
         <div className="grid gap-2 rounded-xl border border-border/40 bg-background/25 p-2">
           <div className="flex items-start justify-between gap-2">
             <span className="text-xs text-muted-foreground">Major weaknesses</span>
@@ -152,7 +166,7 @@ export function CoveragePanel() {
             />
           </div>
         </div>
-      ) : (
+      ) : offensiveCoverage ? (
         <div className="grid gap-2 rounded-xl border border-border/40 bg-background/25 p-2">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Covered types</span>
@@ -168,7 +182,7 @@ export function CoveragePanel() {
             />
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="flex items-center justify-end gap-3 px-2">
         {tab === "defensive" ? (
@@ -185,11 +199,11 @@ export function CoveragePanel() {
       </div>
 
       <div className="-mx-1 flex max-h-[340px] flex-col overflow-y-auto pr-1">
-        {tab === "defensive"
+        {tab === "defensive" && defensiveCoverage
           ? defensiveCoverage.entries.map((entry) => (
               <DefensiveCoverageRow key={entry.type} entry={entry} />
             ))
-          : offensiveCoverage.entries.map((entry) => (
+          : offensiveCoverage?.entries.map((entry) => (
               <OffensiveCoverageRow key={entry.targetType} entry={entry} />
             ))}
       </div>

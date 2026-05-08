@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, memo, useMemo } from "react";
 
 import type { BackgroundPreset, TrainerPreset } from "@/data/team-card-assets";
 import { TYPE_COLORS } from "@/components/shared/type-badge";
@@ -30,12 +30,15 @@ const FORMAT_LABEL: Record<BattleFormat, string> = {
 const SLOT_COUNT = 6;
 const EMPTY_SPRITE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Ccircle cx='48' cy='48' r='44' fill='%23ffffff12' stroke='%23ffffff22' stroke-width='2'/%3E%3Ccircle cx='48' cy='48' r='18' fill='%23ffffff18'/%3E%3C/svg%3E";
 
-export const TeamCardPreview = forwardRef<HTMLDivElement, TeamCardPreviewProps>(
+const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps>(
   function TeamCardPreview(
     { teamSlots, teamName, format, background, trainer, spriteMode, showNames, showTypes },
     ref,
   ) {
-    const filledSlots = Array.from({ length: SLOT_COUNT }, (_, i) => teamSlots[i] ?? null);
+    const filledSlots = useMemo(
+      () => Array.from({ length: SLOT_COUNT }, (_, i) => teamSlots[i] ?? null),
+      [teamSlots],
+    );
 
     return (
       <div
@@ -312,3 +315,5 @@ export const TeamCardPreview = forwardRef<HTMLDivElement, TeamCardPreviewProps>(
     );
   },
 );
+
+export const TeamCardPreview = memo(TeamCardPreviewComponent);

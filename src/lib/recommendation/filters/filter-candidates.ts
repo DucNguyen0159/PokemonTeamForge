@@ -16,8 +16,7 @@ function hasAnyMoveTag(pokemon: Pokemon, tags: MoveTag[]): boolean {
   return pokemon.moves.some((move) => {
     const staticTags = MOVE_TAGS[move.slug] ?? [];
     const intrinsicTags = move.tags ?? [];
-    const allTags = [...staticTags, ...intrinsicTags];
-    return tags.some((tag) => allTags.includes(tag));
+    return tags.some((tag) => staticTags.includes(tag) || intrinsicTags.includes(tag));
   });
 }
 

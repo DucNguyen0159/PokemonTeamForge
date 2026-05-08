@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ChevronDown,
@@ -85,11 +85,13 @@ const STAT_TIERS: { value: StatTier; label: string }[] = [
 async function fetchRecommendations(
   team: unknown,
   filters: RecommendationFilters,
+  signal?: AbortSignal,
 ): Promise<RecommendationResult[]> {
   const response = await fetch("/api/recommendation", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ team, filters }),
+    signal,
   });
 
   const payload = (await response.json()) as {
@@ -122,7 +124,7 @@ async function fetchPokemonDetail(slug: string): Promise<PokemonDetail> {
 
 // ─── sub-components ───────────────────────────────────────────────────────────
 
-function ReasonPill({ reason }: { reason: RecommendationReason }) {
+const ReasonPill = memo(function ReasonPill({ reason }: { reason: RecommendationReason }) {
   const meta = REASON_META[reason.type];
   const Icon = meta.icon;
 
@@ -136,18 +138,23 @@ function ReasonPill({ reason }: { reason: RecommendationReason }) {
       {reason.message}
     </span>
   );
-}
+});
 
 type CardState = "idle" | "adding" | "added" | "error";
 
-function RecommendationCard({ result }: { result: RecommendationResult }) {
+const RecommendationCard = memo(function RecommendationCard({
+  result,
+}: {
+  result: RecommendationResult;
+}) {
   const [state, setState] = useState<CardState>("idle");
   const addPokemon = useTeamStore((s) => s.addPokemon);
   const { pokemon, reasons, score, matchedRoles } = result;
 
-  const positiveReasons = reasons
-    .filter((r) => r.type !== "penalty" && r.scoreImpact > 0)
-    .slice(0, 2);
+  const positiveReasons = useMemo(
+    () => reasons.filter((r) => r.type !== "penalty" && r.scoreImpact > 0).slice(0, 2),
+    [reasons],
+  );
 
   async function handleAdd() {
     const slot =
@@ -258,11 +265,11 @@ function RecommendationCard({ result }: { result: RecommendationResult }) {
       </Button>
     </div>
   );
-}
+});
 
 // ─── filters row ──────────────────────────────────────────────────────────────
 
-function FiltersRow({
+const FiltersRow = memo(function FiltersRow({
   filters,
   setFilters,
 }: {
@@ -359,27 +366,34 @@ function FiltersRow({
       </div>
     </div>
   );
-}
+});
 
 // ─── main panel ───────────────────────────────────────────────────────────────
 
 export function RecommendationPanel() {
   const team = useTeamStore((s) => s.team);
-  const { filters, results, isLoading, error, setFilters, setResults, setIsLoading, setError } =
-    useRecommendationStore();
+  const filters = useRecommendationStore((state) => state.filters);
+  const results = useRecommendationStore((state) => state.results);
+  const isLoading = useRecommendationStore((state) => state.isLoading);
+  const error = useRecommendationStore((state) => state.error);
+  const setFilters = useRecommendationStore((state) => state.setFilters);
+  const setResults = useRecommendationStore((state) => state.setResults);
+  const setIsLoading = useRecommendationStore((state) => state.setIsLoading);
+  const setError = useRecommendationStore((state) => state.setError);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const activePokemonCount = team.pokemon.filter((slot) => slot.pokemon !== null).length;
+  const activePokemonCount = useMemo(
+    () => team.pokemon.filter((slot) => slot.pokemon !== null).length,
+    [team.pokemon],
+  );
 
-  function runFetch(currentFilters: RecommendationFilters) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    debounceRef.current = setTimeout(async () => {
+  const executeFetch = useCallback(
+    async (currentFilters: RecommendationFilters, signal?: AbortSignal) => {
       if (activePokemonCount === 0) {
         setResults([]);
         setError(null);
+        setIsLoading(false);
         return;
       }
 
@@ -387,29 +401,40 @@ export function RecommendationPanel() {
       setError(null);
 
       try {
-        const fetched = await fetchRecommendations(team, currentFilters);
+        const fetched = await fetchRecommendations(team, currentFilters, signal);
         setResults(fetched);
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
         setError(err instanceof Error ? err.message : "Something went wrong.");
       } finally {
-        setIsLoading(false);
+        if (!signal?.aborted) {
+          setIsLoading(false);
+        }
       }
-    }, 400);
-  }
+    },
+    [activePokemonCount, setError, setIsLoading, setResults, team],
+  );
 
   useEffect(() => {
-    runFetch(filters);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team, filters]);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      void executeFetch(filters, controller.signal);
+    }, 300);
 
-  function handleSetFilters(partial: Partial<RecommendationFilters>) {
-    const next = { ...filters, ...partial };
-    setFilters(partial);
-    runFetch(next);
-  }
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [executeFetch, filters]);
+
+  const handleSetFilters = useCallback(
+    (partial: Partial<RecommendationFilters>) => {
+      setFilters(partial);
+    },
+    [setFilters],
+  );
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-md">
@@ -448,7 +473,9 @@ export function RecommendationPanel() {
 
           <button
             type="button"
-            onClick={() => runFetch(filters)}
+            onClick={() => {
+              void executeFetch(filters);
+            }}
             disabled={isLoading || activePokemonCount === 0}
             aria-label="Refresh recommendations"
             className={cn(

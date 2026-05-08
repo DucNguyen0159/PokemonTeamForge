@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Download, Check, AlertCircle } from "lucide-react";
-import { toPng } from "html-to-image";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils";
@@ -15,7 +14,7 @@ type ExportButtonProps = {
   className?: string;
 };
 
-export function ExportButton({ cardRef, teamName, className }: ExportButtonProps) {
+function ExportButtonComponent({ cardRef, teamName, className }: ExportButtonProps) {
   const [status, setStatus] = useState<ExportStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -28,6 +27,7 @@ export function ExportButton({ cardRef, teamName, className }: ExportButtonProps
     setErrorMessage(null);
 
     try {
+      const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(cardRef.current, {
         pixelRatio: 2,
         cacheBust: true,
@@ -100,3 +100,5 @@ export function ExportButton({ cardRef, teamName, className }: ExportButtonProps
     </div>
   );
 }
+
+export const ExportButton = memo(ExportButtonComponent);

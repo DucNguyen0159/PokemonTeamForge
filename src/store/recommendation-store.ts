@@ -37,14 +37,24 @@ export const useRecommendationStore = create<RecommendationStoreState>((set) => 
   isLoading: false,
   error: null,
   setFilters: (filters) =>
-    set((state) => ({
-      filters: {
+    set((state) => {
+      const nextFilters = {
         ...state.filters,
         ...filters,
-      },
-    })),
-  setResults: (results) => set({ results }),
-  setIsLoading: (value) => set({ isLoading: value }),
-  setError: (message) => set({ error: message }),
+      };
+
+      const hasChanges = Object.entries(filters).some(
+        ([key, value]) =>
+          state.filters[key as keyof RecommendationFilters] !== value,
+      );
+
+      return hasChanges ? { filters: nextFilters } : state;
+    }),
+  setResults: (results) =>
+    set((state) => (state.results === results ? state : { results })),
+  setIsLoading: (value) =>
+    set((state) => (state.isLoading === value ? state : { isLoading: value })),
+  setError: (message) =>
+    set((state) => (state.error === message ? state : { error: message })),
   clearResults: () => set({ results: [] }),
 }));

@@ -1,6 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { memo } from "react";
+
 import { cn } from "@/utils";
 import { TRAINER_PRESETS, type TrainerPreset } from "@/data/team-card-assets";
 
@@ -9,7 +11,7 @@ type TrainerSelectorProps = {
   onChange: (trainer: TrainerPreset) => void;
 };
 
-export function TrainerSelector({ selected, onChange }: TrainerSelectorProps) {
+function TrainerSelectorComponent({ selected, onChange }: TrainerSelectorProps) {
   return (
     <div className="space-y-3">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -47,3 +49,5 @@ export function TrainerSelector({ selected, onChange }: TrainerSelectorProps) {
     </div>
   );
 }
+
+export const TrainerSelector = memo(TrainerSelectorComponent);

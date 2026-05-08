@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { cn } from "@/utils";
 import type { PokemonType } from "@/types/shared";
 
@@ -28,7 +30,7 @@ type TypeBadgeProps = {
   className?: string;
 };
 
-export function TypeBadge({ type, size = "sm", className }: TypeBadgeProps) {
+function TypeBadgeComponent({ type, size = "sm", className }: TypeBadgeProps) {
   const color = TYPE_COLORS[type.toLowerCase()] ?? "#9ca3af";
 
   return (
@@ -44,3 +46,5 @@ export function TypeBadge({ type, size = "sm", className }: TypeBadgeProps) {
     </span>
   );
 }
+
+export const TypeBadge = memo(TypeBadgeComponent);

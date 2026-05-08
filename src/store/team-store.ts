@@ -86,12 +86,18 @@ const updateSlot = (
     return team;
   }
 
-  return {
-    ...team,
-    pokemon: team.pokemon.map((teamSlot) =>
-      teamSlot.slot === slot ? updater(teamSlot) : teamSlot,
-    ),
-  };
+  let didChange = false;
+  const pokemon = team.pokemon.map((teamSlot) => {
+    if (teamSlot.slot !== slot) {
+      return teamSlot;
+    }
+
+    const nextSlot = updater(teamSlot);
+    didChange = nextSlot !== teamSlot;
+    return nextSlot;
+  });
+
+  return didChange ? { ...team, pokemon } : team;
 };
 
 export const useTeamStore = create<TeamStoreState>()(
@@ -100,20 +106,29 @@ export const useTeamStore = create<TeamStoreState>()(
       team: createEmptyTeam(),
 
       setFormat: (format) =>
-        set((state) => ({
-          team: {
-            ...state.team,
-            format,
-          },
-        })),
+        set((state) =>
+          state.team.format === format
+            ? state
+            : {
+                team: {
+                  ...state.team,
+                  format,
+                },
+              },
+        ),
 
       setTeamName: (name) =>
-        set((state) => ({
-          team: {
-            ...state.team,
-            name: name.trim() || "Untitled Team",
-          },
-        })),
+        set((state) => {
+          const nextName = name.trim() || "Untitled Team";
+          return state.team.name === nextName
+            ? state
+            : {
+                team: {
+                  ...state.team,
+                  name: nextName,
+                },
+              };
+        }),
 
       addPokemon: (slot, pokemon) =>
         set((state) => ({
@@ -143,30 +158,48 @@ export const useTeamStore = create<TeamStoreState>()(
         })),
 
       setAbility: (slot, ability) =>
-        set((state) => ({
-          team: updateSlot(state.team, slot, (teamSlot) => ({
-            ...teamSlot,
-            selectedAbility: ability,
-          })),
-        })),
+        set((state) => {
+          const nextTeam = updateSlot(state.team, slot, (teamSlot) =>
+            teamSlot.selectedAbility?.id === ability?.id
+              ? teamSlot
+              : {
+                  ...teamSlot,
+                  selectedAbility: ability,
+                },
+          );
+          return nextTeam === state.team ? state : { team: nextTeam };
+        }),
 
       setItem: (slot, item) =>
-        set((state) => ({
-          team: updateSlot(state.team, slot, (teamSlot) => ({
-            ...teamSlot,
-            selectedItem: item,
-          })),
-        })),
+        set((state) => {
+          const nextTeam = updateSlot(state.team, slot, (teamSlot) =>
+            teamSlot.selectedItem?.id === item?.id
+              ? teamSlot
+              : {
+                  ...teamSlot,
+                  selectedItem: item,
+                },
+          );
+          return nextTeam === state.team ? state : { team: nextTeam };
+        }),
 
       setMove: (pokemonSlot, moveSlot, move) =>
-        set((state) => ({
-          team: updateSlot(state.team, pokemonSlot, (teamSlot) => ({
-            ...teamSlot,
-            moves: teamSlot.moves.map((entry) =>
-              entry.slot === moveSlot ? { ...entry, move } : entry,
-            ),
-          })),
-        })),
+        set((state) => {
+          const nextTeam = updateSlot(state.team, pokemonSlot, (teamSlot) => {
+            const currentMove = teamSlot.moves.find((entry) => entry.slot === moveSlot)?.move;
+            if (currentMove?.id === move?.id) {
+              return teamSlot;
+            }
+
+            return {
+              ...teamSlot,
+              moves: teamSlot.moves.map((entry) =>
+                entry.slot === moveSlot ? { ...entry, move } : entry,
+              ),
+            };
+          });
+          return nextTeam === state.team ? state : { team: nextTeam };
+        }),
 
       clearTeam: () =>
         set((state) => ({

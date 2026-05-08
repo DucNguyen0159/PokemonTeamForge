@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/utils";
 import type { SpriteMode } from "./team-card-preview";
@@ -9,7 +10,7 @@ type SpriteModeToggleProps = {
   onChange: (mode: SpriteMode) => void;
 };
 
-export function SpriteModeToggle({ mode, onChange }: SpriteModeToggleProps) {
+function SpriteModeToggleComponent({ mode, onChange }: SpriteModeToggleProps) {
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -49,3 +50,5 @@ export function SpriteModeToggle({ mode, onChange }: SpriteModeToggleProps) {
     </div>
   );
 }
+
+export const SpriteModeToggle = memo(SpriteModeToggleComponent);

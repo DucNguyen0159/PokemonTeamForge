@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 
 import { cn } from "@/utils";
@@ -24,7 +24,7 @@ type SlotSelectorProps = {
   noOptionsText?: string;
 };
 
-export function SlotSelector({
+function SlotSelectorComponent({
   label,
   selected,
   options,
@@ -36,23 +36,29 @@ export function SlotSelector({
   noOptionsText = "No options found",
 }: SlotSelectorProps) {
   const [search, setSearch] = useState("");
-  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
-  // Reset search when dropdown opens (state adjustment during render — no effect needed)
-  if (prevIsOpen !== isOpen) {
-    setPrevIsOpen(isOpen);
-    if (isOpen) setSearch("");
-  }
+  const handleToggle = useCallback(() => {
+    if (!isOpen) {
+      setSearch("");
+    }
+    onToggle();
+  }, [isOpen, onToggle]);
 
-  const filtered = search.trim()
-    ? options.filter((o) => o.name.toLowerCase().includes(search.toLowerCase()))
-    : options;
+  const deferredSearch = useDeferredValue(search);
+  const normalizedSearch = deferredSearch.trim().toLowerCase();
+  const filtered = useMemo(
+    () =>
+      normalizedSearch
+        ? options.filter((o) => o.name.toLowerCase().includes(normalizedSearch))
+        : options,
+    [normalizedSearch, options],
+  );
 
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={onToggle}
+        onClick={handleToggle}
         aria-expanded={isOpen}
         className={cn(
           "flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors",
@@ -153,3 +159,5 @@ export function SlotSelector({
     </div>
   );
 }
+
+export const SlotSelector = memo(SlotSelectorComponent);

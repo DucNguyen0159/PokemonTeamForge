@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { RefreshCw, Trash2 } from "lucide-react";
 
@@ -31,13 +31,15 @@ const ITEMS_AS_OPTIONS: SelectorOption[] = MOCK_ITEMS.map((item) => ({
   slug: item.slug,
   meta: item.tags?.[0]?.replace(/_/g, " "),
 }));
+const EMPTY_ABILITIES: Ability[] = [];
+const EMPTY_MOVES: Move[] = [];
 
 type PokemonSlotProps = {
   teamSlot: TeamPokemon;
   className?: string;
 };
 
-export function PokemonSlot({ teamSlot, className }: PokemonSlotProps) {
+function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
   const { slot, pokemon, selectedAbility, selectedItem, moves } = teamSlot;
 
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
@@ -53,6 +55,51 @@ export function PokemonSlot({ teamSlot, className }: PokemonSlotProps) {
   const toggle = useCallback(
     (panel: OpenPanel) => setOpenPanel((prev) => (prev === panel ? null : panel)),
     [],
+  );
+
+  const pokemonAbilities = pokemon?.abilities ?? EMPTY_ABILITIES;
+  const pokemonMoves = pokemon?.moves ?? EMPTY_MOVES;
+
+  const abilityOptions: SelectorOption[] = useMemo(
+    () =>
+      pokemonAbilities.map((a: Ability) => ({
+        id: a.id,
+        name: a.name,
+        slug: a.slug,
+        meta: a.isHidden ? "hidden" : undefined,
+      })),
+    [pokemonAbilities],
+  );
+
+  const moveOptions: SelectorOption[] = useMemo(
+    () =>
+      pokemonMoves.map((m: Move) => ({
+        id: m.id,
+        name: m.name,
+        slug: m.slug,
+        meta: m.type,
+      })),
+    [pokemonMoves],
+  );
+
+  const selectedAbilityOption = useMemo(
+    () =>
+      selectedAbility
+        ? {
+            id: selectedAbility.id,
+            name: selectedAbility.name,
+            slug: selectedAbility.slug,
+          }
+        : null,
+    [selectedAbility],
+  );
+
+  const selectedItemOption = useMemo(
+    () =>
+      selectedItem
+        ? { id: selectedItem.id, name: selectedItem.name, slug: selectedItem.slug }
+        : null,
+    [selectedItem],
   );
 
   // Close dropdowns on outside click
@@ -94,20 +141,6 @@ export function PokemonSlot({ teamSlot, className }: PokemonSlotProps) {
   }
 
   // --- Filled slot ---
-  const abilityOptions: SelectorOption[] = pokemon.abilities.map((a: Ability) => ({
-    id: a.id,
-    name: a.name,
-    slug: a.slug,
-    meta: a.isHidden ? "hidden" : undefined,
-  }));
-
-  const moveOptions: SelectorOption[] = pokemon.moves.map((m: Move) => ({
-    id: m.id,
-    name: m.name,
-    slug: m.slug,
-    meta: m.type,
-  }));
-
   return (
     <div
       ref={cardRef}
@@ -177,11 +210,7 @@ export function PokemonSlot({ teamSlot, className }: PokemonSlotProps) {
           <div className="flex flex-col gap-1.5">
             <SlotSelector
               label="Ability"
-              selected={
-                selectedAbility
-                  ? { id: selectedAbility.id, name: selectedAbility.name, slug: selectedAbility.slug }
-                  : null
-              }
+              selected={selectedAbilityOption}
               options={abilityOptions}
               isOpen={openPanel === "ability"}
               onToggle={() => toggle("ability")}
@@ -198,11 +227,7 @@ export function PokemonSlot({ teamSlot, className }: PokemonSlotProps) {
 
             <SlotSelector
               label="Item"
-              selected={
-                selectedItem
-                  ? { id: selectedItem.id, name: selectedItem.name, slug: selectedItem.slug }
-                  : null
-              }
+              selected={selectedItemOption}
               options={ITEMS_AS_OPTIONS}
               isOpen={openPanel === "item"}
               onToggle={() => toggle("item")}
@@ -258,3 +283,5 @@ export function PokemonSlot({ teamSlot, className }: PokemonSlotProps) {
     </div>
   );
 }
+
+export const PokemonSlot = memo(PokemonSlotComponent);

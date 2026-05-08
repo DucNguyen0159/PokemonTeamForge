@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, Tag, Type } from "lucide-react";
 
@@ -25,7 +25,10 @@ export function TeamCardGenerator() {
   const [showNames, setShowNames] = useState(true);
   const [showTypes, setShowTypes] = useState(true);
 
-  const filledSlotCount = team.pokemon.filter((s) => s.pokemon !== null).length;
+  const filledSlotCount = useMemo(
+    () => team.pokemon.filter((s) => s.pokemon !== null).length,
+    [team.pokemon],
+  );
   const hasTeam = filledSlotCount > 0;
 
   return (
