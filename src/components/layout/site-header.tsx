@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { Swords } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
+  { href: "/", label: "Home" },
   { href: "/builder", label: "Builder" },
   { href: "/pokedex", label: "Pokedex" },
   { href: "/strategies", label: "Strategies" },
@@ -10,18 +13,19 @@ const NAV_ITEMS = [
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
-      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="text-sm font-semibold tracking-wide text-slate-100">
+    <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
+      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <Link href="/" className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
+          <Swords className="h-4 w-4 text-primary" aria-hidden />
           PokemonTeamForge
         </Link>
 
-        <ul className="flex items-center gap-4 text-sm text-slate-300">
+        <ul className="hidden items-center gap-2 text-sm text-muted-foreground md:flex">
           {NAV_ITEMS.map((item) => (
             <li key={item.href}>
-              <Link href={item.href} className="transition hover:text-white">
-                {item.label}
-              </Link>
+              <Button asChild variant="ghost" size="sm">
+                <Link href={item.href}>{item.label}</Link>
+              </Button>
             </li>
           ))}
         </ul>
