@@ -12,6 +12,13 @@ export interface ApiResponse<T> {
   error?: ApiError;
 }
 
-export type PokemonListResponse = ApiResponse<PokemonListItem[]>;
+export interface PokemonListPayload {
+  pokemon: PokemonListItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type PokemonListResponse = ApiResponse<PokemonListPayload>;
 export type PokemonDetailResponse = ApiResponse<PokemonDetail>;
 export type RecommendationApiResponse = ApiResponse<RecommendationResponse>;
