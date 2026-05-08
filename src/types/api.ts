@@ -1,5 +1,6 @@
 import type { PokemonDetail, PokemonListItem } from "./pokemon";
 import type { RecommendationResponse } from "./recommendation";
+import type { StrategyTeam } from "./strategy";
 
 export interface ApiError {
   code: string;
@@ -22,3 +23,4 @@ export interface PokemonListPayload {
 export type PokemonListResponse = ApiResponse<PokemonListPayload>;
 export type PokemonDetailResponse = ApiResponse<PokemonDetail>;
 export type RecommendationApiResponse = ApiResponse<RecommendationResponse>;
+export type StrategyListResponse = ApiResponse<StrategyTeam[]>;
