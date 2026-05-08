@@ -1,0 +1,88 @@
+import type { Item } from "@/types/item";
+
+export const MOCK_ITEMS: Item[] = [
+  {
+    id: 1,
+    name: "Leftovers",
+    slug: "leftovers",
+    description: "Restores 1/16 of max HP each turn.",
+    tags: ["recovery"],
+  },
+  {
+    id: 2,
+    name: "Choice Band",
+    slug: "choice-band",
+    description: "Boosts Attack by 1.5×. Locks into one move.",
+    tags: ["choice_item", "damage_boost"],
+  },
+  {
+    id: 3,
+    name: "Choice Scarf",
+    slug: "choice-scarf",
+    description: "Boosts Speed by 1.5×. Locks into one move.",
+    tags: ["choice_item", "speed_boost"],
+  },
+  {
+    id: 4,
+    name: "Choice Specs",
+    slug: "choice-specs",
+    description: "Boosts Sp. Atk by 1.5×. Locks into one move.",
+    tags: ["choice_item", "damage_boost"],
+  },
+  {
+    id: 5,
+    name: "Focus Sash",
+    slug: "focus-sash",
+    description: "Survives a KO hit from full HP with 1 HP.",
+    tags: ["focus_sash"],
+  },
+  {
+    id: 6,
+    name: "Life Orb",
+    slug: "life-orb",
+    description: "Boosts power of moves by 1.3×; deals 10% recoil.",
+    tags: ["damage_boost"],
+  },
+  {
+    id: 7,
+    name: "Rocky Helmet",
+    slug: "rocky-helmet",
+    description: "Inflicts 1/6 damage to attackers on contact.",
+    tags: ["defense_boost"],
+  },
+  {
+    id: 8,
+    name: "Heavy-Duty Boots",
+    slug: "heavy-duty-boots",
+    description: "Prevents hazard damage on switch-in.",
+    tags: ["utility"],
+  },
+  {
+    id: 9,
+    name: "Assault Vest",
+    slug: "assault-vest",
+    description: "Raises Sp. Def by 1.5×. Only attacking moves allowed.",
+    tags: ["special_defense_boost"],
+  },
+  {
+    id: 10,
+    name: "Eviolite",
+    slug: "eviolite",
+    description: "Raises Def and Sp. Def of not-fully-evolved Pokémon by 1.5×.",
+    tags: ["defense_boost", "special_defense_boost"],
+  },
+  {
+    id: 11,
+    name: "Toxic Orb",
+    slug: "toxic-orb",
+    description: "Badly poisons the holder at end of turn.",
+    tags: ["utility"],
+  },
+  {
+    id: 12,
+    name: "Black Sludge",
+    slug: "black-sludge",
+    description: "Restores HP for Poison-types; damages others.",
+    tags: ["recovery"],
+  },
+];
