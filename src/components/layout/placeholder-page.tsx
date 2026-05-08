@@ -25,7 +25,7 @@ export function PlaceholderPage({
   className,
 }: PlaceholderPageProps) {
   return (
-    <div className={cn("mx-auto w-full max-w-4xl space-y-6", className)}>
+    <div className={cn("mx-auto w-full max-w-4xl space-y-6 px-4 py-8", className)}>
       {eyebrow ? (
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {eyebrow}

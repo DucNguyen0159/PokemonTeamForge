@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function HomePage() {
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-10">
+    <div className="mx-auto w-full max-w-5xl space-y-10 px-4 py-8">
       <section className="space-y-4 text-center sm:text-left">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           PokemonTeamForge
