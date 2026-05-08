@@ -29,6 +29,8 @@ const FORMAT_LABEL: Record<BattleFormat, string> = {
 
 const SLOT_COUNT = 6;
 const EMPTY_SPRITE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Ccircle cx='48' cy='48' r='44' fill='%23ffffff12' stroke='%23ffffff22' stroke-width='2'/%3E%3Ccircle cx='48' cy='48' r='18' fill='%23ffffff18'/%3E%3C/svg%3E";
+const TRAINER_PLACEHOLDER = "/placeholders/trainer-placeholder.svg";
+const POKEMON_PLACEHOLDER = "/placeholders/pokemon-placeholder.svg";
 
 const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps>(
   function TeamCardPreview(
@@ -161,6 +163,9 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                 src={trainer.imagePath}
                 alt={trainer.name}
                 crossOrigin="anonymous"
+                onError={(event) => {
+                  event.currentTarget.src = TRAINER_PLACEHOLDER;
+                }}
                 style={{
                   maxHeight: "100%",
                   maxWidth: "100%",
@@ -197,8 +202,8 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                   pokemon
                     ? spriteMode === "shiny"
                       ? (pokemon.spriteShiny ?? pokemon.spriteNormal)
-                      : pokemon.spriteNormal
-                    : EMPTY_SPRITE;
+                      : (pokemon.spriteNormal ?? pokemon.spriteShiny)
+                    : null;
                 const primaryType = pokemon?.primaryType;
                 const typeColor = primaryType ? TYPE_COLORS[primaryType] : null;
 
@@ -220,9 +225,12 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                     }}
                   >
                     <img
-                      src={spriteUrl}
+                      src={spriteUrl ?? POKEMON_PLACEHOLDER}
                       alt={pokemon?.name ?? `Slot ${idx + 1}`}
                       crossOrigin="anonymous"
+                      onError={(event) => {
+                        event.currentTarget.src = pokemon ? POKEMON_PLACEHOLDER : EMPTY_SPRITE;
+                      }}
                       style={{
                         width: "clamp(36px, 6vw, 72px)",
                         height: "clamp(36px, 6vw, 72px)",

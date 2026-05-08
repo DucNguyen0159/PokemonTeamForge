@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -26,6 +25,8 @@ import type {
 import type { PokemonType, StatTier, TeamRole } from "@/types/shared";
 import { cn } from "@/utils";
 import { TypeBadge } from "@/components/shared/type-badge";
+import { PokemonSprite } from "@/components/shared/pokemon-sprite";
+import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
 import { useRecommendationStore } from "@/store/recommendation-store";
 import { useTeamStore } from "@/store/team-store";
@@ -87,21 +88,36 @@ async function fetchRecommendations(
   filters: RecommendationFilters,
   signal?: AbortSignal,
 ): Promise<RecommendationResult[]> {
-  const response = await fetch("/api/recommendation", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ team, filters }),
-    signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch("/api/recommendation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ team, filters }),
+      signal,
+    });
+  } catch {
+    throw new Error("You seem to be offline. Please check your connection and try again.");
+  }
 
-  const payload = (await response.json()) as {
+  let payload: {
     success: boolean;
     data?: { results: RecommendationResult[] };
     error?: { message?: string };
-  };
+  } | null = null;
 
-  if (!response.ok || !payload.success || !payload.data) {
-    throw new Error(payload.error?.message ?? "Failed to load recommendations.");
+  try {
+    payload = (await response.json()) as {
+      success: boolean;
+      data?: { results: RecommendationResult[] };
+      error?: { message?: string };
+    };
+  } catch {
+    throw new Error("Recommendations are temporarily unavailable. Please try again.");
+  }
+
+  if (!response.ok || !payload?.success || !payload.data) {
+    throw new Error(payload?.error?.message ?? "Failed to load recommendations.");
   }
 
   return payload.data.results;
@@ -109,14 +125,24 @@ async function fetchRecommendations(
 
 async function fetchPokemonDetail(slug: string): Promise<PokemonDetail> {
   const response = await fetch(`/api/pokemon/${encodeURIComponent(slug)}`);
-  const payload = (await response.json()) as {
+  let payload: {
     success: boolean;
     data?: PokemonDetail;
     error?: { message?: string };
-  };
+  } | null = null;
 
-  if (!response.ok || !payload.success || !payload.data) {
-    throw new Error(payload.error?.message ?? "Could not load Pokémon.");
+  try {
+    payload = (await response.json()) as {
+      success: boolean;
+      data?: PokemonDetail;
+      error?: { message?: string };
+    };
+  } catch {
+    throw new Error("Could not load Pokemon right now.");
+  }
+
+  if (!response.ok || !payload?.success || !payload.data) {
+    throw new Error(payload?.error?.message ?? "Could not load Pokemon.");
   }
 
   return payload.data;
@@ -188,20 +214,12 @@ const RecommendationCard = memo(function RecommendationCard({
       <div className="flex items-start gap-2.5">
         {/* sprite */}
         <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-muted/50">
-          {pokemon.spriteNormal ? (
-            <Image
-              src={pokemon.spriteNormal}
-              alt=""
-              width={48}
-              height={48}
-              className="h-full w-full object-contain p-0.5"
-              unoptimized
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-              —
-            </div>
-          )}
+          <PokemonSprite
+            src={pokemon.spriteNormal}
+            alt={pokemon.name}
+            size={48}
+            className="h-full w-full object-contain p-0.5"
+          />
         </div>
 
         {/* name + badges + meta */}
@@ -508,9 +526,14 @@ export function RecommendationPanel() {
           Analyzing team…
         </div>
       ) : error ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
-          {error}
-        </p>
+        <ErrorMessage
+          title="Recommendations unavailable"
+          message={error}
+          onRetry={() => {
+            void executeFetch(filters);
+          }}
+          isRetrying={isLoading}
+        />
       ) : results.length === 0 ? (
         <p className="py-4 text-center text-xs text-muted-foreground/60">
           No candidates match the current filters.

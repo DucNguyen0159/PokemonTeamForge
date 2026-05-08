@@ -1,7 +1,6 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { RefreshCw, Trash2 } from "lucide-react";
 
 import { cn } from "@/utils";
@@ -11,6 +10,7 @@ import type { Ability } from "@/types/ability";
 import type { Move } from "@/types/move";
 import { MOCK_ITEMS } from "@/data/mock-items";
 import { TypeBadge } from "@/components/shared/type-badge";
+import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { SlotSelector, type SelectorOption } from "./slot-selector";
 import { PokemonPicker } from "./pokemon-picker";
 import { EmptyPokemonSlot } from "./empty-pokemon-slot";
@@ -164,12 +164,11 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-background/60">
-                <Image
+                <PokemonSprite
                   src={pokemon.spriteNormal}
                   alt={pokemon.name}
-                  fill
-                  sizes="48px"
-                  className="object-contain"
+                  size={48}
+                  className="h-full w-full object-contain"
                 />
               </div>
               <div className="min-w-0">

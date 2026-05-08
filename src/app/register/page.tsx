@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -95,9 +96,10 @@ export default function RegisterPage() {
         </label>
 
         {(formError || authError) && (
-          <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
-            {formError ?? authError}
-          </p>
+          <ErrorMessage
+            title="Registration failed"
+            message={formError ?? authError ?? "Unable to register right now."}
+          />
         )}
 
         {feedback && (

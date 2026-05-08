@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { LayoutGrid, List, Loader2, Plus, Search } from "lucide-react";
@@ -13,6 +12,8 @@ import type { PokemonDetail } from "@/types/pokemon";
 import type { PokemonType } from "@/types/shared";
 import { cn } from "@/utils";
 import { TypeBadge } from "@/components/shared/type-badge";
+import { PokemonSprite } from "@/components/shared/pokemon-sprite";
+import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
 import { useTeamStore } from "@/store/team-store";
 
@@ -22,20 +23,35 @@ const GENERATIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 type ViewMode = "cards" | "table";
 
 async function fetchPokemonList(searchParams: URLSearchParams): Promise<PokemonListPayload> {
-  const response = await fetch(`/api/pokemon?${searchParams.toString()}`);
+  let response: Response;
+  try {
+    response = await fetch(`/api/pokemon?${searchParams.toString()}`);
+  } catch {
+    throw new Error("You seem to be offline. Please check your connection.");
+  }
 
   if (!response.ok) {
     throw new Error("Unable to load Pokémon right now.");
   }
 
-  const payload = (await response.json()) as {
+  let payload: {
     success: boolean;
     data?: PokemonListPayload;
     error?: { message?: string };
-  };
+  } | null = null;
 
-  if (!payload.success || !payload.data) {
-    throw new Error(payload.error?.message ?? "Unable to load Pokémon.");
+  try {
+    payload = (await response.json()) as {
+      success: boolean;
+      data?: PokemonListPayload;
+      error?: { message?: string };
+    };
+  } catch {
+    throw new Error("Pokemon list is temporarily unavailable. Please try again.");
+  }
+
+  if (!payload?.success || !payload.data) {
+    throw new Error(payload?.error?.message ?? "Unable to load Pokemon.");
   }
 
   return payload.data;
@@ -44,14 +60,24 @@ async function fetchPokemonList(searchParams: URLSearchParams): Promise<PokemonL
 async function fetchPokemonDetail(slug: string): Promise<PokemonDetail> {
   const response = await fetch(`/api/pokemon/${encodeURIComponent(slug)}`);
 
-  const payload = (await response.json()) as {
+  let payload: {
     success: boolean;
     data?: PokemonDetail;
     error?: { message?: string };
-  };
+  } | null = null;
 
-  if (!response.ok || !payload.success || !payload.data) {
-    throw new Error(payload.error?.message ?? "Could not load that Pokémon.");
+  try {
+    payload = (await response.json()) as {
+      success: boolean;
+      data?: PokemonDetail;
+      error?: { message?: string };
+    };
+  } catch {
+    throw new Error("Could not load that Pokemon.");
+  }
+
+  if (!response.ok || !payload?.success || !payload.data) {
+    throw new Error(payload?.error?.message ?? "Could not load that Pokemon.");
   }
 
   return payload.data;
@@ -298,9 +324,18 @@ export function PokedexExplorer() {
           Loading Pokémon…
         </div>
       ) : listQuery.isError ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground">
-          {listQuery.error instanceof Error ? listQuery.error.message : "Something went wrong."}
-        </p>
+        <ErrorMessage
+          title="Pokedex unavailable"
+          message={
+            listQuery.error instanceof Error
+              ? listQuery.error.message
+              : "Something went wrong."
+          }
+          onRetry={() => {
+            void listQuery.refetch();
+          }}
+          isRetrying={listQuery.isFetching}
+        />
       ) : listQuery.data?.pokemon.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border/60 px-4 py-12 text-center text-sm text-muted-foreground">
           No Pokémon match these filters. Try clearing search or widening your filters.
@@ -314,20 +349,12 @@ export function PokedexExplorer() {
             >
               <div className="flex items-start gap-3">
                 <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-muted/50">
-                  {pokemon.spriteNormal ? (
-                    <Image
-                      src={pokemon.spriteNormal}
-                      alt=""
-                      width={64}
-                      height={64}
-                      className="h-full w-full object-contain p-1"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-                      —
-                    </div>
-                  )}
+                  <PokemonSprite
+                    src={pokemon.spriteNormal}
+                    alt={pokemon.name}
+                    size={64}
+                    className="h-full w-full object-contain p-1"
+                  />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="truncate text-sm font-semibold text-foreground">{pokemon.name}</p>
@@ -377,16 +404,12 @@ export function PokedexExplorer() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-muted/50">
-                        {pokemon.spriteNormal ? (
-                          <Image
-                            src={pokemon.spriteNormal}
-                            alt=""
-                            width={40}
-                            height={40}
-                            className="h-full w-full object-contain p-1"
-                            unoptimized
-                          />
-                        ) : null}
+                        <PokemonSprite
+                          src={pokemon.spriteNormal}
+                          alt={pokemon.name}
+                          size={40}
+                          className="h-full w-full object-contain p-1"
+                        />
                       </div>
                       <div>
                         <p className="font-medium text-foreground">{pokemon.name}</p>

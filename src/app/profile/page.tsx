@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
 import {
   useDeleteTeamMutation,
@@ -133,17 +134,12 @@ export default function ProfilePage() {
           </Button>
         </div>
 
-        {(feedback || error) && (
-          <p
-            className={
-              feedback
-                ? "rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200"
-                : "rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground"
-            }
-          >
-            {feedback ?? error}
+        {feedback ? (
+          <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+            {feedback}
           </p>
-        )}
+        ) : null}
+        {error ? <ErrorMessage title="Action unavailable" message={error} /> : null}
 
         <div className="rounded-xl border border-border/60 bg-card/60 p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
@@ -163,11 +159,18 @@ export default function ProfilePage() {
           {teamsQuery.isLoading ? (
             <p className="text-xs text-muted-foreground">Loading your saved teams...</p>
           ) : teamsQuery.isError ? (
-            <p className="text-xs text-destructive-foreground">
-              {teamsQuery.error instanceof Error
-                ? teamsQuery.error.message
-                : "Unable to load your saved teams."}
-            </p>
+            <ErrorMessage
+              title="Saved teams unavailable"
+              message={
+                teamsQuery.error instanceof Error
+                  ? teamsQuery.error.message
+                  : "Unable to load your saved teams."
+              }
+              onRetry={() => {
+                void teamsQuery.refetch();
+              }}
+              isRetrying={teamsQuery.isRefetching}
+            />
           ) : teams.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               No saved teams yet. Build a team and click Save in the Team Builder.

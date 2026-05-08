@@ -1,13 +1,13 @@
 "use client";
 
 import { memo, useDeferredValue, useMemo, useState } from "react";
-import Image from "next/image";
 import { Search, X } from "lucide-react";
 
 import { cn } from "@/utils";
 import type { Pokemon } from "@/types/pokemon";
 import { MOCK_POKEMON } from "@/data/mock-pokemon";
 import { TypeBadge } from "@/components/shared/type-badge";
+import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 
 type PokemonPickerProps = {
   onSelect: (pokemon: Pokemon) => void;
@@ -77,7 +77,9 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-4 text-center text-xs text-muted-foreground">No Pokémon found</p>
+        <p className="py-4 text-center text-xs text-muted-foreground">
+          No Pokemon found. Try another name or type.
+        </p>
       ) : (
         <div className="grid grid-cols-1 gap-1.5 overflow-y-auto" style={{ maxHeight: "280px" }}>
           {filtered.map((pokemon) => (
@@ -92,12 +94,11 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
               )}
             >
               <div className="relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-background/60">
-                <Image
+                <PokemonSprite
                   src={pokemon.spriteNormal}
                   alt={pokemon.name}
-                  fill
-                  sizes="36px"
-                  className="object-contain"
+                  size={36}
+                  className="h-full w-full object-contain"
                 />
               </div>
               <div className="min-w-0 flex-1">

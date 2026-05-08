@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
 import { getStrategyTeams } from "@/lib/services/strategy-service";
-import type { ApiResponse } from "@/types/api";
 import type { DifficultyLevel } from "@/types/shared";
 import type { StrategyTeam, StrategyType } from "@/types/strategy";
+import { errorResponse, successResponse } from "@/lib/api/responses";
 
 const VALID_STRATEGY_TYPES: StrategyType[] = [
   "rain",
@@ -43,10 +42,15 @@ export async function GET(request: Request) {
       ? (difficultyParam as DifficultyLevel)
       : undefined;
 
-  const data = await getStrategyTeams({ strategyType, format, difficulty });
-
-  return NextResponse.json<ApiResponse<StrategyTeam[]>>({
-    success: true,
-    data,
-  });
+  try {
+    const data = await getStrategyTeams({ strategyType, format, difficulty });
+    return successResponse<StrategyTeam[]>(data);
+  } catch (error) {
+    console.error("[Strategies API]", error);
+    return errorResponse<StrategyTeam[]>(
+      "SERVER_ERROR",
+      "Unable to load strategy teams right now. Please try again.",
+      500,
+    );
+  }
 }

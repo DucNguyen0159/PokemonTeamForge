@@ -32,17 +32,32 @@ const createEmptyTeam = (format: BattleFormat = "singles"): Team => ({
   ),
 });
 
-const normalizeTeam = (team: Team): Team => {
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const normalizeFormat = (value: unknown): BattleFormat =>
+  value === "doubles" || value === "triples" ? value : "singles";
+
+const normalizeTeam = (team: unknown): Team => {
+  if (!isObject(team)) {
+    return createEmptyTeam();
+  }
+
+  const rawSlots = Array.isArray(team.pokemon)
+    ? (team.pokemon as TeamPokemon[])
+    : [];
+
   const normalizedSlots = Array.from({ length: TEAM_SLOT_COUNT }, (_, index) => {
     const targetSlot = index + 1;
-    const incoming = team.pokemon.find((slot) => slot.slot === targetSlot);
+    const incoming = rawSlots.find((slot) => slot?.slot === targetSlot);
 
     if (!incoming) {
       return createEmptyTeamSlot(targetSlot);
     }
 
+    const incomingMoves = Array.isArray(incoming.moves) ? incoming.moves : [];
     const moves = MOVE_SLOT_ORDER.map((moveSlot) => {
-      const incomingMove = incoming.moves.find((entry) => entry.slot === moveSlot);
+      const incomingMove = incomingMoves.find((entry) => entry.slot === moveSlot);
       return { slot: moveSlot, move: incomingMove?.move ?? null };
     });
 
@@ -58,7 +73,11 @@ const normalizeTeam = (team: Team): Team => {
 
   return {
     ...team,
-    format: team.format ?? "singles",
+    name:
+      typeof team.name === "string" && team.name.trim().length > 0
+        ? team.name
+        : "Untitled Team",
+    format: normalizeFormat(team.format),
     pokemon: normalizedSlots,
   };
 };
@@ -207,9 +226,14 @@ export const useTeamStore = create<TeamStoreState>()(
         })),
 
       loadTeam: (team) =>
-        set(() => ({
-          team: normalizeTeam(team),
-        })),
+        set(() => {
+          try {
+            return { team: normalizeTeam(team) };
+          } catch (error) {
+            console.error("[Team Store] Failed to load team", error);
+            return { team: createEmptyTeam() };
+          }
+        }),
     }),
     {
       name: TEAM_STORAGE_KEY,
@@ -222,7 +246,12 @@ export const useTeamStore = create<TeamStoreState>()(
         if (!state) {
           return;
         }
-        state.team = normalizeTeam(state.team);
+        try {
+          state.team = normalizeTeam(state.team);
+        } catch (error) {
+          console.error("[Team Store] Failed to recover local team", error);
+          state.team = createEmptyTeam();
+        }
       },
     },
   ),

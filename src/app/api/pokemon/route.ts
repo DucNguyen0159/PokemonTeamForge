@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { ALL_POKEMON_TYPES } from "@/data/type-chart";
 import type { PokemonType } from "@/types/shared";
-import type { ApiResponse, PokemonListPayload } from "@/types/api";
+import type { PokemonListPayload } from "@/types/api";
 import { getPokemonList } from "@/lib/services/pokemon-service";
+import { errorResponse, successResponse } from "@/lib/api/responses";
 
 function parseBooleanQuery(value: string | null): boolean | undefined {
   if (value === null) {
@@ -47,10 +47,15 @@ export async function GET(request: Request) {
     limit: parseNumberQuery(searchParams.get("limit")),
   };
 
-  const data = await getPokemonList(query);
-
-  return NextResponse.json<ApiResponse<PokemonListPayload>>({
-    success: true,
-    data,
-  });
+  try {
+    const data = await getPokemonList(query);
+    return successResponse<PokemonListPayload>(data);
+  } catch (error) {
+    console.error("[Pokemon List API]", error);
+    return errorResponse<PokemonListPayload>(
+      "SERVER_ERROR",
+      "Unable to load Pokemon right now. Please try again.",
+      500,
+    );
+  }
 }

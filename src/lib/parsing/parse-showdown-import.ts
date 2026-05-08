@@ -27,6 +27,10 @@ function extractSpecies(firstLine: string): { species: string; item?: string } {
   return { species: species.trim(), item };
 }
 
+function normalizeKey(value: string): string {
+  return value.trim().toLowerCase().replace(/[\s_]+/g, "-");
+}
+
 export function parseShowdownImport(input: string): ShowdownImportParseResult {
   const raw = input ?? "";
   const trimmed = raw.trim();
@@ -49,15 +53,34 @@ export function parseShowdownImport(input: string): ShowdownImportParseResult {
   const sets: ParsedImportSet[] = [];
   const errors: string[] = [];
   const warnings: string[] = [];
+  const seenSpecies = new Set<string>();
 
   blocks.forEach((lines, index) => {
     const slotLabel = `Set ${index + 1}`;
     const firstLine = lines[0];
+
+    if (
+      firstLine.startsWith("-") ||
+      firstLine.startsWith("Ability:") ||
+      firstLine.startsWith("EVs:") ||
+      firstLine.startsWith("IVs:")
+    ) {
+      errors.push(`${slotLabel}: this set is missing a Pokémon name line.`);
+      return;
+    }
+
     const { species, item } = extractSpecies(firstLine);
 
     if (!species) {
       errors.push(`${slotLabel}: missing Pokémon name.`);
       return;
+    }
+
+    const speciesKey = normalizeKey(species);
+    if (seenSpecies.has(speciesKey)) {
+      warnings.push(`${slotLabel}: duplicate Pokémon "${species}" was imported again.`);
+    } else {
+      seenSpecies.add(speciesKey);
     }
 
     let ability: string | undefined;
@@ -73,6 +96,8 @@ export function parseShowdownImport(input: string): ShowdownImportParseResult {
         const moveName = line.replace(/^-+\s*/, "").trim();
         if (moveName) {
           moves.push(moveName);
+        } else {
+          warnings.push(`${slotLabel}: ignored empty move line.`);
         }
         return;
       }

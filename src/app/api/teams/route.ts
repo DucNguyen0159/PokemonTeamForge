@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api/responses";
 
 export async function GET() {
-  return NextResponse.json({
-    status: "not_implemented",
-    message: "This endpoint is part of the initial scaffold.",
-  });
+  return errorResponse(
+    "NOT_IMPLEMENTED",
+    "Direct Team API route is not available. Please use the profile team actions.",
+    501,
+  );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -77,9 +78,10 @@ export default function LoginPage() {
         </label>
 
         {(formError || authError) && (
-          <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
-            {formError ?? authError}
-          </p>
+          <ErrorMessage
+            title="Sign in failed"
+            message={formError ?? authError ?? "Unable to sign in right now."}
+          />
         )}
 
         <div className="flex flex-wrap items-center gap-2">

@@ -1,9 +1,10 @@
 "use client";
 
 import { memo, useCallback, useState } from "react";
-import { Download, Check, AlertCircle } from "lucide-react";
+import { Download, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ErrorMessage } from "@/components/error/error-message";
 import { cn } from "@/utils";
 
 type ExportStatus = "idle" | "exporting" | "success" | "error";
@@ -51,11 +52,7 @@ function ExportButtonComponent({ cardRef, teamName, className }: ExportButtonPro
     } catch (error) {
       console.error("[TeamCard Export]", error);
       setStatus("error");
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Export failed. Please try again.",
-      );
+      setErrorMessage("Could not export the image. Please try again.");
       setTimeout(() => {
         setStatus("idle");
         setErrorMessage(null);
@@ -92,10 +89,7 @@ function ExportButtonComponent({ cardRef, teamName, className }: ExportButtonPro
       </Button>
 
       {status === "error" && errorMessage ? (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
-          <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          <span>{errorMessage}</span>
-        </div>
+        <ErrorMessage title="Export failed" message={errorMessage} />
       ) : null}
     </div>
   );

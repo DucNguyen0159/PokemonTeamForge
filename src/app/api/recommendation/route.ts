@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
 import { generateRecommendations } from "@/lib/recommendation";
-import type { ApiResponse } from "@/types/api";
 import type { RecommendationRequest, RecommendationResponse } from "@/types/recommendation";
+import { errorResponse, successResponse } from "@/lib/api/responses";
 
 function isRecommendationRequest(value: unknown): value is RecommendationRequest {
   if (!value || typeof value !== "object") {
@@ -17,34 +16,30 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json<ApiResponse<RecommendationResponse>>(
-      {
-        success: false,
-        error: {
-          code: "INVALID_JSON",
-          message: "Request body must be valid JSON.",
-        },
-      },
-      { status: 400 },
+    return errorResponse<RecommendationResponse>(
+      "INVALID_JSON",
+      "Request body must be valid JSON.",
+      400,
     );
   }
 
   if (!isRecommendationRequest(body)) {
-    return NextResponse.json<ApiResponse<RecommendationResponse>>(
-      {
-        success: false,
-        error: {
-          code: "INVALID_RECOMMENDATION_REQUEST",
-          message: "Body must include team and filters.",
-        },
-      },
-      { status: 400 },
+    return errorResponse<RecommendationResponse>(
+      "INVALID_RECOMMENDATION_REQUEST",
+      "Body must include team and filters.",
+      400,
     );
   }
 
-  const data = generateRecommendations(body);
-  return NextResponse.json<ApiResponse<RecommendationResponse>>({
-    success: true,
-    data,
-  });
+  try {
+    const data = generateRecommendations(body);
+    return successResponse<RecommendationResponse>(data);
+  } catch (error) {
+    console.error("[Recommendation API]", error);
+    return errorResponse<RecommendationResponse>(
+      "SERVER_ERROR",
+      "Recommendations are temporarily unavailable. Please try again.",
+      500,
+    );
+  }
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
@@ -11,6 +10,8 @@ import { useTeamStore } from "@/store/team-store";
 import type { StrategyListResponse } from "@/types/api";
 import type { StrategyTeam } from "@/types/strategy";
 import { TypeBadge } from "@/components/shared/type-badge";
+import { PokemonSprite } from "@/components/shared/pokemon-sprite";
+import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils";
 
@@ -85,13 +86,11 @@ function StrategyCard({
             className="flex items-center gap-2 rounded-xl border border-border/40 bg-background/35 p-2"
           >
             <div className="relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-muted/40">
-              <Image
+              <PokemonSprite
                 src={member.pokemon.spriteNormal}
-                alt=""
-                width={36}
-                height={36}
+                alt={member.pokemon.name}
+                size={36}
                 className="h-full w-full object-contain"
-                unoptimized
               />
             </div>
             <div className="min-w-0">
@@ -138,6 +137,7 @@ export function StrategyExplorer() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingTeamId, setLoadingTeamId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -156,10 +156,15 @@ export function StrategyExplorer() {
         const response = await fetch(
           `/api/strategies${queryString ? `?${queryString}` : ""}`,
         );
-        const payload = (await response.json()) as StrategyListResponse;
+        let payload: StrategyListResponse | null = null;
+        try {
+          payload = (await response.json()) as StrategyListResponse;
+        } catch {
+          throw new Error("Strategy teams are temporarily unavailable. Please try again.");
+        }
 
-        if (!response.ok || !payload.success || !payload.data) {
-          throw new Error(payload.error?.message ?? "Unable to load strategy teams.");
+        if (!response.ok || !payload?.success || !payload.data) {
+          throw new Error(payload?.error?.message ?? "Unable to load strategy teams.");
         }
 
         if (!cancelled) {
@@ -181,7 +186,7 @@ export function StrategyExplorer() {
     return () => {
       cancelled = true;
     };
-  }, [queryString]);
+  }, [queryString, retryNonce]);
 
   function handleLoadStrategy(strategy: StrategyTeam) {
     setLoadingTeamId(strategy.id);
@@ -266,9 +271,14 @@ export function StrategyExplorer() {
           Loading strategy teams...
         </div>
       ) : error ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground">
-          {error}
-        </p>
+        <ErrorMessage
+          title="Strategy teams unavailable"
+          message={error}
+          onRetry={() => {
+            setRetryNonce((value) => value + 1);
+          }}
+          isRetrying={isLoading}
+        />
       ) : strategies.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border/60 px-4 py-10 text-center text-sm text-muted-foreground">
           No strategy teams match the selected filters.

@@ -12,6 +12,7 @@ import { formatShowdownExport } from "@/lib/parsing/format-showdown-export";
 import { parseShowdownImport } from "@/lib/parsing/parse-showdown-import";
 import { useAuthStore } from "@/store/auth-store";
 import { useTeamStore } from "@/store/team-store";
+import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
 import type { PokemonDetail } from "@/types/pokemon";
 import type { Team } from "@/types/team";
@@ -43,19 +44,37 @@ export function BuilderControls() {
       .replace(/[\s_]+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
 
-  async function fetchPokemonDetail(name: string): Promise<PokemonDetail | null> {
-    const response = await fetch(`/api/pokemon/${encodeURIComponent(name)}`);
-    const payload = (await response.json()) as {
-      success: boolean;
-      data?: PokemonDetail;
-      error?: { message?: string };
-    };
+  async function fetchPokemonDetail(name: string): Promise<{
+    detail: PokemonDetail | null;
+    error: "network" | "not_found" | "invalid_response" | null;
+  }> {
+    try {
+      const response = await fetch(`/api/pokemon/${encodeURIComponent(name)}`);
+      let payload: {
+        success: boolean;
+        data?: PokemonDetail;
+      } | null = null;
 
-    if (!response.ok || !payload.success || !payload.data) {
-      return null;
+      try {
+        payload = (await response.json()) as {
+          success: boolean;
+          data?: PokemonDetail;
+        };
+      } catch {
+        return { detail: null, error: "invalid_response" };
+      }
+
+      if (!response.ok || !payload?.success || !payload.data) {
+        return {
+          detail: null,
+          error: response.status === 404 ? "not_found" : "invalid_response",
+        };
+      }
+
+      return { detail: payload.data, error: null };
+    } catch {
+      return { detail: null, error: "network" };
     }
-
-    return payload.data;
   }
 
   function buildEmptySlots() {
@@ -96,10 +115,21 @@ export function BuilderControls() {
 
     for (let i = 0; i < parsed.sets.length; i += 1) {
       const parsedSet = parsed.sets[i];
-      const detail = await fetchPokemonDetail(parsedSet.species);
+      const detailResult = await fetchPokemonDetail(parsedSet.species);
+      const detail = detailResult.detail;
 
       if (!detail) {
-        localWarnings.push(`Set ${i + 1}: Pokémon "${parsedSet.species}" not found.`);
+        if (detailResult.error === "network") {
+          localWarnings.push(
+            `Set ${i + 1}: could not verify "${parsedSet.species}" because your connection dropped.`,
+          );
+        } else if (detailResult.error === "not_found") {
+          localWarnings.push(`Set ${i + 1}: Pokemon "${parsedSet.species}" was not found.`);
+        } else {
+          localWarnings.push(
+            `Set ${i + 1}: "${parsedSet.species}" could not be imported right now.`,
+          );
+        }
         continue;
       }
 
@@ -158,13 +188,14 @@ export function BuilderControls() {
 
     if (importedCount === 0) {
       setError("No valid Pokémon could be imported. Please check names and try again.");
-      setWarningLines(localWarnings);
+      setWarningLines(Array.from(new Set(localWarnings)));
       setIsImporting(false);
       return;
     }
 
     loadTeam(nextTeam);
-    setWarningLines(localWarnings);
+    const uniqueWarnings = Array.from(new Set(localWarnings));
+    setWarningLines(uniqueWarnings);
     setFeedback(`Imported ${importedCount} Pokémon into your team.`);
     setImportText("");
     setIsImportOpen(false);
@@ -315,11 +346,7 @@ export function BuilderControls() {
         </p>
       ) : null}
 
-      {error ? (
-        <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
-          {error}
-        </p>
-      ) : null}
+      {error ? <ErrorMessage title="Action unavailable" message={error} /> : null}
 
       {warningLines.length > 0 ? (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">

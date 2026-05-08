@@ -9,7 +9,11 @@ export function savePendingLoadedTeam(team: Team): void {
     return;
   }
 
-  localStorage.setItem(PENDING_TEAM_STORAGE_KEY, JSON.stringify(team));
+  try {
+    localStorage.setItem(PENDING_TEAM_STORAGE_KEY, JSON.stringify(team));
+  } catch (error) {
+    console.error("[Pending Team] Failed to store pending team", error);
+  }
 }
 
 export function consumePendingLoadedTeam(): Team | null {
@@ -17,7 +21,13 @@ export function consumePendingLoadedTeam(): Team | null {
     return null;
   }
 
-  const raw = localStorage.getItem(PENDING_TEAM_STORAGE_KEY);
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(PENDING_TEAM_STORAGE_KEY);
+  } catch (error) {
+    console.error("[Pending Team] Failed to access pending team", error);
+    return null;
+  }
   if (!raw) {
     return null;
   }
