@@ -1,8 +1,11 @@
+import { PlaceholderPage } from "@/components/layout/placeholder-page";
+
 export default function ProfilePage() {
   return (
-    <section className="space-y-2">
-      <h1 className="text-xl font-semibold">Profile</h1>
-      <p className="text-sm text-slate-300">Authentication and profile features are scaffolded but not implemented.</p>
-    </section>
+    <PlaceholderPage
+      eyebrow="Profile"
+      title="Saved teams & account"
+      description="When authentication is wired, this area will hold saved teams, favorites, and settings. For now it&apos;s a protected-style placeholder only."
+    />
   );
 }

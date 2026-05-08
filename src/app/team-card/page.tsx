@@ -1,8 +1,11 @@
+import { PlaceholderPage } from "@/components/layout/placeholder-page";
+
 export default function TeamCardPage() {
   return (
-    <section className="space-y-2">
-      <h1 className="text-xl font-semibold">Team Card Generator</h1>
-      <p className="text-sm text-slate-300">Team card generation will be added in a later phase.</p>
-    </section>
+    <PlaceholderPage
+      eyebrow="Team card"
+      title="Shareable team visuals"
+      description="Choose backgrounds and trainer art, preview your squad, and export a PNG. This route stays visual and presentation-first."
+    />
   );
 }

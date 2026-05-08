@@ -5,5 +5,6 @@ export const ROUTES = {
   strategies: "/strategies",
   teamCard: "/team-card",
   profile: "/profile",
-  auth: "/auth",
+  login: "/login",
+  register: "/register",
 } as const;

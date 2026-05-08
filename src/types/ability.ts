@@ -1,5 +1,7 @@
 export interface Ability {
-  id: string;
+  id: number;
   name: string;
-  description?: string;
+  slug: string;
+  description: string;
+  isHidden?: boolean;
 }

@@ -1,8 +1,11 @@
+import { PlaceholderPage } from "@/components/layout/placeholder-page";
+
 export default function PokedexPage() {
   return (
-    <section className="space-y-2">
-      <h1 className="text-xl font-semibold">Pokedex</h1>
-      <p className="text-sm text-slate-300">Pokedex UI and data integration will be added in a later phase.</p>
-    </section>
+    <PlaceholderPage
+      eyebrow="Pokédex"
+      title="Browse Pokémon"
+      description="A lightweight catalog for discovering Pokémon and sending them to the builder. Search, filters, and sorting will appear here—no encyclopedia bloat."
+    />
   );
 }

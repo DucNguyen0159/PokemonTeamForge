@@ -1,12 +1,11 @@
-function SectionPlaceholder({ title }: { title: string }) {
-  return (
-    <section className="space-y-2">
-      <h1 className="text-xl font-semibold">{title}</h1>
-      <p className="text-sm text-slate-300">This section is intentionally scaffolded for upcoming implementation.</p>
-    </section>
-  );
-}
+import { PlaceholderPage } from "@/components/layout/placeholder-page";
 
 export default function BuilderPage() {
-  return <SectionPlaceholder title="Team Builder" />;
+  return (
+    <PlaceholderPage
+      eyebrow="Team Builder"
+      title="Live team workspace"
+      description="This route will host the interactive builder: format selection (singles / doubles / triples), six Pokémon slots, and side panels for coverage, checklist, and recommendations."
+    />
+  );
 }
