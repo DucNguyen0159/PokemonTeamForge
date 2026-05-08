@@ -14,6 +14,7 @@ type NamedApiResource = {
 export interface PokeApiPokemonResponse {
   id: number;
   name: string;
+  species: NamedApiResource;
   types: Array<{
     slot: number;
     type: NamedApiResource;
@@ -207,6 +208,46 @@ export function buildTypeDefenseEntries(
     type: attackingType,
     multiplier: calculateTypeEffectiveness(attackingType, defendingTypes),
   }));
+}
+
+export function normalizePokeApiToPokemonListItem(
+  pokemon: PokeApiPokemonResponse,
+  species: PokeApiSpeciesResponse,
+): PokemonListItem {
+  const sortedTypes = [...pokemon.types].sort((a, b) => a.slot - b.slot);
+  const primaryType = sortedTypes[0]?.type.name as PokemonType;
+  const secondaryType = (sortedTypes[1]?.type.name as PokemonType | undefined) ?? null;
+
+  const statsByName = new Map(pokemon.stats.map((entry) => [entry.stat.name, entry.base_stat]));
+
+  const hp = statsByName.get("hp") ?? 0;
+  const attack = statsByName.get("attack") ?? 0;
+  const defense = statsByName.get("defense") ?? 0;
+  const specialAttack = statsByName.get("special-attack") ?? 0;
+  const specialDefense = statsByName.get("special-defense") ?? 0;
+  const speed = statsByName.get("speed") ?? 0;
+  const total = hp + attack + defense + specialAttack + specialDefense + speed;
+
+  const generation = getGenerationNumber(species.generation.name);
+
+  return {
+    id: pokemon.id,
+    name: toTitleCase(pokemon.name),
+    slug: pokemon.name,
+    generation,
+    region: GENERATION_REGION_MAP[generation] ?? "Unknown",
+    primaryType,
+    secondaryType,
+    hp,
+    attack,
+    defense,
+    specialAttack,
+    specialDefense,
+    speed,
+    total,
+    spriteNormal: pokemon.sprites.front_default ?? "",
+    isLegendaryOrMythical: Boolean(species.is_legendary || species.is_mythical),
+  };
 }
 
 export function normalizePokeApiPokemonDetail(input: {

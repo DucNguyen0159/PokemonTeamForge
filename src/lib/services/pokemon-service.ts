@@ -8,7 +8,7 @@ import type { PokemonDetail, PokemonListItem } from "@/types/pokemon";
 import {
   buildTypeDefenseEntries,
   normalizePokeApiPokemonDetail,
-  toPokemonListItem,
+  normalizePokeApiToPokemonListItem,
   type PokeApiAbilityResponse,
   type PokeApiMoveResponse,
   type PokeApiPokemonResponse,
@@ -19,8 +19,26 @@ const POKEAPI_BASE_URL = "https://pokeapi.co/api/v2";
 const REVALIDATE_SECONDS = 60 * 60 * 24;
 const MAX_MOVES_PER_POKEMON = 24;
 
-const mockPokemonList: PokemonListItem[] = MOCK_POKEMON.map(toPokemonListItem);
+type NamedApiResource = {
+  name: string;
+  url: string;
+};
+
+type PokemonRef = {
+  id: number;
+  name: string;
+};
+
+type PokeApiPokemonListPage = {
+  next: string | null;
+  results: NamedApiResource[];
+};
+
 const pokemonDetailCache = new Map<string, PokemonDetail>();
+
+let pokemonIndexCache: PokemonRef[] | null = null;
+const typeSlugCache = new Map<PokemonType, Set<string>>();
+const generationSpeciesNamesCache = new Map<number, string[]>();
 
 export interface PokemonListQuery {
   search?: string;
@@ -32,8 +50,13 @@ export interface PokemonListQuery {
   limit?: number;
 }
 
-async function fetchPokeApiJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${POKEAPI_BASE_URL}${path}`, {
+async function pokeApiFetch<T>(pathOrUrl: string): Promise<T> {
+  const url =
+    pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")
+      ? pathOrUrl
+      : `${POKEAPI_BASE_URL}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
+
+  const response = await fetch(url, {
     next: { revalidate: REVALIDATE_SECONDS },
   });
 
@@ -62,37 +85,86 @@ function clampPagination(value: number | undefined, fallback: number, max: numbe
   return Math.min(parsed, max);
 }
 
-function filterPokemonList(baseList: PokemonListItem[], query: PokemonListQuery): PokemonListItem[] {
-  const search = query.search?.trim().toLowerCase();
-  const region = query.region?.trim().toLowerCase();
+function extractPokemonIdFromUrl(url: string): number {
+  const match = url.match(/\/pokemon\/(\d+)\/?$/);
+  return match ? Number(match[1]) : 0;
+}
 
-  return baseList.filter((pokemon) => {
-    if (search && !pokemon.name.toLowerCase().includes(search)) {
-      return false;
-    }
+function normalizeSearchQuery(term: string): string {
+  return term.trim().toLowerCase().replace(/\s+/g, "-");
+}
 
-    if (query.generation && pokemon.generation !== query.generation) {
-      return false;
-    }
-
-    if (
-      query.type &&
-      pokemon.primaryType !== query.type &&
-      pokemon.secondaryType !== query.type
-    ) {
-      return false;
-    }
-
-    if (region && pokemon.region.toLowerCase() !== region) {
-      return false;
-    }
-
-    if (typeof query.legendary === "boolean" && pokemon.isLegendaryOrMythical !== query.legendary) {
-      return false;
-    }
-
+function matchesSearch(slug: string, search?: string): boolean {
+  const normalized = search ? normalizeSearchQuery(search) : "";
+  if (!normalized) {
     return true;
-  });
+  }
+
+  const flattenedSlug = slug.replace(/-/g, "");
+  const flattenedQuery = normalized.replace(/-/g, "");
+
+  return slug.includes(normalized) || flattenedSlug.includes(flattenedQuery);
+}
+
+function slugMatchesGeneration(slug: string, speciesNames: string[]): boolean {
+  const names = new Set(speciesNames);
+  if (names.has(slug)) {
+    return true;
+  }
+
+  return speciesNames.some((species) => slug.startsWith(`${species}-`));
+}
+
+async function ensurePokemonIndex(): Promise<PokemonRef[]> {
+  if (pokemonIndexCache) {
+    return pokemonIndexCache;
+  }
+
+  const refs: PokemonRef[] = [];
+  let fetchUrl: string | null = `${POKEAPI_BASE_URL}/pokemon?limit=500&offset=0`;
+
+  while (fetchUrl !== null) {
+    const listingBatch: PokeApiPokemonListPage = await pokeApiFetch<PokeApiPokemonListPage>(fetchUrl);
+
+    listingBatch.results.forEach((entry) => {
+      refs.push({
+        id: extractPokemonIdFromUrl(entry.url),
+        name: entry.name,
+      });
+    });
+
+    fetchUrl = listingBatch.next;
+  }
+
+  pokemonIndexCache = [...refs].sort((a, b) => a.id - b.id);
+
+  return pokemonIndexCache;
+}
+
+async function ensureTypeSlugSet(type: PokemonType): Promise<Set<string>> {
+  const cached = typeSlugCache.get(type);
+  if (cached) {
+    return cached;
+  }
+
+  const data = await pokeApiFetch<{ pokemon: Array<{ pokemon: NamedApiResource }> }>(`/type/${type}`);
+  const set = new Set(data.pokemon.map((row) => row.pokemon.name));
+  typeSlugCache.set(type, set);
+
+  return set;
+}
+
+async function ensureGenerationSpeciesNames(generation: number): Promise<string[]> {
+  const cached = generationSpeciesNamesCache.get(generation);
+  if (cached) {
+    return cached;
+  }
+
+  const data = await pokeApiFetch<{ pokemon_species: NamedApiResource[] }>(`/generation/${generation}`);
+  const names = data.pokemon_species.map((entry) => entry.name);
+  generationSpeciesNamesCache.set(generation, names);
+
+  return names;
 }
 
 function fallbackToMockDetail(pokemonName: string): PokemonDetail | null {
@@ -110,16 +182,65 @@ function fallbackToMockDetail(pokemonName: string): PokemonDetail | null {
 }
 
 export async function getPokemonList(query: PokemonListQuery): Promise<PokemonListPayload> {
-  const page = clampPagination(query.page, 1, 1000);
-  const limit = clampPagination(query.limit, 30, 100);
+  const page = clampPagination(query.page, 1, 10_000);
+  const limit = clampPagination(query.limit, 24, 100);
 
-  const filtered = filterPokemonList(mockPokemonList, query);
-  const startIndex = (page - 1) * limit;
-  const pokemon = filtered.slice(startIndex, startIndex + limit);
+  if (typeof query.generation === "number" && (!Number.isInteger(query.generation) || query.generation < 1 || query.generation > 9)) {
+    return {
+      pokemon: [],
+      total: 0,
+      page,
+      limit,
+    };
+  }
+
+  const index = await ensurePokemonIndex();
+  const typeSet = query.type ? await ensureTypeSlugSet(query.type) : null;
+  const generationSpeciesNames =
+    typeof query.generation === "number" ? await ensureGenerationSpeciesNames(query.generation) : null;
+
+  const matchingSlugs = index
+    .filter((ref) => {
+      if (typeSet && !typeSet.has(ref.name)) {
+        return false;
+      }
+
+      if (generationSpeciesNames && !slugMatchesGeneration(ref.name, generationSpeciesNames)) {
+        return false;
+      }
+
+      if (!matchesSearch(ref.name, query.search)) {
+        return false;
+      }
+
+      return true;
+    })
+    .map((ref) => ref.name);
+
+  const total = matchingSlugs.length;
+  const start = (page - 1) * limit;
+  const pageSlugs = matchingSlugs.slice(start, start + limit);
+
+  const hydrated = await Promise.all(
+    pageSlugs.map(async (slug): Promise<PokemonListItem | null> => {
+      try {
+        const rawPokemon = await pokeApiFetch<PokeApiPokemonResponse>(`/pokemon/${slug}`);
+        const rawSpecies = await pokeApiFetch<PokeApiSpeciesResponse>(
+          `/pokemon-species/${rawPokemon.species.name}`,
+        );
+
+        return normalizePokeApiToPokemonListItem(rawPokemon, rawSpecies);
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  const pokemon = hydrated.filter((entry): entry is PokemonListItem => Boolean(entry));
 
   return {
     pokemon,
-    total: filtered.length,
+    total,
     page,
     limit,
   };
@@ -138,13 +259,13 @@ export async function getPokemonByName(pokemonName: string): Promise<PokemonDeta
   }
 
   try {
-    const rawPokemon = await fetchPokeApiJson<PokeApiPokemonResponse>(`/pokemon/${slug}`);
-    const rawSpecies = await fetchPokeApiJson<PokeApiSpeciesResponse>(`/pokemon-species/${slug}`);
+    const rawPokemon = await pokeApiFetch<PokeApiPokemonResponse>(`/pokemon/${slug}`);
+    const rawSpecies = await pokeApiFetch<PokeApiSpeciesResponse>(
+      `/pokemon-species/${rawPokemon.species.name}`,
+    );
 
     const abilityDetails = await Promise.all(
-      rawPokemon.abilities.map((entry) =>
-        fetchPokeApiJson<PokeApiAbilityResponse>(`/ability/${entry.ability.name}`),
-      ),
+      rawPokemon.abilities.map((entry) => pokeApiFetch<PokeApiAbilityResponse>(`/ability/${entry.ability.name}`)),
     );
 
     const moveNames = rawPokemon.moves
@@ -152,7 +273,7 @@ export async function getPokemonByName(pokemonName: string): Promise<PokemonDeta
       .slice(0, MAX_MOVES_PER_POKEMON);
 
     const moveDetails = await Promise.all(
-      moveNames.map((moveName) => fetchPokeApiJson<PokeApiMoveResponse>(`/move/${moveName}`)),
+      moveNames.map((moveName) => pokeApiFetch<PokeApiMoveResponse>(`/move/${moveName}`)),
     );
 
     const normalized = normalizePokeApiPokemonDetail({
