@@ -1,11 +1,11 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import type { Metadata } from "next";
+import { TeamCardGenerator } from "@/components/team-card/team-card-generator";
+
+export const metadata: Metadata = {
+  title: "Team Card Generator — PokemonTeamForge",
+  description: "Customize your Pokémon team card with backgrounds and trainer art, then export as PNG.",
+};
 
 export default function TeamCardPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Team card"
-      title="Shareable team visuals"
-      description="Choose backgrounds and trainer art, preview your squad, and export a PNG. This route stays visual and presentation-first."
-    />
-  );
+  return <TeamCardGenerator />;
 }

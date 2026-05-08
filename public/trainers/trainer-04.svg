@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 240" fill="none">
+  <!-- Head -->
+  <circle cx="60" cy="26" r="20" fill="white" opacity="0.88"/>
+  <!-- Long hair -->
+  <path d="M40 22 Q38 50 36 80 L40 80 Q42 54 44 28" fill="white" opacity="0.55"/>
+  <path d="M80 22 Q82 50 84 80 L80 80 Q78 54 76 28" fill="white" opacity="0.55"/>
+  <!-- Neck -->
+  <rect x="54" y="44" width="12" height="10" rx="3" fill="white" opacity="0.82"/>
+  <!-- Tall elegant torso -->
+  <path d="M32 56 Q32 52 42 50 L54 54 L60 52 L66 54 L78 50 Q88 52 88 56 L86 136 Q86 142 80 142 L40 142 Q34 142 34 136 Z" fill="white" opacity="0.88"/>
+  <!-- Cape/Coat flowing -->
+  <path d="M32 58 Q18 62 14 80 L10 160 Q8 175 16 178 L30 176 L34 60 Z" fill="white" opacity="0.6"/>
+  <path d="M88 58 Q102 62 106 80 L110 160 Q112 175 104 178 L90 176 L86 60 Z" fill="white" opacity="0.6"/>
+  <!-- Left arm -->
+  <path d="M32 62 L24 64 L20 100 L28 102 L32 68 Z" fill="white" opacity="0.82"/>
+  <!-- Right arm -->
+  <path d="M88 62 L96 64 L100 100 L92 102 L88 68 Z" fill="white" opacity="0.82"/>
+  <!-- Gloves -->
+  <ellipse cx="22" cy="104" rx="8" ry="10" fill="white" opacity="0.78"/>
+  <ellipse cx="98" cy="104" rx="8" ry="10" fill="white" opacity="0.78"/>
+  <!-- Slim trousers -->
+  <path d="M40 142 L52 142 L50 228 Q50 236 44 236 L36 236 Q30 236 32 228 Z" fill="white" opacity="0.86"/>
+  <path d="M80 142 L68 142 L70 228 Q70 236 76 236 L84 236 Q90 236 88 228 Z" fill="white" opacity="0.86"/>
+  <!-- Boots -->
+  <path d="M30 228 Q30 238 44 238 Q54 238 52 228" fill="white" opacity="0.82"/>
+  <path d="M90 228 Q90 238 76 238 Q66 238 68 228" fill="white" opacity="0.82"/>
+  <!-- Belt -->
+  <rect x="34" y="136" width="52" height="7" rx="3" fill="white" opacity="0.62"/>
+  <!-- Collar detail -->
+  <path d="M46 52 L52 64 L60 68 L68 64 L74 52 L72 50 L60 62 L48 50 Z" fill="white" opacity="0.48"/>
+</svg>

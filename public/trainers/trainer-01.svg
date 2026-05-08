@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 240" fill="none">
+  <!-- Head -->
+  <circle cx="60" cy="28" r="22" fill="white" opacity="0.88"/>
+  <!-- Neck -->
+  <rect x="53" y="48" width="14" height="10" rx="3" fill="white" opacity="0.82"/>
+  <!-- Torso / Jacket -->
+  <path d="M28 62 Q28 58 38 56 L53 58 L60 55 L67 58 L82 56 Q92 58 92 62 L94 130 Q94 135 88 135 L32 135 Q26 135 26 130 Z" fill="white" opacity="0.88"/>
+  <!-- Left Arm -->
+  <path d="M28 66 Q18 68 14 80 L12 118 Q11 128 20 130 L30 130 L32 70 Z" fill="white" opacity="0.82"/>
+  <!-- Right Arm -->
+  <path d="M92 66 Q102 68 106 80 L108 118 Q109 128 100 130 L90 130 L88 70 Z" fill="white" opacity="0.82"/>
+  <!-- Left hand -->
+  <ellipse cx="15" cy="128" rx="8" ry="10" fill="white" opacity="0.78"/>
+  <!-- Right hand -->
+  <ellipse cx="105" cy="128" rx="8" ry="10" fill="white" opacity="0.78"/>
+  <!-- Belt -->
+  <rect x="26" y="128" width="68" height="8" rx="3" fill="white" opacity="0.6"/>
+  <!-- Left Leg -->
+  <path d="M34 136 L42 136 L40 220 Q40 228 34 228 L28 228 Q22 228 24 220 Z" fill="white" opacity="0.84"/>
+  <!-- Right Leg -->
+  <path d="M86 136 L78 136 L80 220 Q80 228 86 228 L92 228 Q98 228 96 220 Z" fill="white" opacity="0.84"/>
+  <!-- Left foot -->
+  <ellipse cx="32" cy="230" rx="12" ry="7" fill="white" opacity="0.8"/>
+  <!-- Right foot -->
+  <ellipse cx="88" cy="230" rx="12" ry="7" fill="white" opacity="0.8"/>
+  <!-- Cap brim -->
+  <path d="M38 16 Q60 6 82 16 L82 18 Q60 12 38 18 Z" fill="white" opacity="0.9"/>
+  <rect x="36" y="8" width="48" height="16" rx="8" fill="white" opacity="0.7"/>
+</svg>

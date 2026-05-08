@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 240" fill="none">
+  <!-- Head -->
+  <circle cx="60" cy="28" r="21" fill="white" opacity="0.88"/>
+  <!-- Hair -->
+  <path d="M39 22 Q40 8 60 6 Q80 8 81 22" fill="white" opacity="0.6"/>
+  <!-- Neck -->
+  <rect x="54" y="47" width="12" height="10" rx="3" fill="white" opacity="0.8"/>
+  <!-- Dynamic torso - slightly leaning -->
+  <path d="M26 60 Q26 55 38 54 L54 58 L60 55 L66 58 L82 54 Q94 55 94 60 L92 128 Q91 133 84 133 L36 133 Q29 133 28 128 Z" fill="white" opacity="0.88"/>
+  <!-- Left arm raised -->
+  <path d="M28 64 Q14 58 8 44 L4 28 Q3 20 10 20 L18 22 L22 38 L28 68 Z" fill="white" opacity="0.82"/>
+  <!-- Right arm down -->
+  <path d="M92 64 Q104 66 108 82 L110 116 Q111 126 102 128 L92 128 Z" fill="white" opacity="0.82"/>
+  <!-- Left hand raised -->
+  <ellipse cx="7" cy="22" rx="7" ry="9" fill="white" opacity="0.78"/>
+  <!-- Right hand -->
+  <ellipse cx="107" cy="126" rx="7" ry="9" fill="white" opacity="0.78"/>
+  <!-- Shorts/Belt -->
+  <rect x="28" y="126" width="64" height="10" rx="3" fill="white" opacity="0.65"/>
+  <!-- Left Leg -->
+  <path d="M36 136 L48 136 L44 222 Q43 230 36 230 L30 230 Q24 230 26 222 Z" fill="white" opacity="0.84"/>
+  <!-- Right Leg - slightly bent -->
+  <path d="M84 136 L72 136 L76 200 L84 220 Q88 228 93 225 L96 219 L88 198 L80 136 Z" fill="white" opacity="0.84"/>
+  <!-- Feet -->
+  <ellipse cx="33" cy="232" rx="11" ry="7" fill="white" opacity="0.8"/>
+  <ellipse cx="90" cy="226" rx="11" ry="7" fill="white" opacity="0.8"/>
+  <!-- Scarf -->
+  <path d="M42 54 Q60 48 78 54 L82 62 Q60 56 38 62 Z" fill="white" opacity="0.5"/>
+</svg>
