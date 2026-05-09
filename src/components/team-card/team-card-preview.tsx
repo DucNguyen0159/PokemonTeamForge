@@ -17,6 +17,7 @@ type TeamCardPreviewProps = {
   background: BackgroundPreset;
   trainer: TrainerPreset;
   spriteMode: SpriteMode;
+  spriteModeBySlot?: Partial<Record<number, SpriteMode>>;
   showNames: boolean;
   showTypes: boolean;
 };
@@ -34,7 +35,17 @@ const POKEMON_PLACEHOLDER = "/placeholders/pokemon-placeholder.svg";
 
 const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps>(
   function TeamCardPreview(
-    { teamSlots, teamName, format, background, trainer, spriteMode, showNames, showTypes },
+    {
+      teamSlots,
+      teamName,
+      format,
+      background,
+      trainer,
+      spriteMode,
+      spriteModeBySlot,
+      showNames,
+      showTypes,
+    },
     ref,
   ) {
     const filledSlots = useMemo(
@@ -198,9 +209,11 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
             >
               {filledSlots.map((slot, idx) => {
                 const pokemon = slot?.pokemon ?? null;
+                const slotNumber = slot?.slot ?? idx + 1;
+                const effectiveSpriteMode = spriteModeBySlot?.[slotNumber] ?? spriteMode;
                 const spriteUrl =
                   pokemon
-                    ? spriteMode === "shiny"
+                    ? effectiveSpriteMode === "shiny"
                       ? (pokemon.spriteShiny ?? pokemon.spriteNormal)
                       : (pokemon.spriteNormal ?? pokemon.spriteShiny)
                     : null;

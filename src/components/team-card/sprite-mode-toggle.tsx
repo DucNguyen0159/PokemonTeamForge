@@ -5,12 +5,28 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/utils";
 import type { SpriteMode } from "./team-card-preview";
 
+type SpriteSlotOption = {
+  slot: number;
+  name: string;
+  hasPokemon: boolean;
+  mode: SpriteMode;
+};
+
 type SpriteModeToggleProps = {
   mode: SpriteMode;
   onChange: (mode: SpriteMode) => void;
+  slots: SpriteSlotOption[];
+  onSlotModeChange: (slot: number, mode: SpriteMode) => void;
+  onClearOverrides: () => void;
 };
 
-function SpriteModeToggleComponent({ mode, onChange }: SpriteModeToggleProps) {
+function SpriteModeToggleComponent({
+  mode,
+  onChange,
+  slots,
+  onSlotModeChange,
+  onClearOverrides,
+}: SpriteModeToggleProps) {
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -46,6 +62,69 @@ function SpriteModeToggleComponent({ mode, onChange }: SpriteModeToggleProps) {
           <Sparkles className="size-3" aria-hidden />
           Shiny
         </button>
+      </div>
+
+      <div className="space-y-2 pt-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-medium text-muted-foreground">
+            Per-Pokemon override
+          </p>
+          <button
+            type="button"
+            className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+            onClick={onClearOverrides}
+          >
+            Clear overrides
+          </button>
+        </div>
+
+        <div className="space-y-1.5">
+          {slots.map((slot) => (
+            <div
+              key={slot.slot}
+              className="rounded-lg border border-border/50 bg-card/50 px-2 py-1.5"
+            >
+              <div className="mb-1 flex items-center justify-between text-[11px]">
+                <span className="font-medium text-foreground">
+                  {slot.slot}. {slot.name}
+                </span>
+                <span className="text-muted-foreground">
+                  {slot.mode === "shiny" ? "Shiny" : "Normal"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => onSlotModeChange(slot.slot, "normal")}
+                  disabled={!slot.hasPokemon}
+                  className={cn(
+                    "rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+                    slot.mode === "normal"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                    !slot.hasPokemon && "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  Normal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSlotModeChange(slot.slot, "shiny")}
+                  disabled={!slot.hasPokemon}
+                  className={cn(
+                    "rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+                    slot.mode === "shiny"
+                      ? "bg-amber-500/90 text-white"
+                      : "text-muted-foreground hover:text-foreground",
+                    !slot.hasPokemon && "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  Shiny
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

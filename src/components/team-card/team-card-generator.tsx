@@ -22,6 +22,7 @@ export function TeamCardGenerator() {
   const [selectedBackground, setSelectedBackground] = useState(BACKGROUND_PRESETS[0]);
   const [selectedTrainer, setSelectedTrainer] = useState(TRAINER_PRESETS[0]);
   const [spriteMode, setSpriteMode] = useState<SpriteMode>("normal");
+  const [spriteModeBySlot, setSpriteModeBySlot] = useState<Partial<Record<number, SpriteMode>>>({});
   const [showNames, setShowNames] = useState(true);
   const [showTypes, setShowTypes] = useState(true);
 
@@ -30,6 +31,30 @@ export function TeamCardGenerator() {
     [team.pokemon],
   );
   const hasTeam = filledSlotCount > 0;
+
+  const spriteSlotOptions = useMemo(
+    () =>
+      team.pokemon.map((slot) => ({
+        slot: slot.slot,
+        name: slot.pokemon?.name ?? "Empty slot",
+        hasPokemon: Boolean(slot.pokemon),
+        mode: (spriteModeBySlot[slot.slot] ?? spriteMode) as SpriteMode,
+      })),
+    [spriteMode, spriteModeBySlot, team.pokemon],
+  );
+
+  function handleSlotSpriteModeChange(slot: number, mode: SpriteMode) {
+    setSpriteModeBySlot((current) => {
+      return {
+        ...current,
+        [slot]: mode,
+      };
+    });
+  }
+
+  function handleClearSpriteOverrides() {
+    setSpriteModeBySlot({});
+  }
 
   return (
     <div className="mx-auto w-full max-w-[1300px] px-4 py-6 space-y-6">
@@ -76,6 +101,7 @@ export function TeamCardGenerator() {
               background={selectedBackground}
               trainer={selectedTrainer}
               spriteMode={spriteMode}
+              spriteModeBySlot={spriteModeBySlot}
               showNames={showNames}
               showTypes={showTypes}
             />
@@ -112,7 +138,13 @@ export function TeamCardGenerator() {
 
           {/* Sprite mode + display options */}
           <div className="rounded-2xl border border-border/60 bg-card/60 p-4 space-y-4">
-            <SpriteModeToggle mode={spriteMode} onChange={setSpriteMode} />
+            <SpriteModeToggle
+              mode={spriteMode}
+              onChange={setSpriteMode}
+              slots={spriteSlotOptions}
+              onSlotModeChange={handleSlotSpriteModeChange}
+              onClearOverrides={handleClearSpriteOverrides}
+            />
 
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
