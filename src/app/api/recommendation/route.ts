@@ -1,4 +1,4 @@
-import { generateRecommendations } from "@/lib/recommendation";
+import { generateRecommendationsFromSharedSource } from "@/lib/recommendation";
 import type { RecommendationRequest, RecommendationResponse } from "@/types/recommendation";
 import { errorResponse, successResponse } from "@/lib/api/responses";
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const data = generateRecommendations(body);
+    const data = await generateRecommendationsFromSharedSource(body);
     return successResponse<RecommendationResponse>(data);
   } catch (error) {
     console.error("[Recommendation API]", error);

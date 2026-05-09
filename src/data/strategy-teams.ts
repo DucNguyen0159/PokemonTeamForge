@@ -1,22 +1,26 @@
-import { MOCK_ITEMS } from "@/data/mock-items";
-import { MOCK_POKEMON } from "@/data/mock-pokemon";
-import type { StrategyTeam, StrategyTeamPokemon, StrategyType } from "@/types/strategy";
+import type { StrategyTeam, StrategyType } from "@/types/strategy";
 import type { TeamRole } from "@/types/shared";
 
-function getPokemon(slug: string) {
-  const pokemon = MOCK_POKEMON.find((entry) => entry.slug === slug);
-  if (!pokemon) {
-    throw new Error(`Strategy preset references unknown pokemon: ${slug}`);
-  }
-  return pokemon;
+export interface StrategyPresetPokemonRef {
+  slot: number;
+  pokemonSlug: string;
+  abilityName: string;
+  itemName: string;
+  moveNames: string[];
+  role: TeamRole;
+  explanation: string;
 }
 
-function getItem(name: string) {
-  const item = MOCK_ITEMS.find((entry) => entry.name === name);
-  if (!item) {
-    throw new Error(`Strategy preset references unknown item: ${name}`);
-  }
-  return item;
+export interface StrategyTeamPreset {
+  id: string;
+  name: string;
+  slug: string;
+  strategyType: StrategyType;
+  format: StrategyTeam["format"];
+  difficulty: StrategyTeam["difficulty"];
+  tags: string[];
+  shortDescription: string;
+  pokemon: StrategyPresetPokemonRef[];
 }
 
 function createSlot(input: {
@@ -27,23 +31,8 @@ function createSlot(input: {
   moveNames: string[];
   role: TeamRole;
   explanation: string;
-}): StrategyTeamPokemon {
-  const pokemon = getPokemon(input.pokemonSlug);
-  const ability = pokemon.abilities.find((entry) => entry.name === input.abilityName) ?? pokemon.abilities[0];
-  const moves = input.moveNames
-    .map((moveName) => pokemon.moves.find((entry) => entry.name === moveName))
-    .filter((move): move is NonNullable<typeof move> => Boolean(move))
-    .slice(0, 4);
-
-  return {
-    slot: input.slot,
-    pokemon,
-    ability,
-    item: getItem(input.itemName),
-    moves,
-    role: input.role,
-    explanation: input.explanation,
-  };
+}): StrategyPresetPokemonRef {
+  return { ...input };
 }
 
 function buildStrategyTeam(input: {
@@ -55,22 +44,12 @@ function buildStrategyTeam(input: {
   difficulty: StrategyTeam["difficulty"];
   tags: string[];
   shortDescription: string;
-  pokemon: StrategyTeamPokemon[];
-}): StrategyTeam {
-  return {
-    id: input.id,
-    name: input.name,
-    slug: input.slug,
-    strategyType: input.strategyType,
-    format: input.format,
-    difficulty: input.difficulty,
-    tags: input.tags,
-    shortDescription: input.shortDescription,
-    pokemon: input.pokemon,
-  };
+  pokemon: StrategyPresetPokemonRef[];
+}): StrategyTeamPreset {
+  return { ...input };
 }
 
-export const STRATEGY_TEAMS: StrategyTeam[] = [
+export const STRATEGY_TEAM_PRESETS: StrategyTeamPreset[] = [
   buildStrategyTeam({
     id: "rain-tempo",
     name: "Rain Tempo",

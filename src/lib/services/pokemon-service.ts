@@ -1,12 +1,10 @@
 import "server-only";
 
-import { MOCK_POKEMON } from "@/data/mock-pokemon";
 import type { PokemonListPayload } from "@/types/api";
 import type { PokemonType } from "@/types/shared";
 import type { PokemonDetail, PokemonListItem } from "@/types/pokemon";
 
 import {
-  buildTypeDefenseEntries,
   normalizePokeApiPokemonDetail,
   normalizePokeApiToPokemonListItem,
   type PokeApiAbilityResponse,
@@ -167,20 +165,6 @@ async function ensureGenerationSpeciesNames(generation: number): Promise<string[
   return names;
 }
 
-function fallbackToMockDetail(pokemonName: string): PokemonDetail | null {
-  const slug = normalizePokemonName(pokemonName);
-  const mock = MOCK_POKEMON.find((pokemon) => pokemon.slug === slug);
-
-  if (!mock) {
-    return null;
-  }
-
-  return {
-    ...mock,
-    typeDefense: buildTypeDefenseEntries(mock.primaryType, mock.secondaryType ?? null),
-  };
-}
-
 export async function getPokemonList(query: PokemonListQuery): Promise<PokemonListPayload> {
   const page = clampPagination(query.page, 1, 10_000);
   const limit = clampPagination(query.limit, 24, 100);
@@ -286,6 +270,6 @@ export async function getPokemonByName(pokemonName: string): Promise<PokemonDeta
     pokemonDetailCache.set(slug, normalized);
     return normalized;
   } catch {
-    return fallbackToMockDetail(slug);
+    return null;
   }
 }

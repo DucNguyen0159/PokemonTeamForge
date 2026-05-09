@@ -1,44 +1,90 @@
 "use client";
 
-import { memo, useDeferredValue, useMemo, useState } from "react";
-import { Search, X } from "lucide-react";
+import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { Loader2, Search, X } from "lucide-react";
 
 import { cn } from "@/utils";
-import type { Pokemon } from "@/types/pokemon";
-import { MOCK_POKEMON } from "@/data/mock-pokemon";
+import type { PokemonDetail, PokemonListItem } from "@/types/pokemon";
+import {
+  fetchPokemonDetailFromApi,
+  fetchPokemonListFromApi,
+} from "@/lib/pokemon/data-access";
 import { TypeBadge } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
+import { ErrorMessage } from "@/components/error/error-message";
 
 type PokemonPickerProps = {
-  onSelect: (pokemon: Pokemon) => void;
+  onSelect: (pokemon: PokemonDetail) => void;
   onCancel: () => void;
 };
 
-const SEARCHABLE_POKEMON = MOCK_POKEMON.map((pokemon) => ({
-  pokemon,
-  searchableText: [
-    pokemon.name,
-    pokemon.primaryType,
-    pokemon.secondaryType ?? "",
-  ]
-    .join(" ")
-    .toLowerCase(),
-}));
+const PICKER_PAGE_SIZE = 60;
 
 function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const normalizedSearch = deferredSearch.trim().toLowerCase();
+  const [addingSlug, setAddingSlug] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
-  const filtered = useMemo(
+  const pokemonQuery = useInfiniteQuery({
+    queryKey: ["builder-pokemon-picker", normalizedSearch],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      fetchPokemonListFromApi({
+        search: normalizedSearch || undefined,
+        page: pageParam,
+        limit: PICKER_PAGE_SIZE,
+      }),
+    getNextPageParam: (lastPage) => {
+      const loaded = lastPage.page * lastPage.limit;
+      return loaded < lastPage.total ? lastPage.page + 1 : undefined;
+    },
+  });
+  const {
+    fetchNextPage,
+    hasNextPage,
+    isError,
+    isFetching,
+    isFetchingNextPage,
+    isPending,
+    refetch,
+  } = pokemonQuery;
+
+  const filtered = useMemo<PokemonListItem[]>(
     () =>
-      normalizedSearch
-        ? SEARCHABLE_POKEMON.filter((entry) =>
-            entry.searchableText.includes(normalizedSearch),
-          ).map((entry) => entry.pokemon)
-        : MOCK_POKEMON,
-    [normalizedSearch],
+      pokemonQuery.data?.pages.flatMap((page) => page.pokemon) ?? [],
+    [pokemonQuery.data],
   );
+
+  const handleListScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      if (!hasNextPage || isFetchingNextPage || isPending) {
+        return;
+      }
+
+      const target = event.currentTarget;
+      const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 56;
+      if (nearBottom) {
+        void fetchNextPage();
+      }
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage, isPending],
+  );
+
+  async function handleSelect(slug: string) {
+    setAddingSlug(slug);
+    setStatus(null);
+    try {
+      const detail = await fetchPokemonDetailFromApi(slug);
+      onSelect(detail);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Unable to load this Pokemon.");
+    } finally {
+      setAddingSlug(null);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -76,21 +122,46 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {status ? <ErrorMessage title="Selection unavailable" message={status} /> : null}
+
+      {isPending ? (
+        <p className="py-4 text-center text-xs text-muted-foreground">Loading Pokemon...</p>
+      ) : isError ? (
+        <ErrorMessage
+          title="Pokemon list unavailable"
+          message={
+            pokemonQuery.error instanceof Error
+              ? pokemonQuery.error.message
+              : "Unable to load Pokemon."
+          }
+          onRetry={() => {
+            void refetch();
+          }}
+          isRetrying={isFetching}
+        />
+      ) : filtered.length === 0 ? (
         <p className="py-4 text-center text-xs text-muted-foreground">
           No Pokemon found. Try another name or type.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-1.5 overflow-y-auto" style={{ maxHeight: "280px" }}>
+        <div
+          className="grid grid-cols-1 gap-1.5 overflow-y-auto"
+          style={{ maxHeight: "280px" }}
+          onScroll={handleListScroll}
+        >
           {filtered.map((pokemon) => (
             <button
               key={pokemon.id}
               type="button"
-              onClick={() => onSelect(pokemon)}
+              onClick={() => {
+                void handleSelect(pokemon.slug);
+              }}
+              disabled={addingSlug === pokemon.slug}
               className={cn(
                 "flex items-center gap-2.5 rounded-xl border border-border/40 bg-background/30 px-2.5 py-2",
                 "text-left transition-colors",
                 "hover:border-primary/30 hover:bg-card focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                addingSlug === pokemon.slug && "opacity-70",
               )}
             >
               <div className="relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-background/60">
@@ -112,6 +183,12 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
               </div>
             </button>
           ))}
+          {isFetchingNextPage ? (
+            <div className="flex items-center justify-center py-2 text-xs text-muted-foreground">
+              <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden />
+              Loading more Pokemon...
+            </div>
+          ) : null}
         </div>
       )}
     </div>

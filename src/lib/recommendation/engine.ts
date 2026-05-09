@@ -1,12 +1,13 @@
 import { FORMAT_RULES } from "@/data/format-rules";
-import { MOCK_POKEMON } from "@/data/mock-pokemon";
 import { calculateDefensiveCoverage, calculateOffensiveCoverage } from "@/lib/calculations";
 import { toPokemonListItem } from "@/lib/normalizers/normalize-pokemon";
+import { getStrategyTeams } from "@/lib/services/strategy-service";
 import type {
   RecommendationRequest,
   RecommendationResponse,
   RecommendationResult,
 } from "@/types/recommendation";
+import type { Pokemon } from "@/types/pokemon";
 import type { PokemonType, TeamRole } from "@/types/shared";
 
 import { filterCandidates } from "./filters/filter-candidates";
@@ -77,9 +78,12 @@ function toRecommendationResult(scored: ReturnType<typeof scoreCandidate>): Reco
   };
 }
 
-export function generateRecommendations(request: RecommendationRequest): RecommendationResponse {
+function generateRecommendationsWithPool(
+  request: RecommendationRequest,
+  pool: Pokemon[],
+): RecommendationResponse {
   const analysis = analyzeTeam(request);
-  const candidates = filterCandidates(MOCK_POKEMON, request.filters, request.team);
+  const candidates = filterCandidates(pool, request.filters, request.team);
 
   const scored = candidates.map((candidate) => scoreCandidate(candidate, analysis, request.filters));
   const ranked = rankRecommendations(scored);
@@ -92,5 +96,22 @@ export function generateRecommendations(request: RecommendationRequest): Recomme
     results: ranked.slice(0, selectedCount).map(toRecommendationResult),
     analyzedAt: new Date().toISOString(),
   };
+}
+
+export function generateRecommendations(request: RecommendationRequest): RecommendationResponse {
+  return generateRecommendationsWithPool(request, []);
+}
+
+export async function generateRecommendationsFromSharedSource(
+  request: RecommendationRequest,
+): Promise<RecommendationResponse> {
+  const strategyTeams = await getStrategyTeams();
+  const candidateMap = new Map(
+    strategyTeams
+      .flatMap((strategy) => strategy.pokemon.map((slot) => slot.pokemon))
+      .map((pokemon) => [pokemon.slug, pokemon] as const),
+  );
+
+  return generateRecommendationsWithPool(request, Array.from(candidateMap.values()));
 }
 

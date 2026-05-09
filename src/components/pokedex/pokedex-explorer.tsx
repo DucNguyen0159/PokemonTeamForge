@@ -7,9 +7,8 @@ import { LayoutGrid, List, Loader2, Plus, Search } from "lucide-react";
 
 import { ROUTES } from "@/constants/routes";
 import { ALL_POKEMON_TYPES } from "@/data/type-chart";
-import type { PokemonListPayload } from "@/types/api";
-import type { PokemonDetail } from "@/types/pokemon";
 import type { PokemonType } from "@/types/shared";
+import { fetchPokemonDetailFromApi, fetchPokemonListFromApi } from "@/lib/pokemon/data-access";
 import { cn } from "@/utils";
 import { TypeBadge } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
@@ -21,67 +20,6 @@ const PAGE_SIZE = 24;
 const GENERATIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 type ViewMode = "cards" | "table";
-
-async function fetchPokemonList(searchParams: URLSearchParams): Promise<PokemonListPayload> {
-  let response: Response;
-  try {
-    response = await fetch(`/api/pokemon?${searchParams.toString()}`);
-  } catch {
-    throw new Error("You seem to be offline. Please check your connection.");
-  }
-
-  if (!response.ok) {
-    throw new Error("Unable to load Pokémon right now.");
-  }
-
-  let payload: {
-    success: boolean;
-    data?: PokemonListPayload;
-    error?: { message?: string };
-  } | null = null;
-
-  try {
-    payload = (await response.json()) as {
-      success: boolean;
-      data?: PokemonListPayload;
-      error?: { message?: string };
-    };
-  } catch {
-    throw new Error("Pokemon list is temporarily unavailable. Please try again.");
-  }
-
-  if (!payload?.success || !payload.data) {
-    throw new Error(payload?.error?.message ?? "Unable to load Pokemon.");
-  }
-
-  return payload.data;
-}
-
-async function fetchPokemonDetail(slug: string): Promise<PokemonDetail> {
-  const response = await fetch(`/api/pokemon/${encodeURIComponent(slug)}`);
-
-  let payload: {
-    success: boolean;
-    data?: PokemonDetail;
-    error?: { message?: string };
-  } | null = null;
-
-  try {
-    payload = (await response.json()) as {
-      success: boolean;
-      data?: PokemonDetail;
-      error?: { message?: string };
-    };
-  } catch {
-    throw new Error("Could not load that Pokemon.");
-  }
-
-  if (!response.ok || !payload?.success || !payload.data) {
-    throw new Error(payload?.error?.message ?? "Could not load that Pokemon.");
-  }
-
-  return payload.data;
-}
 
 export function PokedexExplorer() {
   const [search, setSearch] = useState("");
@@ -123,7 +61,14 @@ export function PokedexExplorer() {
 
   const listQuery = useQuery({
     queryKey: ["pokedex", queryParams.toString()],
-    queryFn: () => fetchPokemonList(queryParams),
+    queryFn: () =>
+      fetchPokemonListFromApi({
+        search: debouncedSearch || undefined,
+        type: typeFilter || undefined,
+        generation: generationFilter === "" ? undefined : generationFilter,
+        page,
+        limit: PAGE_SIZE,
+      }),
     staleTime: 60_000,
     placeholderData: (previousData) => previousData,
   });
@@ -145,7 +90,7 @@ export function PokedexExplorer() {
     setStatus(null);
 
     try {
-      const detail = await fetchPokemonDetail(slug);
+      const detail = await fetchPokemonDetailFromApi(slug);
       addPokemon(slot, detail);
       setStatus(`Added ${detail.name} to slot ${slot}.`);
     } catch (error) {

@@ -1,2 +1,5 @@
-export { generateRecommendations } from "./engine";
+export {
+  generateRecommendations,
+  generateRecommendationsFromSharedSource,
+} from "./engine";
 

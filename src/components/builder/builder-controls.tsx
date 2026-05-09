@@ -8,6 +8,7 @@ import {
   useSaveTeamMutation,
   useUpdateTeamMutation,
 } from "@/hooks/queries/use-user-teams";
+import { fetchPokemonDetailFromApi } from "@/lib/pokemon/data-access";
 import { formatShowdownExport } from "@/lib/parsing/format-showdown-export";
 import { parseShowdownImport } from "@/lib/parsing/parse-showdown-import";
 import { useAuthStore } from "@/store/auth-store";
@@ -49,29 +50,19 @@ export function BuilderControls() {
     error: "network" | "not_found" | "invalid_response" | null;
   }> {
     try {
-      const response = await fetch(`/api/pokemon/${encodeURIComponent(name)}`);
-      let payload: {
-        success: boolean;
-        data?: PokemonDetail;
-      } | null = null;
-
       try {
-        payload = (await response.json()) as {
-          success: boolean;
-          data?: PokemonDetail;
-        };
-      } catch {
+        const detail = await fetchPokemonDetailFromApi(name);
+        return { detail, error: null };
+      } catch (error) {
+        const message = error instanceof Error ? error.message.toLowerCase() : "";
+        if (message.includes("not found")) {
+          return { detail: null, error: "not_found" };
+        }
+        if (message.includes("offline") || message.includes("connection")) {
+          return { detail: null, error: "network" };
+        }
         return { detail: null, error: "invalid_response" };
       }
-
-      if (!response.ok || !payload?.success || !payload.data) {
-        return {
-          detail: null,
-          error: response.status === 404 ? "not_found" : "invalid_response",
-        };
-      }
-
-      return { detail: payload.data, error: null };
     } catch {
       return { detail: null, error: "network" };
     }

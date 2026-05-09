@@ -1,6 +1,15 @@
 import "server-only";
 
-import { STRATEGY_TEAMS } from "@/data/strategy-teams";
+import { MOCK_ITEMS } from "@/data/mock-items";
+import {
+  STRATEGY_TEAM_PRESETS,
+  type StrategyTeamPreset,
+} from "@/data/strategy-teams";
+import { getPokemonByName } from "@/lib/services/pokemon-service";
+import {
+  hydrateStrategyPresetWithResolvers,
+  type StrategyResolvers,
+} from "@/lib/services/strategy-hydrator";
 import type { DifficultyLevel } from "@/types/shared";
 import type { StrategyTeam, StrategyType } from "@/types/strategy";
 
@@ -10,8 +19,19 @@ export interface StrategyQuery {
   difficulty?: DifficultyLevel;
 }
 
+const defaultResolvers: StrategyResolvers = {
+  resolvePokemon: getPokemonByName,
+  resolveItem: (name) => MOCK_ITEMS.find((entry) => entry.name === name) ?? null,
+};
+
+export async function hydrateStrategyPreset(
+  preset: StrategyTeamPreset,
+): Promise<StrategyTeam> {
+  return hydrateStrategyPresetWithResolvers(preset, defaultResolvers);
+}
+
 export async function getStrategyTeams(query: StrategyQuery = {}): Promise<StrategyTeam[]> {
-  return STRATEGY_TEAMS.filter((strategy) => {
+  const filteredPresets = STRATEGY_TEAM_PRESETS.filter((strategy) => {
     if (query.strategyType && strategy.strategyType !== query.strategyType) {
       return false;
     }
@@ -26,5 +46,8 @@ export async function getStrategyTeams(query: StrategyQuery = {}): Promise<Strat
 
     return true;
   });
+
+  const hydrated = await Promise.all(filteredPresets.map((preset) => hydrateStrategyPreset(preset)));
+  return hydrated;
 }
 
