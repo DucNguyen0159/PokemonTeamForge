@@ -3,20 +3,20 @@
 import { memo } from "react";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/utils";
-import type { SpriteMode } from "./team-card-preview";
+import type { TeamCardSpriteMode } from "@/types/team-card";
 
 type SpriteSlotOption = {
   slot: number;
   name: string;
   hasPokemon: boolean;
-  mode: SpriteMode;
+  mode: TeamCardSpriteMode;
 };
 
 type SpriteModeToggleProps = {
-  mode: SpriteMode;
-  onChange: (mode: SpriteMode) => void;
+  mode: TeamCardSpriteMode;
+  onChange: (mode: TeamCardSpriteMode) => void;
   slots: SpriteSlotOption[];
-  onSlotModeChange: (slot: number, mode: SpriteMode) => void;
+  onSlotModeChange: (slot: number, mode: TeamCardSpriteMode) => void;
   onClearOverrides: () => void;
 };
 

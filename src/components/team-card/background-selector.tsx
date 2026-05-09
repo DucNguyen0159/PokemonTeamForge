@@ -1,65 +1,45 @@
 "use client";
 
 import { memo } from "react";
+import { WandSparkles } from "lucide-react";
 
 import { cn } from "@/utils";
-import { BACKGROUND_PRESETS, type BackgroundPreset } from "@/data/team-card-assets";
+import type { TeamCardBackgroundAsset } from "@/data/team-card-assets";
 
 type BackgroundSelectorProps = {
-  selected: BackgroundPreset;
-  onChange: (bg: BackgroundPreset) => void;
+  selected: TeamCardBackgroundAsset;
+  onOpenPicker: () => void;
 };
 
-const CATEGORIES = [
-  { key: "dark", label: "Dark" },
-  { key: "elemental", label: "Elemental" },
-] as const;
-
-const BACKGROUNDS_BY_CATEGORY = CATEGORIES.map(({ key, label }) => ({
-  key,
-  label,
-  items: BACKGROUND_PRESETS.filter((bg) => bg.category === key),
-}));
-
-function BackgroundSelectorComponent({ selected, onChange }: BackgroundSelectorProps) {
+function BackgroundSelectorComponent({ selected, onOpenPicker }: BackgroundSelectorProps) {
   return (
     <div className="space-y-3">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Background
       </p>
-      {BACKGROUNDS_BY_CATEGORY.map(({ key, label, items }) => {
-        return (
-          <div key={key} className="space-y-1.5">
-            <p className="text-xs text-muted-foreground/70">{label}</p>
-            <div className="flex flex-wrap gap-2">
-              {items.map((bg) => (
-                <button
-                  key={bg.slug}
-                  type="button"
-                  title={bg.name}
-                  onClick={() => onChange(bg)}
-                  aria-pressed={selected.slug === bg.slug}
-                  className={cn(
-                    "group relative flex flex-col items-center gap-1 rounded-xl transition-all duration-150",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    selected.slug === bg.slug
-                      ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                      : "opacity-70 hover:opacity-100",
-                  )}
-                >
-                  <div
-                    className="h-10 w-16 rounded-lg border border-white/10"
-                    style={{ background: bg.css }}
-                  />
-                  <span className="text-[10px] text-muted-foreground group-hover:text-foreground">
-                    {bg.name}
-                  </span>
-                </button>
-              ))}
-            </div>
+      <div className="rounded-xl border border-border/60 bg-card/50 p-2">
+        <button
+          type="button"
+          onClick={onOpenPicker}
+          className={cn(
+            "group flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors",
+            "hover:bg-white/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          )}
+        >
+          <div
+            className="h-16 w-24 shrink-0 rounded-lg border border-white/10"
+            style={{ background: selected.css }}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">{selected.name}</p>
+            <p className="truncate text-xs text-muted-foreground capitalize">{selected.category}</p>
           </div>
-        );
-      })}
+          <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[11px] text-foreground">
+            <WandSparkles className="size-3" aria-hidden />
+            Change
+          </span>
+        </button>
+      </div>
     </div>
   );
 }

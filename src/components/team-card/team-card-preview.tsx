@@ -3,21 +3,30 @@
 
 import { forwardRef, memo, useMemo } from "react";
 
-import type { BackgroundPreset, TrainerPreset } from "@/data/team-card-assets";
+import type {
+  TeamCardBackgroundAsset,
+  TeamCardFormOption,
+  TeamCardIconOption,
+  TeamCardTrainerVariant,
+} from "@/data/team-card-assets";
 import { TYPE_COLORS } from "@/components/shared/type-badge";
+import type { TeamCardDetailRow, TeamCardSlotCustomization, TeamCardSpriteMode } from "@/types/team-card";
 import type { TeamPokemon } from "@/types/team";
 import type { BattleFormat } from "@/types/shared";
-
-export type SpriteMode = "normal" | "shiny";
 
 type TeamCardPreviewProps = {
   teamSlots: TeamPokemon[];
   teamName: string;
+  trainerName: string;
+  trainerDetails: TeamCardDetailRow[];
   format: BattleFormat;
-  background: BackgroundPreset;
-  trainer: TrainerPreset;
-  spriteMode: SpriteMode;
-  spriteModeBySlot?: Partial<Record<number, SpriteMode>>;
+  background: TeamCardBackgroundAsset;
+  trainer: TeamCardTrainerVariant;
+  spriteMode: TeamCardSpriteMode;
+  slotCustomizations: TeamCardSlotCustomization[];
+  detailIconOptions: TeamCardIconOption[];
+  formOptions: TeamCardFormOption[];
+  slotIconOptions: TeamCardIconOption[];
   showNames: boolean;
   showTypes: boolean;
 };
@@ -38,11 +47,16 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
     {
       teamSlots,
       teamName,
+      trainerName,
+      trainerDetails,
       format,
       background,
       trainer,
       spriteMode,
-      spriteModeBySlot,
+      slotCustomizations,
+      detailIconOptions,
+      formOptions,
+      slotIconOptions,
       showNames,
       showTypes,
     },
@@ -51,6 +65,19 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
     const filledSlots = useMemo(
       () => Array.from({ length: SLOT_COUNT }, (_, i) => teamSlots[i] ?? null),
       [teamSlots],
+    );
+
+    const detailIconMap = useMemo(
+      () => new Map(detailIconOptions.map((entry) => [entry.slug, entry])),
+      [detailIconOptions],
+    );
+    const formMap = useMemo(
+      () => new Map(formOptions.map((entry) => [entry.slug, entry.symbol])),
+      [formOptions],
+    );
+    const slotIconMap = useMemo(
+      () => new Map(slotIconOptions.map((entry) => [entry.slug, entry.symbol])),
+      [slotIconOptions],
     );
 
     return (
@@ -200,6 +227,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
             <div
               style={{
                 flex: 1,
+                position: "relative",
                 display: "grid",
                 gridTemplateColumns: "repeat(3, 1fr)",
                 gridTemplateRows: "repeat(2, 1fr)",
@@ -210,7 +238,8 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
               {filledSlots.map((slot, idx) => {
                 const pokemon = slot?.pokemon ?? null;
                 const slotNumber = slot?.slot ?? idx + 1;
-                const effectiveSpriteMode = spriteModeBySlot?.[slotNumber] ?? spriteMode;
+                const customization = slotCustomizations.find((entry) => entry.slot === slotNumber);
+                const effectiveSpriteMode = customization?.spriteMode ?? spriteMode;
                 const spriteUrl =
                   pokemon
                     ? effectiveSpriteMode === "shiny"
@@ -219,6 +248,14 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                     : null;
                 const primaryType = pokemon?.primaryType;
                 const typeColor = primaryType ? TYPE_COLORS[primaryType] : null;
+                const formSymbol =
+                  customization && customization.formSlug !== "none"
+                    ? formMap.get(customization.formSlug) ?? null
+                    : null;
+                const iconSymbol =
+                  customization && customization.iconSlug !== "none"
+                    ? slotIconMap.get(customization.iconSlug) ?? null
+                    : null;
 
                 return (
                   <div
@@ -235,8 +272,59 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                         ? `${typeColor}18`
                         : "rgba(255,255,255,0.05)",
                       border: `1px solid ${typeColor ? `${typeColor}30` : "rgba(255,255,255,0.1)"}`,
+                      position: "relative",
                     }}
                   >
+                    {(formSymbol || iconSymbol) && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 4,
+                          right: 4,
+                          display: "flex",
+                          gap: 3,
+                        }}
+                      >
+                        {formSymbol ? (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              minWidth: 14,
+                              height: 14,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderRadius: 999,
+                              fontSize: 8,
+                              fontWeight: 700,
+                              color: "rgba(255,255,255,0.9)",
+                              background: "rgba(15,23,42,0.8)",
+                              border: "1px solid rgba(255,255,255,0.18)",
+                            }}
+                          >
+                            {formSymbol}
+                          </span>
+                        ) : null}
+                        {iconSymbol ? (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              minWidth: 14,
+                              height: 14,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderRadius: 999,
+                              fontSize: 8,
+                              fontWeight: 700,
+                              color: "rgba(255,255,255,0.9)",
+                              background: "rgba(15,23,42,0.8)",
+                              border: "1px solid rgba(255,255,255,0.18)",
+                            }}
+                          >
+                            {iconSymbol}
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
                     <img
                       src={spriteUrl ?? POKEMON_PLACEHOLDER}
                       alt={pokemon?.name ?? `Slot ${idx + 1}`}
@@ -311,6 +399,71 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                 );
               })}
             </div>
+          </div>
+
+          {/* Trainer info overlay */}
+          <div
+            style={{
+              position: "absolute",
+              left: "24%",
+              top: "19%",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              maxWidth: "28%",
+              zIndex: 5,
+            }}
+          >
+            <span
+              style={{
+                color: "rgba(255,255,255,0.98)",
+                fontSize: "clamp(11px, 1.45vw, 16px)",
+                fontWeight: 700,
+                lineHeight: 1.1,
+                textShadow: "0 2px 8px rgba(0,0,0,0.65)",
+              }}
+            >
+              {trainerName}
+            </span>
+            {trainerDetails
+              .filter((row) => row.text.trim().length > 0)
+              .map((row) => {
+                const icon = detailIconMap.get(row.iconSlug);
+
+                return (
+                  <span
+                    key={row.id}
+                    style={{
+                      color: "rgba(255,255,255,0.92)",
+                      fontSize: "clamp(8px, 1vw, 10px)",
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      textShadow: "0 1px 4px rgba(0,0,0,0.6)",
+                    }}
+                  >
+                    {icon?.imagePath ? (
+                      <img
+                        src={icon.imagePath}
+                        alt=""
+                        aria-hidden
+                        crossOrigin="anonymous"
+                        style={{
+                          width: "clamp(9px, 1vw, 12px)",
+                          height: "clamp(9px, 1vw, 12px)",
+                          flexShrink: 0,
+                          objectFit: "contain",
+                          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
+                        }}
+                      />
+                    ) : (
+                      <span>{icon?.symbol ?? "•"}</span>
+                    )}
+                    <span>{row.text}</span>
+                  </span>
+                );
+              })}
           </div>
 
           {/* Footer watermark */}

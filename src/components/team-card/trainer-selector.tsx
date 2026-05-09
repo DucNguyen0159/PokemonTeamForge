@@ -2,49 +2,50 @@
 "use client";
 
 import { memo } from "react";
+import { UserRoundSearch } from "lucide-react";
 
 import { cn } from "@/utils";
-import { TRAINER_PRESETS, type TrainerPreset } from "@/data/team-card-assets";
+import type { TeamCardTrainerCharacter, TeamCardTrainerVariant } from "@/data/team-card-assets";
 
 type TrainerSelectorProps = {
-  selected: TrainerPreset;
-  onChange: (trainer: TrainerPreset) => void;
+  selectedVariant: TeamCardTrainerVariant;
+  selectedCharacter: TeamCardTrainerCharacter | null;
+  onOpenPicker: () => void;
 };
 
-function TrainerSelectorComponent({ selected, onChange }: TrainerSelectorProps) {
+function TrainerSelectorComponent({
+  selectedVariant,
+  selectedCharacter,
+  onOpenPicker,
+}: TrainerSelectorProps) {
   return (
     <div className="space-y-3">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Trainer
       </p>
-      <div className="flex flex-wrap gap-2">
-        {TRAINER_PRESETS.map((trainer) => (
-          <button
-            key={trainer.slug}
-            type="button"
-            title={trainer.name}
-            onClick={() => onChange(trainer)}
-            aria-pressed={selected.slug === trainer.slug}
-            className={cn(
-              "group flex flex-col items-center gap-1 rounded-xl transition-all duration-150",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              selected.slug === trainer.slug
-                ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                : "opacity-70 hover:opacity-100",
-            )}
-          >
-            <div className="flex h-16 w-10 items-end justify-center rounded-lg border border-border/60 bg-card/80 px-1 py-1">
-              <img
-                src={trainer.imagePath}
-                alt={trainer.name}
-                className="h-full w-full object-contain"
-              />
-            </div>
-            <span className="text-[10px] text-muted-foreground group-hover:text-foreground">
-              {trainer.name}
-            </span>
-          </button>
-        ))}
+      <div className="rounded-xl border border-border/60 bg-card/50 p-2">
+        <button
+          type="button"
+          onClick={onOpenPicker}
+          className={cn(
+            "group flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors",
+            "hover:bg-white/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          )}
+        >
+          <div className="flex h-16 w-12 shrink-0 items-end justify-center rounded-lg border border-border/60 bg-card/80 px-1 py-1">
+            <img src={selectedVariant.imagePath} alt={selectedVariant.name} className="h-full w-full object-contain" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">{selectedVariant.name}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {selectedCharacter?.name ?? "Unknown Character"}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[11px] text-foreground">
+            <UserRoundSearch className="size-3" aria-hidden />
+            Change
+          </span>
+        </button>
       </div>
     </div>
   );
