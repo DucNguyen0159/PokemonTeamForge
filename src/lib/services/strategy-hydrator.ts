@@ -8,6 +8,25 @@ export type StrategyResolvers = {
   resolveItem: (name: string) => Item | null;
 };
 
+const strategyHydrationWarnings = new Set<string>();
+
+function normalizeLookupToken(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function isTokenMatch(left: string, right: string): boolean {
+  return normalizeLookupToken(left) === normalizeLookupToken(right);
+}
+
+function logHydrationWarning(message: string) {
+  if (strategyHydrationWarnings.has(message)) {
+    return;
+  }
+
+  strategyHydrationWarnings.add(message);
+  console.warn(message);
+}
+
 async function resolveStrategySlot(
   input: StrategyPresetPokemonRef,
   resolvers: StrategyResolvers,
@@ -18,14 +37,20 @@ async function resolveStrategySlot(
   }
 
   const ability =
-    pokemon.abilities.find((entry) => entry.name === input.abilityName) ??
+    pokemon.abilities.find(
+      (entry) => isTokenMatch(entry.name, input.abilityName) || isTokenMatch(entry.slug, input.abilityName),
+    ) ??
     pokemon.abilities[0] ??
     null;
   if (!ability) {
     throw new Error(`Strategy preset cannot resolve any ability for ${pokemon.name}.`);
   }
-  if (!pokemon.abilities.some((entry) => entry.name === input.abilityName)) {
-    console.error(
+  if (
+    !pokemon.abilities.some(
+      (entry) => isTokenMatch(entry.name, input.abilityName) || isTokenMatch(entry.slug, input.abilityName),
+    )
+  ) {
+    logHydrationWarning(
       `[Strategy Preset] Missing ability "${input.abilityName}" for ${pokemon.name}; using "${ability.name}".`,
     );
   }
@@ -36,19 +61,24 @@ async function resolveStrategySlot(
       `Strategy preset references unknown item "${input.itemName}" and no fallback is available.`,
     );
   }
-  if (item.name !== input.itemName) {
-    console.error(
+  if (!isTokenMatch(item.name, input.itemName) && !isTokenMatch(item.slug, input.itemName)) {
+    logHydrationWarning(
       `[Strategy Preset] Missing item "${input.itemName}" for ${pokemon.name}; using "${item.name}".`,
     );
   }
 
   const moves = input.moveNames
-    .map((moveName) => pokemon.moves.find((entry) => entry.name === moveName) ?? null)
+    .map(
+      (moveName) =>
+        pokemon.moves.find(
+          (entry) => isTokenMatch(entry.name, moveName) || isTokenMatch(entry.slug, moveName),
+        ) ?? null,
+    )
     .filter((move): move is NonNullable<typeof move> => Boolean(move));
 
   const resolvedMoves = moves.length > 0 ? moves : pokemon.moves.slice(0, 4);
   if (moves.length === 0) {
-    console.error(
+    logHydrationWarning(
       `[Strategy Preset] Missing all configured moves for ${pokemon.name} (${input.moveNames.join(", ")}); using default learnset moves.`,
     );
   }

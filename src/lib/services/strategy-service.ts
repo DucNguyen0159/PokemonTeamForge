@@ -19,9 +19,25 @@ export interface StrategyQuery {
   difficulty?: DifficultyLevel;
 }
 
+const STRATEGY_CACHE_TTL_MS = 1000 * 60 * 5;
+let hydratedStrategiesCache: { expiresAt: number; data: StrategyTeam[] } | null = null;
+
+function normalizeLookupToken(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 const defaultResolvers: StrategyResolvers = {
   resolvePokemon: getPokemonByName,
-  resolveItem: (name) => MOCK_ITEMS.find((entry) => entry.name === name) ?? null,
+  resolveItem: (name) => {
+    const requested = normalizeLookupToken(name);
+    return (
+      MOCK_ITEMS.find(
+        (entry) =>
+          normalizeLookupToken(entry.name) === requested ||
+          normalizeLookupToken(entry.slug) === requested,
+      ) ?? null
+    );
+  },
 };
 
 export async function hydrateStrategyPreset(
@@ -31,7 +47,32 @@ export async function hydrateStrategyPreset(
 }
 
 export async function getStrategyTeams(query: StrategyQuery = {}): Promise<StrategyTeam[]> {
-  const filteredPresets = STRATEGY_TEAM_PRESETS.filter((strategy) => {
+  const now = Date.now();
+  let hydratedAllStrategies: StrategyTeam[];
+  if (hydratedStrategiesCache && hydratedStrategiesCache.expiresAt > now) {
+    hydratedAllStrategies = hydratedStrategiesCache.data;
+  } else {
+    const hydratedResults = await Promise.allSettled(
+      STRATEGY_TEAM_PRESETS.map((preset) => hydrateStrategyPreset(preset)),
+    );
+
+    hydratedAllStrategies = hydratedResults
+      .filter((result): result is PromiseFulfilledResult<StrategyTeam> => result.status === "fulfilled")
+      .map((result) => result.value);
+
+    hydratedResults
+      .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+      .forEach((result) => {
+        console.error("[Strategy Preset] Failed to hydrate preset:", result.reason);
+      });
+
+    hydratedStrategiesCache = {
+      expiresAt: now + STRATEGY_CACHE_TTL_MS,
+      data: hydratedAllStrategies,
+    };
+  }
+
+  return hydratedAllStrategies.filter((strategy) => {
     if (query.strategyType && strategy.strategyType !== query.strategyType) {
       return false;
     }
@@ -46,8 +87,5 @@ export async function getStrategyTeams(query: StrategyQuery = {}): Promise<Strat
 
     return true;
   });
-
-  const hydrated = await Promise.all(filteredPresets.map((preset) => hydrateStrategyPreset(preset)));
-  return hydrated;
 }
 

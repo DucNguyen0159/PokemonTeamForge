@@ -15,7 +15,7 @@ import {
 
 const POKEAPI_BASE_URL = "https://pokeapi.co/api/v2";
 const REVALIDATE_SECONDS = 60 * 60 * 24;
-const MAX_MOVES_PER_POKEMON = 24;
+const MAX_MOVES_PER_POKEMON = 200;
 
 type NamedApiResource = {
   name: string;
@@ -63,6 +63,20 @@ async function pokeApiFetch<T>(pathOrUrl: string): Promise<T> {
   }
 
   return (await response.json()) as T;
+}
+
+async function pokeApiFetchWithRetry<T>(pathOrUrl: string, attempts = 3): Promise<T> {
+  let lastError: unknown;
+
+  for (let index = 0; index < attempts; index += 1) {
+    try {
+      return await pokeApiFetch<T>(pathOrUrl);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("PokéAPI request failed.");
 }
 
 function normalizePokemonName(input: string): string {
@@ -242,34 +256,51 @@ export async function getPokemonByName(pokemonName: string): Promise<PokemonDeta
     return cached;
   }
 
+  let rawPokemon: PokeApiPokemonResponse;
+  let rawSpecies: PokeApiSpeciesResponse;
+
   try {
-    const rawPokemon = await pokeApiFetch<PokeApiPokemonResponse>(`/pokemon/${slug}`);
-    const rawSpecies = await pokeApiFetch<PokeApiSpeciesResponse>(
+    rawPokemon = await pokeApiFetchWithRetry<PokeApiPokemonResponse>(`/pokemon/${slug}`);
+    rawSpecies = await pokeApiFetchWithRetry<PokeApiSpeciesResponse>(
       `/pokemon-species/${rawPokemon.species.name}`,
     );
-
-    const abilityDetails = await Promise.all(
-      rawPokemon.abilities.map((entry) => pokeApiFetch<PokeApiAbilityResponse>(`/ability/${entry.ability.name}`)),
-    );
-
-    const moveNames = rawPokemon.moves
-      .map((entry) => entry.move.name)
-      .slice(0, MAX_MOVES_PER_POKEMON);
-
-    const moveDetails = await Promise.all(
-      moveNames.map((moveName) => pokeApiFetch<PokeApiMoveResponse>(`/move/${moveName}`)),
-    );
-
-    const normalized = normalizePokeApiPokemonDetail({
-      pokemon: rawPokemon,
-      species: rawSpecies,
-      abilityDetails,
-      moveDetails,
-    });
-
-    pokemonDetailCache.set(slug, normalized);
-    return normalized;
   } catch {
     return null;
   }
+
+  const abilityResults = await Promise.allSettled(
+    rawPokemon.abilities.map((entry) =>
+      pokeApiFetchWithRetry<PokeApiAbilityResponse>(`/ability/${entry.ability.name}`, 2),
+    ),
+  );
+  const abilityDetails = abilityResults
+    .filter(
+      (result): result is PromiseFulfilledResult<PokeApiAbilityResponse> =>
+        result.status === "fulfilled",
+    )
+    .map((result) => result.value);
+
+  const moveNames = rawPokemon.moves
+    .map((entry) => entry.move.name)
+    .slice(0, MAX_MOVES_PER_POKEMON);
+
+  const moveResults = await Promise.allSettled(
+    moveNames.map((moveName) => pokeApiFetchWithRetry<PokeApiMoveResponse>(`/move/${moveName}`, 2)),
+  );
+  const moveDetails = moveResults
+    .filter(
+      (result): result is PromiseFulfilledResult<PokeApiMoveResponse> =>
+        result.status === "fulfilled",
+    )
+    .map((result) => result.value);
+
+  const normalized = normalizePokeApiPokemonDetail({
+    pokemon: rawPokemon,
+    species: rawSpecies,
+    abilityDetails,
+    moveDetails,
+  });
+
+  pokemonDetailCache.set(slug, normalized);
+  return normalized;
 }
