@@ -72,7 +72,7 @@ function ExportButtonComponent({ cardRef, teamName, className }: ExportButtonPro
       >
         {status === "exporting" ? (
           <>
-            <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+            <span className="size-4 animate-spin rounded-full border-2 border-neutral-950/25 border-t-neutral-950" />
             Exporting…
           </>
         ) : status === "success" ? (

@@ -1,25 +1,33 @@
 @import "tailwindcss";
 
+/*
+ * Neutral dark surfaces inspired by classic team-builder UIs
+ * (e.g. https://mypokemonteam.com/ dark mode: ~#212121 base, ~#333 elevated, ~#b0b0b0 secondary text).
+ */
 :root {
-  --background: #0f1117;
-  --foreground: #f1f5f9;
-  --card: #1c2330;
-  --card-foreground: #f1f5f9;
-  --popover: #161b22;
-  --popover-foreground: #f1f5f9;
-  --primary: #3b82f6;
-  --primary-foreground: #eff6ff;
-  --secondary: #232b3b;
-  --secondary-foreground: #f1f5f9;
-  --muted: #1a2230;
-  --muted-foreground: #94a3b8;
-  --accent: #60a5fa;
-  --accent-foreground: #0f1117;
+  --background: #212121;
+  --foreground: #ffffff;
+  --card: #333333;
+  --card-foreground: #ffffff;
+  --popover: #333333;
+  --popover-foreground: #ffffff;
+  /* Muted steel for links, chips, selection — calmer than bright blue on #212121. */
+  --primary: #9bb5d1;
+  --primary-foreground: #121212;
+  /* High-contrast fills: Register, Export, main CTAs (My Pokemon Team–style bar buttons). */
+  --cta: #f0f0f0;
+  --cta-foreground: #1a1a1a;
+  --secondary: #3a3a3a;
+  --secondary-foreground: #ffffff;
+  --muted: #262626;
+  --muted-foreground: #b0b0b0;
+  --accent: #383838;
+  --accent-foreground: #ffffff;
   --destructive: #ef4444;
-  --destructive-foreground: #fef2f2;
-  --border: rgba(148, 163, 184, 0.2);
-  --input: rgba(148, 163, 184, 0.3);
-  --ring: #60a5fa;
+  --destructive-foreground: #fafafa;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: rgba(155, 181, 209, 0.55);
   --radius: 0.75rem;
 }
 
@@ -32,6 +40,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -47,6 +57,26 @@
 
 .dark {
   color-scheme: dark;
+}
+
+/* Primary CTAs: Tailwind utilities (e.g. `bg-*`) sort after globals and stomp backgrounds — use explicit wins. */
+a.cta-solid-btn,
+button.cta-solid-btn {
+  background-color: var(--cta) !important;
+  color: var(--cta-foreground) !important;
+  font-weight: 600;
+}
+a.cta-solid-btn svg,
+button.cta-solid-btn svg {
+  color: var(--cta-foreground) !important;
+}
+a.cta-solid-btn:hover:not(:disabled),
+button.cta-solid-btn:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+a.cta-solid-btn:active:not(:disabled),
+button.cta-solid-btn:active:not(:disabled) {
+  filter: brightness(0.92);
 }
 
 * {
