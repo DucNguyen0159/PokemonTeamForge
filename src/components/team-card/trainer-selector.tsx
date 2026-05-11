@@ -38,7 +38,7 @@ function TrainerSelectorComponent({
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">{selectedVariant.name}</p>
             <p className="truncate text-xs text-muted-foreground">
-              {selectedCharacter?.name ?? "Unknown Character"}
+              {selectedCharacter?.name ?? "Trainer"}
             </p>
           </div>
           <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[11px] text-foreground">

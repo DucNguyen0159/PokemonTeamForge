@@ -14,9 +14,42 @@ import {
 } from "@/types/team-card";
 
 const DEFAULT_DETAIL_ROWS: TeamCardDetailRow[] = [
-  { id: "detail-1", iconSlug: "instagram", text: "instagram.com/" },
-  { id: "detail-2", iconSlug: "instagram", text: "Pokemon Trainer" },
+  { id: "detail-1", iconSlug: "instagram", text: "Pokemon Trainer" },
 ];
+
+function normalizeDetailRows(
+  raw: unknown,
+  fallback: TeamCardDetailRow[],
+  validDetailIcons: Set<string>,
+): TeamCardDetailRow[] {
+  const arr = Array.isArray(raw) ? raw : [];
+  const fb = fallback[0] ?? { id: "detail-1" as const, iconSlug: "instagram", text: "" };
+
+  const coerce = (row: unknown): TeamCardDetailRow => {
+    const r = row as Partial<TeamCardDetailRow>;
+    const iconSlug = validDetailIcons.has(String(r.iconSlug ?? ""))
+      ? String(r.iconSlug)
+      : fb.iconSlug;
+    const rawText = typeof r.text === "string" ? r.text : fb.text;
+    const text = rawText.trim().length > 0 ? rawText : fb.text;
+    return { id: "detail-1", iconSlug, text };
+  };
+
+  if (arr.length === 0) {
+    return [fb];
+  }
+
+  // Legacy saved configs had two rows; card preview used row 2 — prefer that when present.
+  if (arr.length >= 2) {
+    const r0 = arr[0] as Partial<TeamCardDetailRow>;
+    const r1 = arr[1] as Partial<TeamCardDetailRow>;
+    const t0 = typeof r0.text === "string" ? r0.text.trim() : "";
+    const t1 = typeof r1.text === "string" ? r1.text.trim() : "";
+    return [coerce(t1 ? r1 : t0 ? r0 : r1)];
+  }
+
+  return [coerce(arr[0])];
+}
 
 const DEFAULT_SLOT_CUSTOMIZATIONS: TeamCardSlotCustomization[] = Array.from(
   { length: 6 },
@@ -53,7 +86,7 @@ export function clampTeamCardTrainerName(name: string): string {
 export function createDefaultTeamCardConfig(teamName?: string): TeamCardConfig {
   return {
     backgroundSlug: TEAM_CARD_BACKGROUND_ASSETS[0]?.slug ?? "midnight-grid",
-    trainerVariantSlug: TEAM_CARD_TRAINER_VARIANTS[0]?.slug ?? "rei-academy",
+    trainerVariantSlug: TEAM_CARD_TRAINER_VARIANTS[0]?.slug ?? "spr-masters-aaron",
     trainerName: clampTeamCardTrainerName(
       teamName?.trim() ? teamName.trim() : "Trainer",
     ),
@@ -78,16 +111,7 @@ export function normalizeTeamCardConfig(
   const validFormSlugs = new Set(TEAM_CARD_SLOT_FORM_OPTIONS.map((entry) => entry.slug));
   const validSlotIcons = new Set(TEAM_CARD_SLOT_ICON_OPTIONS.map((entry) => entry.slug));
 
-  const detailRows = (Array.isArray(raw.detailRows) ? raw.detailRows : fallback.detailRows).map(
-    (row, idx): TeamCardDetailRow => {
-      const rowId = idx === 0 ? "detail-1" : "detail-2";
-      const iconSlug = validDetailIcons.has((row as TeamCardDetailRow).iconSlug)
-        ? (row as TeamCardDetailRow).iconSlug
-        : fallback.detailRows[idx]?.iconSlug ?? "instagram";
-      const text = coerceString((row as TeamCardDetailRow).text, fallback.detailRows[idx]?.text ?? "");
-      return { id: rowId, iconSlug, text };
-    },
-  );
+  const detailRows = normalizeDetailRows(raw.detailRows, fallback.detailRows, validDetailIcons);
 
   const baseSlots = Array.isArray(raw.slotCustomizations)
     ? raw.slotCustomizations
@@ -127,7 +151,7 @@ export function normalizeTeamCardConfig(
     trainerName: clampTeamCardTrainerName(
       coerceString(raw.trainerName, fallback.trainerName),
     ),
-    detailRows: [detailRows[0] ?? fallback.detailRows[0], detailRows[1] ?? fallback.detailRows[1]],
+    detailRows,
     globalSpriteMode: isValidSpriteMode(raw.globalSpriteMode)
       ? raw.globalSpriteMode
       : fallback.globalSpriteMode,

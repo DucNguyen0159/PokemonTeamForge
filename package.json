@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "download:masters-trainers": "node scripts/download-pokemon-masters-trainers.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

@@ -4,7 +4,7 @@ export const TEAM_CARD_TRAINER_NAME_MAX_LENGTH = 11;
 export type TeamCardSpriteMode = "normal" | "shiny";
 
 export type TeamCardDetailRow = {
-  id: "detail-1" | "detail-2";
+  id: "detail-1";
   iconSlug: string;
   text: string;
 };

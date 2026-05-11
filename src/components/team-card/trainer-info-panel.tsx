@@ -45,35 +45,38 @@ export function TrainerInfoPanel({
       </div>
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Additional Details</p>
-        {detailRows.map((row, index) => (
-          <div key={row.id} className="grid gap-2 sm:grid-cols-[130px,1fr]">
-            <div className="space-y-1">
-              <label className="text-[11px] text-muted-foreground">Icon {index + 1}</label>
-              <select
-                value={row.iconSlug}
-                onChange={(event) => onDetailRowChange(row.id, { iconSlug: event.target.value })}
-                className="h-9 w-full rounded-lg border border-border/60 bg-background/50 px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {detailIconOptions.map((option) => (
-                  <option key={option.slug} value={option.slug}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <p className="text-xs font-medium text-muted-foreground">Subtitle (icon + line on card)</p>
+        {(() => {
+          const row = detailRows[0] ?? { id: "detail-1" as const, iconSlug: "instagram", text: "" };
+          return (
+            <div className="grid gap-2 sm:grid-cols-[130px,1fr]">
+              <div className="space-y-1">
+                <label className="text-[11px] text-muted-foreground">Icon</label>
+                <select
+                  value={row.iconSlug}
+                  onChange={(event) => onDetailRowChange(row.id, { iconSlug: event.target.value })}
+                  className="h-9 w-full rounded-lg border border-border/60 bg-background/50 px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {detailIconOptions.map((option) => (
+                    <option key={option.slug} value={option.slug}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] text-muted-foreground">Text {index + 1}</label>
-              <input
-                value={row.text}
-                onChange={(event) => onDetailRowChange(row.id, { text: event.target.value })}
-                placeholder="Enter detail text"
-                className="h-9 w-full rounded-lg border border-border/60 bg-background/50 px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
+              <div className="space-y-1">
+                <label className="text-[11px] text-muted-foreground">Text</label>
+                <input
+                  value={row.text}
+                  onChange={(event) => onDetailRowChange(row.id, { text: event.target.value })}
+                  placeholder="e.g. @trainer or Pokemon Trainer"
+                  className="h-9 w-full rounded-lg border border-border/60 bg-background/50 px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })()}
       </div>
     </div>
   );

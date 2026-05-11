@@ -1,3 +1,5 @@
+import teamCardMastersManifest from "./team-card-masters-manifest.json";
+
 export type TeamCardBackgroundCategory = {
   slug: string;
   label: string;
@@ -18,7 +20,7 @@ export type TeamCardBackgroundAsset = {
 export type TeamCardTrainerCharacter = {
   slug: string;
   name: string;
-  group: "protagonists" | "rivals";
+  group: string;
   searchTerms: string[];
 };
 
@@ -295,87 +297,10 @@ export const TEAM_CARD_BACKGROUND_ASSETS: TeamCardBackgroundAsset[] = [
   },
 ];
 
-export const TEAM_CARD_TRAINER_CHARACTERS: TeamCardTrainerCharacter[] = [
-  { slug: "rei", name: "Rei", group: "protagonists", searchTerms: ["hisui", "academy"] },
-  { slug: "dawn", name: "Dawn", group: "protagonists", searchTerms: ["sinnoh", "coordinator"] },
-  { slug: "calem", name: "Calem", group: "protagonists", searchTerms: ["kalos"] },
-  { slug: "serena", name: "Serena", group: "protagonists", searchTerms: ["kalos"] },
-  { slug: "nemona", name: "Nemona", group: "rivals", searchTerms: ["paldea"] },
-  { slug: "silver", name: "Silver", group: "rivals", searchTerms: ["johto"] },
-];
-
-export const TEAM_CARD_TRAINER_VARIANTS: TeamCardTrainerVariant[] = [
-  {
-    slug: "rei-academy",
-    characterSlug: "rei",
-    name: "Rei Academy",
-    imagePath: "/trainers/trainer-01.svg",
-    source: "PokemonTeamForge",
-  },
-  {
-    slug: "rei-academy-ex",
-    characterSlug: "rei",
-    name: "Rei Academy EX",
-    imagePath: "/trainers/trainer-02.svg",
-    source: "PokemonTeamForge",
-  },
-  {
-    slug: "dawn-contest",
-    characterSlug: "dawn",
-    name: "Dawn Contest",
-    imagePath: "/trainers/trainer-03.svg",
-    source: "PokemonTeamForge",
-  },
-  {
-    slug: "dawn-travel",
-    characterSlug: "dawn",
-    name: "Dawn Travel",
-    imagePath: "/trainers/trainer-04.svg",
-    source: "PokemonTeamForge",
-  },
-  {
-    slug: "calem-battle",
-    characterSlug: "calem",
-    name: "Calem Battle",
-    imagePath: "/trainers/trainer-02.svg",
-    source: "PokemonTeamForge",
-  },
-  {
-    slug: "calem-ace",
-    characterSlug: "calem",
-    name: "Calem Ace",
-    imagePath: "/trainers/trainer-01.svg",
-    source: "PokemonTeamForge",
-  },
-  {
-    slug: "serena-ace",
-    characterSlug: "serena",
-    name: "Serena Ace",
-    imagePath: "/trainers/trainer-03.svg",
-    source: "PokemonTeamForge",
-  },
-  {
-    slug: "serena-master",
-    characterSlug: "serena",
-    name: "Serena Master",
-    imagePath: "/trainers/trainer-04.svg",
-    source: "PokemonTeamForge",
-  },
-  {
-    slug: "nemona-champion",
-    characterSlug: "nemona",
-    name: "Nemona Champion",
-    imagePath: "/trainers/trainer-04.svg",
-    source: "PokemonTeamForge",
-  },
-  {
-    slug: "silver-shadow",
-    characterSlug: "silver",
-    name: "Silver Shadow",
-    imagePath: "/trainers/trainer-01.svg",
-    source: "PokemonTeamForge",
-  },
-];
+export const TEAM_CARD_TRAINER_CHARACTERS: TeamCardTrainerCharacter[] =
+  teamCardMastersManifest.characters;
+export const TEAM_CARD_TRAINER_VARIANTS: TeamCardTrainerVariant[] =
+  teamCardMastersManifest.variants;
 
 export const TEAM_CARD_DETAIL_ICON_OPTIONS: TeamCardIconOption[] = [
   {

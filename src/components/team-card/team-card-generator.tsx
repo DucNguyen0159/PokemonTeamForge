@@ -43,6 +43,7 @@ export function TeamCardGenerator() {
   const [config, setConfig] = useState(() => createDefaultTeamCardConfig(team.name));
   const [isBackgroundPickerOpen, setIsBackgroundPickerOpen] = useState(false);
   const [isTrainerPickerOpen, setIsTrainerPickerOpen] = useState(false);
+  const [trainerPickerInstance, setTrainerPickerInstance] = useState(0);
 
   const selectedBackground =
     TEAM_CARD_BACKGROUND_ASSETS.find((entry) => entry.slug === config.backgroundSlug) ??
@@ -191,8 +192,10 @@ export function TeamCardGenerator() {
         {/* Preview column */}
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           {/* Card preview */}
-          <div className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-            <p className="mb-3 text-xs font-medium text-muted-foreground">Preview</p>
+          <div className="rounded-2xl border border-border/60 bg-muted/20 p-2 sm:p-3">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Live preview
+            </p>
             <TeamCardPreview
               ref={cardRef}
               teamSlots={team.pokemon}
@@ -235,7 +238,10 @@ export function TeamCardGenerator() {
             <TrainerSelector
               selectedVariant={selectedTrainerVariant}
               selectedCharacter={selectedTrainerCharacter}
-              onOpenPicker={() => setIsTrainerPickerOpen(true)}
+              onOpenPicker={() => {
+                setTrainerPickerInstance((k) => k + 1);
+                setIsTrainerPickerOpen(true);
+              }}
             />
           </div>
 
@@ -283,7 +289,7 @@ export function TeamCardGenerator() {
         onConfirm={handleBackgroundChange}
       />
       <TrainerPickerModal
-        key={`trainer-${config.trainerVariantSlug}-${String(isTrainerPickerOpen)}`}
+        key={trainerPickerInstance}
         isOpen={isTrainerPickerOpen}
         selectedVariantSlug={config.trainerVariantSlug}
         onClose={() => setIsTrainerPickerOpen(false)}

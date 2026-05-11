@@ -33,6 +33,16 @@ export interface PokeApiPokemonResponse {
   sprites: {
     front_default: string | null;
     front_shiny: string | null;
+    other?: {
+      "official-artwork"?: {
+        front_default?: string | null;
+        front_shiny?: string | null;
+      };
+      home?: {
+        front_default?: string | null;
+        front_shiny?: string | null;
+      };
+    };
   };
 }
 
@@ -63,6 +73,16 @@ export interface PokeApiMoveResponse {
   accuracy: number | null;
   pp: number | null;
   priority: number;
+}
+
+/** Prefer higher-res Sugimori-style art; fall back to classic battle sprites. */
+function pickPokeApiSprite(pokemon: PokeApiPokemonResponse, variant: "normal" | "shiny"): string {
+  const oa = pokemon.sprites.other?.["official-artwork"];
+  const home = pokemon.sprites.other?.home;
+  if (variant === "shiny") {
+    return oa?.front_shiny ?? home?.front_shiny ?? pokemon.sprites.front_shiny ?? "";
+  }
+  return oa?.front_default ?? home?.front_default ?? pokemon.sprites.front_default ?? "";
 }
 
 const GENERATION_REGION_MAP: Record<number, string> = {
@@ -245,7 +265,7 @@ export function normalizePokeApiToPokemonListItem(
     specialDefense,
     speed,
     total,
-    spriteNormal: pokemon.sprites.front_default ?? "",
+    spriteNormal: pickPokeApiSprite(pokemon, "normal"),
     isLegendaryOrMythical: Boolean(species.is_legendary || species.is_mythical),
   };
 }
@@ -307,8 +327,8 @@ export function normalizePokeApiPokemonDetail(input: {
     primaryType,
     secondaryType,
     stats,
-    spriteNormal: pokemon.sprites.front_default ?? "",
-    spriteShiny: pokemon.sprites.front_shiny,
+    spriteNormal: pickPokeApiSprite(pokemon, "normal"),
+    spriteShiny: pickPokeApiSprite(pokemon, "shiny") || null,
     isLegendaryOrMythical: Boolean(species.is_legendary || species.is_mythical),
     abilities,
     moves,
