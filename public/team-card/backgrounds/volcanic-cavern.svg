@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="lavaBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1c0503"/>
+      <stop offset=".42" stop-color="#7f1d1d"/>
+      <stop offset=".72" stop-color="#ea580c"/>
+      <stop offset="1" stop-color="#180306"/>
+    </linearGradient>
+    <radialGradient id="heat" cx="70%" cy="45%" r="45%">
+      <stop offset="0" stop-color="#fed7aa" stop-opacity=".58"/>
+      <stop offset=".58" stop-color="#f97316" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="balls" width="160" height="130" patternUnits="userSpaceOnUse" patternTransform="rotate(-10)">
+      <circle cx="64" cy="62" r="38" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="9"/>
+      <path d="M28 62h72" stroke="#fff" stroke-opacity=".12" stroke-width="9"/>
+      <circle cx="64" cy="62" r="13" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="7"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="540" fill="url(#lavaBg)"/>
+  <rect width="900" height="540" fill="url(#balls)" opacity=".7"/>
+  <path d="M0 410c115-72 214-57 302-89 111-40 171-99 266-83 102 17 165 95 332 42v260H0z" fill="#16080a" opacity=".55"/>
+  <path d="M0 472c160-36 288-24 399 7 142 39 260 36 501-28v89H0z" fill="#f97316" opacity=".22"/>
+  <circle cx="635" cy="240" r="245" fill="url(#heat)"/>
+</svg>

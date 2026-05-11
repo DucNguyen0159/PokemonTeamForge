@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="stage" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset=".42" stop-color="#1d4ed8"/>
+      <stop offset=".72" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <radialGradient id="spot1" cx="25%" cy="12%" r="55%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".44"/>
+      <stop offset=".58" stop-color="#60a5fa" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spot2" cx="78%" cy="18%" r="58%">
+      <stop offset="0" stop-color="#fde68a" stop-opacity=".38"/>
+      <stop offset=".65" stop-color="#f59e0b" stop-opacity=".1"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="540" fill="url(#stage)"/>
+  <path d="M0 96h900M0 180h900M0 264h900M0 348h900M0 432h900" stroke="#fff" stroke-opacity=".08" stroke-width="2"/>
+  <path d="M90 0v540M230 0v540M370 0v540M510 0v540M650 0v540M790 0v540" stroke="#fff" stroke-opacity=".06" stroke-width="2"/>
+  <circle cx="190" cy="80" r="230" fill="url(#spot1)"/>
+  <circle cx="705" cy="95" r="255" fill="url(#spot2)"/>
+  <path d="M0 455c160-48 284-34 408 14 137 53 270 52 492-23v94H0z" fill="#030712" opacity=".48"/>
+  <circle cx="450" cy="270" r="150" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="18"/>
+</svg>

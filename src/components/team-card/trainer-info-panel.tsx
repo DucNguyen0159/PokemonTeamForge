@@ -1,7 +1,10 @@
 "use client";
 
 import type { TeamCardIconOption } from "@/data/team-card-assets";
-import type { TeamCardDetailRow } from "@/types/team-card";
+import {
+  type TeamCardDetailRow,
+  TEAM_CARD_TRAINER_NAME_MAX_LENGTH,
+} from "@/types/team-card";
 
 type TrainerInfoPanelProps = {
   trainerName: string;
@@ -27,11 +30,15 @@ export function TrainerInfoPanel({
       <div className="space-y-1.5">
         <label htmlFor="trainer-name" className="text-xs font-medium text-muted-foreground">
           Trainer Name
+          <span className="ml-1 font-normal normal-case text-muted-foreground/80">
+            ({TEAM_CARD_TRAINER_NAME_MAX_LENGTH} max)
+          </span>
         </label>
         <input
           id="trainer-name"
           value={trainerName}
           onChange={(event) => onTrainerNameChange(event.target.value)}
+          maxLength={TEAM_CARD_TRAINER_NAME_MAX_LENGTH}
           placeholder="Enter trainer name"
           className="h-10 w-full rounded-lg border border-border/60 bg-background/50 px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />

@@ -4,7 +4,10 @@ import { memo } from "react";
 import { WandSparkles } from "lucide-react";
 
 import { cn } from "@/utils";
-import type { TeamCardBackgroundAsset } from "@/data/team-card-assets";
+import {
+  teamCardBackgroundCategoryLabel,
+  type TeamCardBackgroundAsset,
+} from "@/data/team-card-assets";
 
 type BackgroundSelectorProps = {
   selected: TeamCardBackgroundAsset;
@@ -27,12 +30,18 @@ function BackgroundSelectorComponent({ selected, onOpenPicker }: BackgroundSelec
           )}
         >
           <div
-            className="h-16 w-24 shrink-0 rounded-lg border border-white/10"
-            style={{ background: selected.css }}
+            className="h-16 w-24 shrink-0 rounded-lg border border-white/10 bg-cover bg-center"
+            style={{
+              backgroundImage: selected.imagePath
+                ? `url(${selected.imagePath})`
+                : selected.css,
+            }}
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">{selected.name}</p>
-            <p className="truncate text-xs text-muted-foreground capitalize">{selected.category}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {teamCardBackgroundCategoryLabel(selected.category)}
+            </p>
           </div>
           <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[11px] text-foreground">
             <WandSparkles className="size-3" aria-hidden />

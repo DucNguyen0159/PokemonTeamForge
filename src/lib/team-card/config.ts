@@ -5,11 +5,12 @@ import {
   TEAM_CARD_SLOT_ICON_OPTIONS,
   TEAM_CARD_TRAINER_VARIANTS,
 } from "@/data/team-card-assets";
-import type {
-  TeamCardConfig,
-  TeamCardDetailRow,
-  TeamCardSlotCustomization,
-  TeamCardSpriteMode,
+import {
+  type TeamCardConfig,
+  type TeamCardDetailRow,
+  type TeamCardSlotCustomization,
+  type TeamCardSpriteMode,
+  TEAM_CARD_TRAINER_NAME_MAX_LENGTH,
 } from "@/types/team-card";
 
 const DEFAULT_DETAIL_ROWS: TeamCardDetailRow[] = [
@@ -41,16 +42,24 @@ function coerceString(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim().length > 0 ? value : fallback;
 }
 
+/** Truncates to the card headline limit (used on input and when loading persisted config). */
+export function clampTeamCardTrainerName(name: string): string {
+  if (name.length <= TEAM_CARD_TRAINER_NAME_MAX_LENGTH) {
+    return name;
+  }
+  return name.slice(0, TEAM_CARD_TRAINER_NAME_MAX_LENGTH);
+}
+
 export function createDefaultTeamCardConfig(teamName?: string): TeamCardConfig {
   return {
     backgroundSlug: TEAM_CARD_BACKGROUND_ASSETS[0]?.slug ?? "midnight-grid",
     trainerVariantSlug: TEAM_CARD_TRAINER_VARIANTS[0]?.slug ?? "rei-academy",
-    trainerName: teamName?.trim() ? teamName.trim() : "Trainer",
+    trainerName: clampTeamCardTrainerName(
+      teamName?.trim() ? teamName.trim() : "Trainer",
+    ),
     detailRows: DEFAULT_DETAIL_ROWS,
     globalSpriteMode: "normal",
     slotCustomizations: DEFAULT_SLOT_CUSTOMIZATIONS,
-    showNames: true,
-    showTypes: true,
   };
 }
 
@@ -115,14 +124,14 @@ export function normalizeTeamCardConfig(
     trainerVariantSlug: validTrainerSlugs.has(raw.trainerVariantSlug ?? "")
       ? (raw.trainerVariantSlug as string)
       : fallback.trainerVariantSlug,
-    trainerName: coerceString(raw.trainerName, fallback.trainerName),
+    trainerName: clampTeamCardTrainerName(
+      coerceString(raw.trainerName, fallback.trainerName),
+    ),
     detailRows: [detailRows[0] ?? fallback.detailRows[0], detailRows[1] ?? fallback.detailRows[1]],
     globalSpriteMode: isValidSpriteMode(raw.globalSpriteMode)
       ? raw.globalSpriteMode
       : fallback.globalSpriteMode,
     slotCustomizations,
-    showNames: typeof raw.showNames === "boolean" ? raw.showNames : fallback.showNames,
-    showTypes: typeof raw.showTypes === "boolean" ? raw.showTypes : fallback.showTypes,
   };
 }
 

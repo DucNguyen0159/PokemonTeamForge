@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="templeBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fef3c7"/>
+      <stop offset=".48" stop-color="#a16207"/>
+      <stop offset="1" stop-color="#1f2937"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="72%" cy="18%" r="42%">
+      <stop offset="0" stop-color="#fde68a" stop-opacity=".68"/>
+      <stop offset=".7" stop-color="#f59e0b" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="ancientBalls" width="160" height="140" patternUnits="userSpaceOnUse" patternTransform="rotate(8)">
+      <circle cx="80" cy="70" r="42" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="10"/>
+      <path d="M38 70h84" stroke="#fff" stroke-opacity=".13" stroke-width="10"/>
+      <circle cx="80" cy="70" r="15" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="8"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="540" fill="url(#templeBg)"/>
+  <rect width="900" height="540" fill="url(#ancientBalls)" opacity=".75"/>
+  <circle cx="675" cy="95" r="240" fill="url(#sun)"/>
+  <path d="M115 460V260h72v200zm154 0V210h90v250zm192 0V250h78v210zm166 0V190h100v270z" fill="#422006" opacity=".42"/>
+  <path d="M70 264h720l-70-76H140z" fill="#78350f" opacity=".45"/>
+  <path d="M0 430c134-52 253-40 367-7 150 43 286 32 533-48v165H0z" fill="#1c1917" opacity=".38"/>
+</svg>

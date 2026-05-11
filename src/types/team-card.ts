@@ -1,3 +1,6 @@
+/** Upper bound so the card headline stays readable in the preview column. */
+export const TEAM_CARD_TRAINER_NAME_MAX_LENGTH = 11;
+
 export type TeamCardSpriteMode = "normal" | "shiny";
 
 export type TeamCardDetailRow = {
@@ -20,6 +23,4 @@ export type TeamCardConfig = {
   detailRows: TeamCardDetailRow[];
   globalSpriteMode: TeamCardSpriteMode;
   slotCustomizations: TeamCardSlotCustomization[];
-  showNames: boolean;
-  showTypes: boolean;
 };

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   TEAM_CARD_BACKGROUND_ASSETS,
   TEAM_CARD_BACKGROUND_CATEGORIES,
+  teamCardBackgroundCategoryLabel,
   type TeamCardBackgroundAsset,
 } from "@/data/team-card-assets";
 import { PickerModal } from "./picker-modal";
@@ -64,7 +65,7 @@ export function BackgroundPickerModal({
             onChange={(event) => setCategory(event.target.value)}
             className="h-10 rounded-lg border border-border/60 bg-background/50 px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            <option value="all">All categories</option>
+            <option value="all">Basic & Illustration</option>
             {TEAM_CARD_BACKGROUND_CATEGORIES.map((entry) => (
               <option key={entry.slug} value={entry.slug}>
                 {entry.label}
@@ -85,10 +86,17 @@ export function BackgroundPickerModal({
                   : "border-border/60 bg-card/50 hover:bg-white/5"
               }`}
             >
-              <div className="h-24 rounded-lg border border-white/10" style={{ background: entry.css }} />
+              <div
+                className="h-24 rounded-lg border border-white/10 bg-cover bg-center"
+                style={{
+                  backgroundImage: entry.imagePath
+                    ? `url(${entry.imagePath})`
+                    : entry.css,
+                }}
+              />
               <p className="mt-2 text-sm font-medium text-foreground">{entry.name}</p>
-              <p className="text-xs text-muted-foreground capitalize">
-                {entry.category} · {entry.source}
+              <p className="text-xs text-muted-foreground">
+                {teamCardBackgroundCategoryLabel(entry.category)} · {entry.source}
               </p>
             </button>
           ))}

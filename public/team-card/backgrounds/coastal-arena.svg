@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dff7ff"/>
+      <stop offset=".45" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#082f49"/>
+    </linearGradient>
+    <pattern id="waves" width="120" height="80" patternUnits="userSpaceOnUse">
+      <path d="M0 40c20-20 40-20 60 0s40 20 60 0" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="7"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="540" fill="url(#sea)"/>
+  <rect width="900" height="540" fill="url(#waves)" opacity=".85"/>
+  <path d="M0 332c120-36 236-31 348 14 142 57 279 44 552-41v235H0z" fill="#0f172a" opacity=".36"/>
+  <path d="M0 390c170 38 307 32 410-18 139-67 285-69 490-8v176H0z" fill="#e0f2fe" opacity=".13"/>
+  <circle cx="740" cy="120" r="78" fill="#fff" opacity=".2"/>
+</svg>

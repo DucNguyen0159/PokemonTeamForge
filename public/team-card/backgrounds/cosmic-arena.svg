@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="cosmos" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#020617"/>
+      <stop offset=".42" stop-color="#4c1d95"/>
+      <stop offset=".72" stop-color="#7e22ce"/>
+      <stop offset="1" stop-color="#030712"/>
+    </linearGradient>
+    <radialGradient id="nebula" cx="55%" cy="38%" r="58%">
+      <stop offset="0" stop-color="#f0abfc" stop-opacity=".5"/>
+      <stop offset=".58" stop-color="#38bdf8" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="orbit" width="180" height="180" patternUnits="userSpaceOnUse">
+      <circle cx="90" cy="90" r="58" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="7"/>
+      <path d="M32 90h116" stroke="#fff" stroke-opacity=".1" stroke-width="7"/>
+      <circle cx="90" cy="90" r="17" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="7"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="540" fill="url(#cosmos)"/>
+  <rect width="900" height="540" fill="url(#orbit)" opacity=".78"/>
+  <circle cx="500" cy="205" r="280" fill="url(#nebula)"/>
+  <circle cx="130" cy="100" r="2" fill="#fff" opacity=".8"/>
+  <circle cx="250" cy="170" r="3" fill="#fff" opacity=".65"/>
+  <circle cx="745" cy="120" r="3" fill="#fff" opacity=".75"/>
+  <circle cx="820" cy="310" r="2" fill="#fff" opacity=".7"/>
+  <path d="M0 430c152-45 284-34 395 8 147 56 283 46 505-30v132H0z" fill="#020617" opacity=".42"/>
+</svg>

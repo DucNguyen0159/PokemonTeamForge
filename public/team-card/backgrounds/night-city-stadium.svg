@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="cityBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#020617"/>
+      <stop offset=".48" stop-color="#1d4ed8"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <radialGradient id="lights" cx="65%" cy="22%" r="52%">
+      <stop offset="0" stop-color="#a5b4fc" stop-opacity=".55"/>
+      <stop offset=".6" stop-color="#60a5fa" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="72" height="72" patternUnits="userSpaceOnUse">
+      <path d="M0 72V0h72" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="540" fill="url(#cityBg)"/>
+  <rect width="900" height="540" fill="url(#grid)" opacity=".9"/>
+  <circle cx="605" cy="110" r="250" fill="url(#lights)"/>
+  <path d="M0 286h80v160h54V228h94v218h74V318h86v128h62V238h120v208h66V300h93v146h171v94H0z" fill="#030712" opacity=".72"/>
+  <path d="M0 440c124-26 241-15 351 18 157 47 305 32 549-34v116H0z" fill="#0f172a" opacity=".55"/>
+  <circle cx="122" cy="116" r="38" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="9"/>
+</svg>

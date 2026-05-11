@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#d9f7ec"/>
+      <stop offset="0.55" stop-color="#7da58c"/>
+      <stop offset="1" stop-color="#233923"/>
+    </linearGradient>
+    <radialGradient id="mist" cx="36%" cy="30%" r="62%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".48"/>
+      <stop offset=".72" stop-color="#ffffff" stop-opacity=".04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="pokeball" width="150" height="150" patternUnits="userSpaceOnUse">
+      <circle cx="75" cy="75" r="46" fill="none" stroke="#ffffff" stroke-opacity=".16" stroke-width="10"/>
+      <path d="M29 75h92" stroke="#ffffff" stroke-opacity=".16" stroke-width="10"/>
+      <circle cx="75" cy="75" r="16" fill="none" stroke="#ffffff" stroke-opacity=".16" stroke-width="8"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="540" fill="url(#sky)"/>
+  <rect width="900" height="540" fill="url(#pokeball)" opacity=".55"/>
+  <path d="M0 380c110-70 210-40 305-96 145-86 243-78 382-35 84 26 143 21 213-22v313H0z" fill="#1c2e24" opacity=".68"/>
+  <path d="M460 70l110 275h-215z" fill="#2d372d" opacity=".55"/>
+  <path d="M585 85l92 260H487z" fill="#314130" opacity=".38"/>
+  <circle cx="230" cy="98" r="120" fill="url(#mist)"/>
+  <rect width="900" height="540" fill="#0b1020" opacity=".12"/>
+</svg>

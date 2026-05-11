@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="crystalBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#120b2f"/>
+      <stop offset=".48" stop-color="#5b21b6"/>
+      <stop offset="1" stop-color="#061826"/>
+    </linearGradient>
+    <radialGradient id="crystalGlow" cx="44%" cy="42%" r="56%">
+      <stop offset="0" stop-color="#67e8f9" stop-opacity=".54"/>
+      <stop offset=".56" stop-color="#a78bfa" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="rings" width="150" height="150" patternUnits="userSpaceOnUse">
+      <circle cx="75" cy="75" r="45" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="9"/>
+      <circle cx="75" cy="75" r="14" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="7"/>
+      <path d="M30 75h90" stroke="#fff" stroke-opacity=".12" stroke-width="9"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="540" fill="url(#crystalBg)"/>
+  <rect width="900" height="540" fill="url(#rings)" opacity=".58"/>
+  <path d="M100 510l72-330 88 330zm182 0l96-430 120 430zm260 0l78-360 110 360z" fill="#e0f2fe" opacity=".18"/>
+  <path d="M135 500l42-228 55 228zm258 0l52-280 72 280zm242 0l48-235 72 235z" fill="#67e8f9" opacity=".2"/>
+  <circle cx="410" cy="230" r="260" fill="url(#crystalGlow)"/>
+  <rect width="900" height="540" fill="#020617" opacity=".1"/>
+</svg>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Eye, EyeOff, Tag, Type } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import {
   TEAM_CARD_BACKGROUND_ASSETS,
@@ -13,6 +13,7 @@ import {
   TEAM_CARD_TRAINER_VARIANTS,
 } from "@/data/team-card-assets";
 import {
+  clampTeamCardTrainerName,
   createDefaultTeamCardConfig,
   deserializeTeamCardConfig,
   normalizeTeamCardConfig,
@@ -20,7 +21,6 @@ import {
 } from "@/lib/team-card/config";
 import { useTeamStore } from "@/store/team-store";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/utils";
 import type { TeamCardDetailRow, TeamCardSpriteMode } from "@/types/team-card";
 
 import { TeamCardPreview } from "./team-card-preview";
@@ -149,20 +149,6 @@ export function TeamCardGenerator() {
     }));
   }
 
-  function setShowNames(value: boolean) {
-    setConfig((current) => ({
-      ...current,
-      showNames: value,
-    }));
-  }
-
-  function setShowTypes(value: boolean) {
-    setConfig((current) => ({
-      ...current,
-      showTypes: value,
-    }));
-  }
-
   function setGlobalSpriteMode(value: TeamCardSpriteMode) {
     setConfig((current) => ({
       ...current,
@@ -201,7 +187,7 @@ export function TeamCardGenerator() {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         {/* Preview column */}
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           {/* Card preview */}
@@ -213,7 +199,6 @@ export function TeamCardGenerator() {
               teamName={team.name}
               trainerName={config.trainerName}
               trainerDetails={config.detailRows}
-              format={team.format}
               background={selectedBackground}
               trainer={selectedTrainerVariant}
               spriteMode={config.globalSpriteMode}
@@ -221,8 +206,6 @@ export function TeamCardGenerator() {
               detailIconOptions={TEAM_CARD_DETAIL_ICON_OPTIONS}
               formOptions={TEAM_CARD_SLOT_FORM_OPTIONS}
               slotIconOptions={TEAM_CARD_SLOT_ICON_OPTIONS}
-              showNames={config.showNames}
-              showTypes={config.showTypes}
             />
           </div>
 
@@ -238,7 +221,7 @@ export function TeamCardGenerator() {
         </div>
 
         {/* Controls sidebar */}
-        <aside className="flex w-full flex-col gap-5 xl:w-[320px] xl:flex-shrink-0">
+        <aside className="flex w-full flex-col gap-5">
           {/* Background picker */}
           <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
             <BackgroundSelector
@@ -264,7 +247,7 @@ export function TeamCardGenerator() {
               onTrainerNameChange={(value) =>
                 setConfig((current) => ({
                   ...current,
-                  trainerName: value,
+                  trainerName: clampTeamCardTrainerName(value),
                 }))
               }
               onDetailRowChange={handleDetailRowChange}
@@ -288,52 +271,6 @@ export function TeamCardGenerator() {
               iconOptions={TEAM_CARD_SLOT_ICON_OPTIONS}
               onSlotCustomizationChange={handleSlotCustomizationChange}
             />
-
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Display options
-              </p>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowNames(!config.showNames)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                    config.showNames
-                      ? "bg-primary/15 text-primary"
-                      : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
-                  )}
-                  aria-pressed={config.showNames}
-                >
-                  {config.showNames ? (
-                    <Eye className="size-3.5 shrink-0" aria-hidden />
-                  ) : (
-                    <EyeOff className="size-3.5 shrink-0" aria-hidden />
-                  )}
-                  Pokémon names
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowTypes(!config.showTypes)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                    config.showTypes
-                      ? "bg-primary/15 text-primary"
-                      : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
-                  )}
-                  aria-pressed={config.showTypes}
-                >
-                  {config.showTypes ? (
-                    <Tag className="size-3.5 shrink-0" aria-hidden />
-                  ) : (
-                    <Type className="size-3.5 shrink-0" aria-hidden />
-                  )}
-                  Type badges
-                </button>
-              </div>
-            </div>
           </div>
         </aside>
       </div>

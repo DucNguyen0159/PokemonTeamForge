@@ -2,6 +2,7 @@
 "use client";
 
 import { forwardRef, memo, useMemo } from "react";
+import { Inter, Luckiest_Guy, Montserrat } from "next/font/google";
 
 import type {
   TeamCardBackgroundAsset,
@@ -9,17 +10,36 @@ import type {
   TeamCardIconOption,
   TeamCardTrainerVariant,
 } from "@/data/team-card-assets";
-import { TYPE_COLORS } from "@/components/shared/type-badge";
 import type { TeamCardDetailRow, TeamCardSlotCustomization, TeamCardSpriteMode } from "@/types/team-card";
 import type { TeamPokemon } from "@/types/team";
-import type { BattleFormat } from "@/types/shared";
+
+/** Option E: geometric display title + neutral body (Inter reads similar to system UI without explicit webfont). */
+const teamCardTitleFont = Montserrat({
+  subsets: ["latin"],
+  weight: ["700", "800", "900"],
+});
+
+const teamCardBodyFont = Inter({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
+/** Rounded “sticker” / social caption style (white fill + heavy outline), per reference. */
+const trainerSocialStickerFont = Luckiest_Guy({
+  weight: "400",
+  subsets: ["latin"],
+});
+
+/** Thick cartoon outline: stroke + ring of shadows (readable on busy PNG backgrounds). */
+const STICKER_OUTLINE_SHADOW =
+  "1px 1px 0 #0a0a0a, -1px -1px 0 #0a0a0a, 1px -1px 0 #0a0a0a, -1px 1px 0 #0a0a0a, 2px 0 0 #0a0a0a, -2px 0 0 #0a0a0a, 0 2px 0 #0a0a0a, 0 -2px 0 #0a0a0a, 2px 2px 0 #0a0a0a, -2px -2px 0 #0a0a0a, 2px -2px 0 #0a0a0a, -2px 2px 0 #0a0a0a";
 
 type TeamCardPreviewProps = {
   teamSlots: TeamPokemon[];
+  /** Builder team name; not shown on the card (trainer name is the headline). */
   teamName: string;
   trainerName: string;
   trainerDetails: TeamCardDetailRow[];
-  format: BattleFormat;
   background: TeamCardBackgroundAsset;
   trainer: TeamCardTrainerVariant;
   spriteMode: TeamCardSpriteMode;
@@ -27,14 +47,6 @@ type TeamCardPreviewProps = {
   detailIconOptions: TeamCardIconOption[];
   formOptions: TeamCardFormOption[];
   slotIconOptions: TeamCardIconOption[];
-  showNames: boolean;
-  showTypes: boolean;
-};
-
-const FORMAT_LABEL: Record<BattleFormat, string> = {
-  singles: "Singles",
-  doubles: "Doubles",
-  triples: "Triples",
 };
 
 const SLOT_COUNT = 6;
@@ -49,7 +61,6 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
       teamName,
       trainerName,
       trainerDetails,
-      format,
       background,
       trainer,
       spriteMode,
@@ -57,8 +68,6 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
       detailIconOptions,
       formOptions,
       slotIconOptions,
-      showNames,
-      showTypes,
     },
     ref,
   ) {
@@ -79,25 +88,60 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
       () => new Map(slotIconOptions.map((entry) => [entry.slug, entry.symbol])),
       [slotIconOptions],
     );
+    const hasTrainerHeadline = trainerName.trim().length > 0;
+    const hasTrainerDetailLines = trainerDetails.some((row) => row.text.trim().length > 0);
 
-    return (
+    /* Builder team name is not shown on the card — trainer name is the headline. */
+    void teamName;    return (
       <div
         ref={ref}
+        className={teamCardBodyFont.className}
         style={{
           width: "100%",
-          aspectRatio: "16 / 7",
+          aspectRatio: "5 / 3",
           position: "relative",
           overflow: "hidden",
-          borderRadius: "16px",
-          fontFamily: "system-ui, -apple-system, sans-serif",
+          borderRadius: "18px",
+          background:
+            "linear-gradient(135deg, rgba(76,29,89,0.95) 0%, rgba(45,27,60,0.98) 46%, rgba(24,18,38,0.98) 100%)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          boxShadow: "0 18px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12)",
         }}
       >
-        {/* Background */}
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            background: background.css,
+            top: "4%",
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            color: "#b91c1c",
+            fontSize: "clamp(14px, 2.1vw, 22px)",
+            fontWeight: 800,
+            letterSpacing: "0.02em",
+            textShadow: "0 1px 2px rgba(0,0,0,0.45)",
+            zIndex: 10,
+          }}
+        >
+          Card Preview
+        </div>
+
+        {/* Background — longhand only (no `background` shorthand) to avoid React warnings vs backgroundSize/Position */}
+        <div
+          style={{
+            position: "absolute",
+            top: "13%",
+            right: "3%",
+            bottom: "5%",
+            left: "3%",
+            borderRadius: "12px",
+            backgroundImage: background.imagePath
+              ? `url(${background.imagePath}), ${background.css}`
+              : background.css,
+            backgroundSize: background.imagePath ? "cover, auto" : undefined,
+            backgroundPosition: background.imagePath ? "center, center" : undefined,
+            backgroundRepeat: background.imagePath ? "no-repeat, no-repeat" : undefined,
+            border: "1px solid rgba(255,255,255,0.35)",
           }}
         />
 
@@ -105,9 +149,13 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
         <div
           style={{
             position: "absolute",
-            inset: 0,
+            top: "13%",
+            right: "3%",
+            bottom: "5%",
+            left: "3%",
+            borderRadius: "12px",
             background:
-              "linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 100%)",
+              "linear-gradient(90deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.16) 50%, rgba(0,0,0,0.22) 100%)",
           }}
         />
 
@@ -115,7 +163,11 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
         <div
           style={{
             position: "absolute",
-            inset: 0,
+            top: "13%",
+            right: "3%",
+            bottom: "5%",
+            left: "3%",
+            borderRadius: "12px",
             backgroundImage:
               "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
             backgroundSize: "48px 48px",
@@ -125,63 +177,137 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
         {/* Content layer */}
         <div
           style={{
-            position: "relative",
+            position: "absolute",
+            top: "13%",
+            right: "3%",
+            bottom: "5%",
+            left: "3%",
             display: "flex",
             flexDirection: "column",
-            height: "100%",
-            padding: "5% 4%",
-            gap: "4%",
+            padding: "4% 4% 3.5%",
+            gap: "3%",
           }}
         >
-          {/* Header row */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "8px",
-            }}
-          >
-            <span
+          {/* Top band: social rows on the left, trainer name on the right (above trainer art column) */}
+          {hasTrainerHeadline || hasTrainerDetailLines ? (
+            <div
               style={{
-                color: "rgba(255,255,255,0.95)",
-                fontSize: "clamp(14px, 2.4vw, 24px)",
-                fontWeight: 700,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                textShadow: "0 1px 8px rgba(0,0,0,0.6)",
-                flex: 1,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {teamName || "Untitled Team"}
-            </span>
-            <span
-              style={{
-                color: "rgba(255,255,255,0.75)",
-                fontSize: "clamp(9px, 1.2vw, 12px)",
-                fontWeight: 600,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                padding: "3px 10px",
-                borderRadius: "99px",
-                border: "1px solid rgba(255,255,255,0.25)",
-                background: "rgba(255,255,255,0.1)",
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "4%",
                 flexShrink: 0,
+                width: "100%",
               }}
             >
-              {FORMAT_LABEL[format]}
-            </span>
-          </div>
+              <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                {hasTrainerDetailLines ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
+                      maxWidth: "min(100%, 360px)",
+                      padding: "8px 12px",
+                      borderRadius: "10px",
+                      background: "rgba(15,23,42,0.35)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                    }}
+                  >
+                    {trainerDetails
+                      .filter((row) => row.text.trim().length > 0)
+                      .map((row) => {
+                        const icon = detailIconMap.get(row.iconSlug);
+
+                        return (
+                          <span
+                            key={row.id}
+                            className={trainerSocialStickerFont.className}
+                            style={{
+                              color: "#ffffff",
+                              fontSize: "clamp(11px, 1.45vw, 16px)",
+                              lineHeight: 1.15,
+                              letterSpacing: "0.02em",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              WebkitTextStroke: "1.25px #0a0a0a",
+                              paintOrder: "stroke fill",
+                              textShadow: STICKER_OUTLINE_SHADOW,
+                            }}
+                          >
+                            {icon?.imagePath ? (
+                              <img
+                                src={icon.imagePath}
+                                alt=""
+                                aria-hidden
+                                crossOrigin="anonymous"
+                                style={{
+                                  width: "clamp(16px, 1.75vw, 22px)",
+                                  height: "clamp(16px, 1.75vw, 22px)",
+                                  flexShrink: 0,
+                                  objectFit: "contain",
+                                  filter:
+                                    "drop-shadow(0 0 2px #0a0a0a) drop-shadow(0 1px 2px rgba(0,0,0,0.6))",
+                                }}
+                              />
+                            ) : (
+                              <span>{icon?.symbol ?? "•"}</span>
+                            )}
+                            <span>{row.text}</span>
+                          </span>
+                        );
+                      })}
+                  </div>
+                ) : null}
+              </div>
+              <div
+                style={{
+                  width: "31%",
+                  flexShrink: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                  textAlign: "right",
+                  minWidth: 0,
+                }}
+              >
+                {hasTrainerHeadline ? (
+                  <span
+                    className={teamCardTitleFont.className}
+                    style={{
+                      color: "rgba(255,255,255,0.95)",
+                      fontSize: "clamp(14px, 2.35vw, 24px)",
+                      fontWeight: 900,
+                      letterSpacing: "0.07em",
+                      textTransform: "uppercase",
+                      textShadow: "0 1px 8px rgba(0,0,0,0.6)",
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 3,
+                      overflow: "hidden",
+                      width: "100%",
+                      whiteSpace: "normal",
+                      wordBreak: "break-word",
+                      lineHeight: 1.12,
+                      textAlign: "right",
+                    }}
+                  >
+                    {trainerName}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           {/* Main content row */}
           <div
             style={{
               display: "flex",
               flex: 1,
-              gap: "3%",
+              flexDirection: "row-reverse",
+              gap: "4%",
               alignItems: "center",
               minHeight: 0,
             }}
@@ -189,7 +315,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
             {/* Trainer column */}
             <div
               style={{
-                width: "18%",
+                width: "31%",
                 flexShrink: 0,
                 display: "flex",
                 alignItems: "flex-end",
@@ -218,7 +344,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
               style={{
                 width: "1px",
                 alignSelf: "stretch",
-                background: "rgba(255,255,255,0.15)",
+                background: "rgba(255,255,255,0.22)",
                 flexShrink: 0,
               }}
             />
@@ -233,6 +359,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                 gridTemplateRows: "repeat(2, 1fr)",
                 gap: "2%",
                 height: "100%",
+                alignItems: "center",
               }}
             >
               {filledSlots.map((slot, idx) => {
@@ -246,8 +373,6 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                       ? (pokemon.spriteShiny ?? pokemon.spriteNormal)
                       : (pokemon.spriteNormal ?? pokemon.spriteShiny)
                     : null;
-                const primaryType = pokemon?.primaryType;
-                const typeColor = primaryType ? TYPE_COLORS[primaryType] : null;
                 const formSymbol =
                   customization && customization.formSlug !== "none"
                     ? formMap.get(customization.formSlug) ?? null
@@ -265,205 +390,127 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: "2px",
-                      padding: "4px",
-                      borderRadius: "8px",
-                      background: typeColor
-                        ? `${typeColor}18`
-                        : "rgba(255,255,255,0.05)",
-                      border: `1px solid ${typeColor ? `${typeColor}30` : "rgba(255,255,255,0.1)"}`,
+                      gap: "6px",
+                      padding: "4px 2px",
                       position: "relative",
+                      minHeight: 0,
+                      width: "100%",
                     }}
                   >
-                    {(formSymbol || iconSymbol) && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 4,
-                          right: 4,
-                          display: "flex",
-                          gap: 3,
-                        }}
-                      >
-                        {formSymbol ? (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              minWidth: 14,
-                              height: 14,
-                              alignItems: "center",
-                              justifyContent: "center",
-                              borderRadius: 999,
-                              fontSize: 8,
-                              fontWeight: 700,
-                              color: "rgba(255,255,255,0.9)",
-                              background: "rgba(15,23,42,0.8)",
-                              border: "1px solid rgba(255,255,255,0.18)",
-                            }}
-                          >
-                            {formSymbol}
-                          </span>
-                        ) : null}
-                        {iconSymbol ? (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              minWidth: 14,
-                              height: 14,
-                              alignItems: "center",
-                              justifyContent: "center",
-                              borderRadius: 999,
-                              fontSize: 8,
-                              fontWeight: 700,
-                              color: "rgba(255,255,255,0.9)",
-                              background: "rgba(15,23,42,0.8)",
-                              border: "1px solid rgba(255,255,255,0.18)",
-                            }}
-                          >
-                            {iconSymbol}
-                          </span>
-                        ) : null}
-                      </div>
-                    )}
-                    <img
-                      src={spriteUrl ?? POKEMON_PLACEHOLDER}
-                      alt={pokemon?.name ?? `Slot ${idx + 1}`}
-                      crossOrigin="anonymous"
-                      onError={(event) => {
-                        event.currentTarget.src = pokemon ? POKEMON_PLACEHOLDER : EMPTY_SPRITE;
-                      }}
+                    {/* Neutral frosted disk — same for every slot (readability on busy illustration backs) */}
+                    <div
                       style={{
-                        width: "clamp(36px, 6vw, 72px)",
-                        height: "clamp(36px, 6vw, 72px)",
-                        objectFit: "contain",
-                        imageRendering: "pixelated",
-                        filter: pokemon
-                          ? "drop-shadow(0 1px 4px rgba(0,0,0,0.4))"
-                          : "opacity(0.3)",
+                        position: "relative",
+                        width: "clamp(52px, 9.5vw, 88px)",
+                        aspectRatio: "1",
+                        borderRadius: "50%",
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background:
+                          "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.62) 0%, rgba(235,236,242,0.5) 42%, rgba(195,198,210,0.45) 100%)",
+                        border: "1px solid rgba(255,255,255,0.42)",
+                        boxShadow:
+                          "inset 0 2px 0 rgba(255,255,255,0.55), inset 0 -1px 0 rgba(15,23,42,0.08), 0 8px 18px rgba(0,0,0,0.2)",
                       }}
-                    />
-                    {showNames && pokemon && (
+                    >
+                      {(formSymbol || iconSymbol) && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 2,
+                            right: 2,
+                            display: "flex",
+                            gap: 3,
+                            zIndex: 1,
+                          }}
+                        >
+                          {formSymbol ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                minWidth: 14,
+                                height: 14,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                borderRadius: 999,
+                                fontSize: 8,
+                                fontWeight: 700,
+                                color: "rgba(255,255,255,0.9)",
+                                background: "rgba(15,23,42,0.8)",
+                                border: "1px solid rgba(255,255,255,0.18)",
+                              }}
+                            >
+                              {formSymbol}
+                            </span>
+                          ) : null}
+                          {iconSymbol ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                minWidth: 14,
+                                height: 14,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                borderRadius: 999,
+                                fontSize: 8,
+                                fontWeight: 700,
+                                color: "rgba(255,255,255,0.9)",
+                                background: "rgba(15,23,42,0.8)",
+                                border: "1px solid rgba(255,255,255,0.18)",
+                              }}
+                            >
+                              {iconSymbol}
+                            </span>
+                          ) : null}
+                        </div>
+                      )}
+                      <img
+                        src={spriteUrl ?? POKEMON_PLACEHOLDER}
+                        alt={pokemon?.name ?? `Slot ${idx + 1}`}
+                        crossOrigin="anonymous"
+                        onError={(event) => {
+                          event.currentTarget.src = pokemon ? POKEMON_PLACEHOLDER : EMPTY_SPRITE;
+                        }}
+                        style={{
+                          width: "clamp(36px, 6vw, 72px)",
+                          height: "clamp(36px, 6vw, 72px)",
+                          objectFit: "contain",
+                          imageRendering: "pixelated",
+                          filter: pokemon
+                            ? "drop-shadow(0 2px 5px rgba(0,0,0,0.35))"
+                            : "opacity(0.45)",
+                        }}
+                      />
+                    </div>
+                    {pokemon ? (
                       <span
                         style={{
-                          color: "rgba(255,255,255,0.9)",
-                          fontSize: "clamp(7px, 0.9vw, 10px)",
+                          fontSize: "clamp(8px, 0.95vw, 11px)",
                           fontWeight: 600,
                           textTransform: "capitalize",
                           textAlign: "center",
                           lineHeight: 1.2,
-                          textShadow: "0 1px 4px rgba(0,0,0,0.6)",
-                          maxWidth: "90%",
+                          maxWidth: "100%",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
+                          background: "rgba(248,250,252,0.94)",
+                          color: "#1f2937",
+                          borderRadius: "999px",
+                          padding: "2px 8px",
+                          border: "1px solid rgba(15,23,42,0.08)",
+                          textShadow: "none",
                         }}
                       >
                         {pokemon.name}
                       </span>
-                    )}
-                    {showTypes && pokemon && (
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "3px",
-                          flexWrap: "wrap",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {[pokemon.primaryType, pokemon.secondaryType]
-                          .filter(Boolean)
-                          .map((type) => {
-                            const tColor = TYPE_COLORS[type as string] ?? "#9ca3af";
-                            return (
-                              <span
-                                key={type}
-                                style={{
-                                  fontSize: "clamp(6px, 0.75vw, 8px)",
-                                  fontWeight: 600,
-                                  textTransform: "capitalize",
-                                  color: tColor,
-                                  background: `${tColor}22`,
-                                  border: `1px solid ${tColor}44`,
-                                  borderRadius: "99px",
-                                  padding: "1px 5px",
-                                  lineHeight: 1.4,
-                                }}
-                              >
-                                {type}
-                              </span>
-                            );
-                          })}
-                      </div>
-                    )}
+                    ) : null}
                   </div>
                 );
               })}
             </div>
-          </div>
-
-          {/* Trainer info overlay */}
-          <div
-            style={{
-              position: "absolute",
-              left: "24%",
-              top: "19%",
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px",
-              maxWidth: "28%",
-              zIndex: 5,
-            }}
-          >
-            <span
-              style={{
-                color: "rgba(255,255,255,0.98)",
-                fontSize: "clamp(11px, 1.45vw, 16px)",
-                fontWeight: 700,
-                lineHeight: 1.1,
-                textShadow: "0 2px 8px rgba(0,0,0,0.65)",
-              }}
-            >
-              {trainerName}
-            </span>
-            {trainerDetails
-              .filter((row) => row.text.trim().length > 0)
-              .map((row) => {
-                const icon = detailIconMap.get(row.iconSlug);
-
-                return (
-                  <span
-                    key={row.id}
-                    style={{
-                      color: "rgba(255,255,255,0.92)",
-                      fontSize: "clamp(8px, 1vw, 10px)",
-                      fontWeight: 600,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                      textShadow: "0 1px 4px rgba(0,0,0,0.6)",
-                    }}
-                  >
-                    {icon?.imagePath ? (
-                      <img
-                        src={icon.imagePath}
-                        alt=""
-                        aria-hidden
-                        crossOrigin="anonymous"
-                        style={{
-                          width: "clamp(9px, 1vw, 12px)",
-                          height: "clamp(9px, 1vw, 12px)",
-                          flexShrink: 0,
-                          objectFit: "contain",
-                          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
-                        }}
-                      />
-                    ) : (
-                      <span>{icon?.symbol ?? "•"}</span>
-                    )}
-                    <span>{row.text}</span>
-                  </span>
-                );
-              })}
           </div>
 
           {/* Footer watermark */}

@@ -1,13 +1,26 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  clampTeamCardTrainerName,
   createDefaultTeamCardConfig,
   deserializeTeamCardConfig,
   normalizeTeamCardConfig,
   serializeTeamCardConfig,
 } from "@/lib/team-card/config";
+import { TEAM_CARD_TRAINER_NAME_MAX_LENGTH } from "@/types/team-card";
 
 describe("team-card config", () => {
+  it("truncates long trainer names to the card limit", () => {
+    const long = "a".repeat(TEAM_CARD_TRAINER_NAME_MAX_LENGTH + 10);
+    expect(clampTeamCardTrainerName(long).length).toBe(TEAM_CARD_TRAINER_NAME_MAX_LENGTH);
+
+    const normalized = normalizeTeamCardConfig(
+      { trainerName: long, backgroundSlug: "midnight-grid", trainerVariantSlug: "rei-academy" },
+      createDefaultTeamCardConfig(),
+    );
+    expect(normalized.trainerName.length).toBe(TEAM_CARD_TRAINER_NAME_MAX_LENGTH);
+  });
+
   it("creates a stable default config", () => {
     const config = createDefaultTeamCardConfig("Rain Tempo");
     expect(config.trainerName).toBe("Rain Tempo");
