@@ -280,3 +280,17 @@ on public.favorite_strategy_teams
 for delete
 to authenticated
 using (auth.uid() = user_id);
+
+-- PostgREST / supabase-js: explicit privileges on public tables (RLS still enforces row access).
+-- Authenticated CRUD matches our policies above; omit anon grants (no anon policies).
+grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, update, delete on public.teams to authenticated;
+grant select, insert, update, delete on public.team_pokemon to authenticated;
+grant select, insert, update, delete on public.team_cards to authenticated;
+grant select, insert, update, delete on public.favorite_strategy_teams to authenticated;
+
+grant all on table public.profiles to service_role;
+grant all on table public.teams to service_role;
+grant all on table public.team_pokemon to service_role;
+grant all on table public.team_cards to service_role;
+grant all on table public.favorite_strategy_teams to service_role;
