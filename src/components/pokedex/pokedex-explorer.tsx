@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, LayoutGrid, List, Loader2, Plus, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, LayoutGrid, List, Loader2, Plus, Search, X } from "lucide-react";
 
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
 import { ROUTES } from "@/constants/routes";
@@ -12,7 +12,7 @@ import type { PokemonListItem } from "@/types/pokemon";
 import type { PokemonType } from "@/types/shared";
 import { fetchPokemonDetailFromApi, fetchPokemonListFromApi } from "@/lib/pokemon/data-access";
 import { cn } from "@/utils";
-import { TypeBadge } from "@/components/shared/type-badge";
+import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
@@ -111,7 +111,7 @@ function SortableColumnHeader({
         className={cn(
           "-mx-1 inline-flex min-h-8 w-full items-center gap-1 rounded-md px-1 text-left text-xs uppercase tracking-wide transition-colors",
           "hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          active ? "text-foreground" : "text-muted-foreground",
+          active ? "bg-primary/10 text-primary" : "text-muted-foreground",
           buttonClassName,
         )}
       >
@@ -195,6 +195,16 @@ export function PokedexExplorer() {
     ? Math.max(1, Math.ceil(listQuery.data.total / listQuery.data.limit))
     : 1;
 
+  const hasActiveFilters = Boolean(search.trim() || typeFilter || generationFilter !== "");
+
+  function clearFilters() {
+    setSearch("");
+    setDebouncedSearch("");
+    setTypeFilter("");
+    setGenerationFilter("");
+    setPage(1);
+  }
+
   async function handleAddToTeam(slug: string) {
     const slot =
       useTeamStore.getState().team.pokemon.find((entry) => !entry.pokemon)?.slot ?? null;
@@ -228,6 +238,10 @@ export function PokedexExplorer() {
     }
   }
 
+  function getSortCellClass(column: PokemonListSortKey): string {
+    return sortBy === column ? "bg-primary/5 text-primary" : "text-foreground";
+  }
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
       <div className={cn(view === "table" && "flex flex-col items-center")}>
@@ -252,7 +266,7 @@ export function PokedexExplorer() {
                 setSearch(event.target.value);
                 setPage(1);
               }}
-              placeholder="Search by name or slug…"
+              placeholder="Search Pokémon…"
               className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
               autoComplete="off"
             />
@@ -371,6 +385,19 @@ export function PokedexExplorer() {
                 <List className="size-4" />
               </button>
             </div>
+
+            {hasActiveFilters ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-10 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={clearFilters}
+              >
+                <X className="size-3.5" aria-hidden />
+                Clear
+              </Button>
+            ) : null}
           </div>
         </div>
 
@@ -472,49 +499,70 @@ export function PokedexExplorer() {
         </p>
       ) : view === "cards" ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {listQuery.data?.pokemon.map((pokemon) => (
-            <article
-              key={pokemon.slug}
-              className="flex flex-col gap-3 rounded-2xl border border-border/50 bg-card/50 p-4 shadow-sm transition-colors hover:border-primary/30 hover:bg-card/80"
-            >
-              <div className="flex items-start gap-3">
-                <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-muted/50">
-                  <PokemonSprite
-                    src={pokemon.spriteNormal}
-                    alt={pokemon.name}
-                    size={64}
-                    className="h-full w-full object-contain p-1"
-                  />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{pokemon.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatPokemonCardSubtitle(pokemon, sortBy)}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    <TypeBadge type={pokemon.primaryType} />
-                    {pokemon.secondaryType ? <TypeBadge type={pokemon.secondaryType} /> : null}
+          {listQuery.data?.pokemon.map((pokemon) => {
+            const primaryTypeColor = TYPE_COLORS[pokemon.primaryType] ?? "#9ca3af";
+            const cardStyle = {
+              "--pokedex-card-accent": primaryTypeColor,
+              borderColor: `${primaryTypeColor}33`,
+            } as CSSProperties;
+
+            return (
+              <article
+                key={pokemon.slug}
+                style={cardStyle}
+                className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border bg-card/50 p-4 shadow-sm transition-colors hover:border-[var(--pokedex-card-accent)] hover:bg-card/80"
+              >
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[var(--pokedex-card-accent)] opacity-70"
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -left-8 -top-8 size-20 rounded-full bg-[var(--pokedex-card-accent)] opacity-10 blur-2xl"
+                />
+                <div className="relative flex items-start gap-3">
+                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-border/35 bg-muted/50">
+                    <div
+                      aria-hidden
+                      className="absolute inset-0 bg-[var(--pokedex-card-accent)] opacity-10"
+                    />
+                    <PokemonSprite
+                      src={pokemon.spriteNormal}
+                      alt={pokemon.name}
+                      size={64}
+                      className="relative h-full w-full object-contain p-1"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{pokemon.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatPokemonCardSubtitle(pokemon, sortBy)}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      <TypeBadge type={pokemon.primaryType} />
+                      {pokemon.secondaryType ? <TypeBadge type={pokemon.secondaryType} /> : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                className="h-9 w-full"
-                disabled={addingSlug === pokemon.slug}
-                onClick={() => handleAddToTeam(pokemon.slug)}
-              >
-                {addingSlug === pokemon.slug ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  <>
-                    <Plus className="size-4" aria-hidden />
-                    Add to Team
-                  </>
-                )}
-              </Button>
-            </article>
-          ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  className="relative h-9 w-full"
+                  disabled={addingSlug === pokemon.slug}
+                  onClick={() => handleAddToTeam(pokemon.slug)}
+                >
+                  {addingSlug === pokemon.slug ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <>
+                      <Plus className="size-4" aria-hidden />
+                      Add to Team
+                    </>
+                  )}
+                </Button>
+              </article>
+            );
+          })}
         </div>
       ) : (
         <div className="max-h-[min(72vh,calc(100dvh-10rem))] max-w-full overflow-auto overscroll-contain rounded-2xl border border-border/50">
@@ -623,10 +671,10 @@ export function PokedexExplorer() {
                   key={pokemon.slug}
                   className="group border-t border-border/40 bg-card/30 hover:bg-card/60"
                 >
-                  <td className="w-14 shrink-0 px-3 py-3 text-left tabular-nums text-muted-foreground">
+                  <td className={cn("w-14 shrink-0 px-3 py-3 text-left tabular-nums text-muted-foreground", sortBy === "id" && "bg-primary/5 text-primary")}>
                     {String(pokemon.id).padStart(4, "0")}
                   </td>
-                  <td className="max-w-[22rem] px-3 py-3 align-middle">
+                  <td className={cn("max-w-[22rem] px-3 py-3 align-middle", sortBy === "name" && "bg-primary/5")}>
                     <div className="flex items-start gap-2 sm:items-center sm:gap-3">
                       <div className="relative mt-0.5 h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted/50 sm:mt-0">
                         <PokemonSprite
@@ -637,7 +685,7 @@ export function PokedexExplorer() {
                         />
                       </div>
                       <div className="min-w-0 max-w-full">
-                        <p className="break-words font-medium leading-snug text-foreground">{pokemon.name}</p>
+                        <p className={cn("break-words font-medium leading-snug text-foreground", sortBy === "name" && "text-primary")}>{pokemon.name}</p>
                       </div>
                     </div>
                   </td>
@@ -647,15 +695,15 @@ export function PokedexExplorer() {
                       {pokemon.secondaryType ? <TypeBadge type={pokemon.secondaryType} /> : null}
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-center text-sm font-semibold tabular-nums whitespace-nowrap text-foreground">
+                  <td className={cn("px-3 py-3 text-center text-sm font-semibold tabular-nums whitespace-nowrap", getSortCellClass("total"))}>
                     {pokemon.total}
                   </td>
-                  <td className="px-3 py-3 text-center tabular-nums whitespace-nowrap text-foreground">{pokemon.hp}</td>
-                  <td className="px-3 py-3 text-center tabular-nums whitespace-nowrap text-foreground">{pokemon.attack}</td>
-                  <td className="px-3 py-3 text-center tabular-nums whitespace-nowrap text-foreground">{pokemon.defense}</td>
-                  <td className="px-3 py-3 text-center tabular-nums whitespace-nowrap text-foreground">{pokemon.specialAttack}</td>
-                  <td className="px-3 py-3 text-center tabular-nums whitespace-nowrap text-foreground">{pokemon.specialDefense}</td>
-                  <td className="px-3 py-3 text-center tabular-nums whitespace-nowrap text-foreground">{pokemon.speed}</td>
+                  <td className={cn("px-3 py-3 text-center tabular-nums whitespace-nowrap", getSortCellClass("hp"))}>{pokemon.hp}</td>
+                  <td className={cn("px-3 py-3 text-center tabular-nums whitespace-nowrap", getSortCellClass("attack"))}>{pokemon.attack}</td>
+                  <td className={cn("px-3 py-3 text-center tabular-nums whitespace-nowrap", getSortCellClass("defense"))}>{pokemon.defense}</td>
+                  <td className={cn("px-3 py-3 text-center tabular-nums whitespace-nowrap", getSortCellClass("specialAttack"))}>{pokemon.specialAttack}</td>
+                  <td className={cn("px-3 py-3 text-center tabular-nums whitespace-nowrap", getSortCellClass("specialDefense"))}>{pokemon.specialDefense}</td>
+                  <td className={cn("px-3 py-3 text-center tabular-nums whitespace-nowrap", getSortCellClass("speed"))}>{pokemon.speed}</td>
                   <td
                     className={cn(
                       "border-l border-border/45 bg-card/30 px-3 py-3 text-right align-middle whitespace-nowrap",
