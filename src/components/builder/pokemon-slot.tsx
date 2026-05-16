@@ -1,7 +1,7 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw, Trash2 } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { CheckCircle2, RefreshCw, Trash2 } from "lucide-react";
 
 import { cn } from "@/utils";
 import { useTeamStore } from "@/store/team-store";
@@ -9,7 +9,7 @@ import type { TeamPokemon } from "@/types/team";
 import type { Ability } from "@/types/ability";
 import type { Move } from "@/types/move";
 import { MOCK_ITEMS } from "@/data/mock-items";
-import { TypeBadge } from "@/components/shared/type-badge";
+import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { SlotSelector, type SelectorOption } from "./slot-selector";
 import { PokemonPicker } from "./pokemon-picker";
@@ -73,12 +73,14 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
 
   const moveOptions: SelectorOption[] = useMemo(
     () =>
-      pokemonMoves.map((m: Move) => ({
-        id: m.id,
-        name: m.name,
-        slug: m.slug,
-        meta: m.type,
-      })),
+      pokemonMoves
+        .map((m: Move) => ({
+          id: m.id,
+          name: m.name,
+          slug: m.slug,
+          meta: m.type,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     [pokemonMoves],
   );
 
@@ -101,6 +103,18 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
         : null,
     [selectedItem],
   );
+
+  const selectedMoveCount = useMemo(
+    () => moves.filter((entry) => entry.move !== null).length,
+    [moves],
+  );
+  const completedFieldCount =
+    Number(Boolean(selectedAbility)) + Number(Boolean(selectedItem)) + selectedMoveCount;
+  const primaryTypeColor = TYPE_COLORS[pokemon?.primaryType ?? ""] ?? "#9ca3af";
+  const slotAccentStyle = {
+    "--slot-accent": primaryTypeColor,
+    borderColor: `${primaryTypeColor}55`,
+  } as CSSProperties;
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -144,13 +158,22 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
   return (
     <div
       ref={cardRef}
+      style={slotAccentStyle}
       className={cn(
-        "relative flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-md",
+        "relative flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-md",
         openPanel && "z-10",
         className,
       )}
     >
-      {/* Header — sprite + name + types + actions */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[var(--slot-accent)] opacity-75"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-12 -top-12 size-28 rounded-full bg-[var(--slot-accent)] opacity-10 blur-2xl"
+      />
+
       {openPanel === "pokemon-search" ? (
         <PokemonPicker
           onSelect={(p) => {
@@ -161,18 +184,31 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
         />
       ) : (
         <>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-background/60">
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl border border-border/50 bg-background/60 shadow-inner">
+                <div
+                  aria-hidden
+                  className="absolute inset-0 bg-[var(--slot-accent)] opacity-10"
+                />
                 <PokemonSprite
                   src={pokemon.spriteNormal}
                   alt={pokemon.name}
-                  size={48}
-                  className="h-full w-full object-contain"
+                  size={56}
+                  className="relative h-full w-full object-contain p-1"
                 />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold capitalize leading-tight text-foreground">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="rounded-full border border-border/50 bg-background/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Slot {slot}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-background/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    <CheckCircle2 className="size-3 text-[var(--slot-accent)]" aria-hidden />
+                    {completedFieldCount}/6 set
+                  </span>
+                </div>
+                <p className="mt-1 truncate text-base font-semibold capitalize leading-tight text-foreground">
                   {pokemon.name}
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -182,7 +218,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
               </div>
             </div>
 
-            <div className="flex flex-shrink-0 items-center gap-1">
+            <div className="flex flex-shrink-0 items-center gap-1 rounded-full border border-border/40 bg-background/40 p-1">
               <button
                 type="button"
                 onClick={() => toggle("pokemon-search")}
@@ -205,21 +241,29 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
             </div>
           </div>
 
-          {/* Ability + Item selectors */}
-          <div className="flex flex-col gap-1.5">
+          <div className="relative flex flex-col gap-1.5 rounded-2xl border border-border/40 bg-background/20 p-2">
+            <div className="flex items-center justify-between px-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Build
+              </p>
+            </div>
             <SlotSelector
               label="Ability"
               selected={selectedAbilityOption}
               options={abilityOptions}
               isOpen={openPanel === "ability"}
               onToggle={() => toggle("ability")}
+              searchable={false}
+              selectedSuffix={
+                selectedAbility?.isHidden ? (
+                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-primary">
+                    Hidden
+                  </span>
+                ) : null
+              }
               onSelect={(opt) => {
                 const ability = pokemon.abilities.find((a) => a.id === opt.id) ?? null;
                 setAbility(slot, ability);
-                setOpenPanel(null);
-              }}
-              onClear={() => {
-                setAbility(slot, null);
                 setOpenPanel(null);
               }}
             />
@@ -242,8 +286,13 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
             />
           </div>
 
-          {/* Move selectors */}
-          <div className="flex flex-col gap-1.5">
+          <div className="relative flex flex-col gap-1.5 rounded-2xl border border-border/40 bg-background/20 p-2">
+            <div className="flex items-center justify-between px-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Moveset
+              </p>
+              <span className="text-[10px] text-muted-foreground/70">{selectedMoveCount}/4 moves</span>
+            </div>
             {moves.map((entry) => {
               const panelKey = `move-${entry.slot}` as OpenPanel;
               return (
@@ -255,9 +304,13 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
                       ? { id: entry.move.id, name: entry.move.name, slug: entry.move.slug }
                       : null
                   }
+                  selectedPrefix={
+                    entry.move ? <TypeBadge type={entry.move.type} size="sm" className="px-1.5 text-[10px]" /> : null
+                  }
                   options={moveOptions}
                   isOpen={openPanel === panelKey}
                   onToggle={() => toggle(panelKey)}
+                  hideOptionMeta
                   onSelect={(opt) => {
                     const move = pokemon.moves.find((m) => m.id === opt.id) ?? null;
                     setMove(slot, entry.slot as 1 | 2 | 3 | 4, move);
@@ -268,9 +321,9 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
                     setOpenPanel(null);
                   }}
                   renderOption={(opt) => (
-                    <span className="flex items-center gap-2">
+                    <span className="flex w-full items-center justify-between gap-3">
                       <span>{opt.name}</span>
-                      {opt.meta && <TypeBadge type={opt.meta} size="sm" />}
+                      {opt.meta && <TypeBadge type={opt.meta} size="sm" className="shrink-0" />}
                     </span>
                   )}
                 />

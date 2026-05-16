@@ -1,6 +1,7 @@
 "use client";
 
 import { useTeamStore } from "@/store/team-store";
+import { FORMAT_RULES } from "@/data/format-rules";
 import { cn } from "@/utils";
 import type { BattleFormat } from "@/types/shared";
 
@@ -14,9 +15,10 @@ export function TeamHeader() {
   const team = useTeamStore((s) => s.team);
   const setFormat = useTeamStore((s) => s.setFormat);
   const setTeamName = useTeamStore((s) => s.setTeamName);
+  const formatRules = FORMAT_RULES[team.format];
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex min-w-0 flex-col gap-1">
         <input
           type="text"
@@ -34,25 +36,34 @@ export function TeamHeader() {
         <p className="text-xs text-muted-foreground">
           {team.pokemon.filter((s) => s.pokemon !== null).length} / 6 Pokémon
         </p>
+        <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground/80">
+          <span className="font-medium text-foreground/80">{formatRules.label} format:</span>{" "}
+          {formatRules.description}
+        </p>
       </div>
 
-      <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-card/60 p-1">
-        {FORMAT_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => setFormat(opt.value)}
-            aria-pressed={team.format === opt.value}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-150",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              team.format === opt.value
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
+      <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+        <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-card/60 p-1">
+          {FORMAT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setFormat(opt.value)}
+              aria-pressed={team.format === opt.value}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-150",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                team.format === opt.value
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="max-w-xs text-right text-[10px] uppercase tracking-wide text-muted-foreground/60">
+          Analysis updates by format
+        </p>
       </div>
     </div>
   );

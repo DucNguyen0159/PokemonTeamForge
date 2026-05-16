@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 
 import { cn } from "@/utils";
@@ -20,8 +20,12 @@ type SlotSelectorProps = {
   onToggle: () => void;
   onSelect: (option: SelectorOption) => void;
   onClear?: () => void;
-  renderOption?: (option: SelectorOption) => React.ReactNode;
+  renderOption?: (option: SelectorOption) => ReactNode;
+  selectedPrefix?: ReactNode;
+  selectedSuffix?: ReactNode;
   noOptionsText?: string;
+  searchable?: boolean;
+  hideOptionMeta?: boolean;
 };
 
 function SlotSelectorComponent({
@@ -33,7 +37,11 @@ function SlotSelectorComponent({
   onSelect,
   onClear,
   renderOption,
+  selectedPrefix,
+  selectedSuffix,
   noOptionsText = "No options found",
+  searchable = true,
+  hideOptionMeta = false,
 }: SlotSelectorProps) {
   const [search, setSearch] = useState("");
 
@@ -48,10 +56,10 @@ function SlotSelectorComponent({
   const normalizedSearch = deferredSearch.trim().toLowerCase();
   const filtered = useMemo(
     () =>
-      normalizedSearch
+      searchable && normalizedSearch
         ? options.filter((o) => o.name.toLowerCase().includes(normalizedSearch))
         : options,
-    [normalizedSearch, options],
+    [normalizedSearch, options, searchable],
   );
 
   return (
@@ -68,16 +76,22 @@ function SlotSelectorComponent({
           isOpen && "border-primary/40 bg-background/60",
         )}
       >
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <div className="flex items-center gap-1.5">
+        <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
+        <div className="flex min-w-0 items-center gap-1.5">
+          {selected && selectedPrefix ? (
+            <span className="shrink-0">{selectedPrefix}</span>
+          ) : null}
           <span
             className={cn(
-              "max-w-[120px] truncate text-xs",
+              "min-w-0 max-w-[120px] truncate text-xs",
               selected ? "text-foreground/90" : "text-muted-foreground/50",
             )}
           >
             {selected ? selected.name : `— ${label} —`}
           </span>
+          {selected && selectedSuffix ? (
+            <span className="shrink-0">{selectedSuffix}</span>
+          ) : null}
           <ChevronDown
             className={cn(
               "size-3 flex-shrink-0 text-muted-foreground transition-transform duration-150",
@@ -90,27 +104,29 @@ function SlotSelectorComponent({
 
       {isOpen && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border/60 bg-card shadow-lg">
-          <div className="flex items-center gap-2 border-b border-border/40 px-2.5 py-2">
-            <Search className="size-3.5 flex-shrink-0 text-muted-foreground" aria-hidden />
-            <input
-              autoFocus
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={`Search ${label.toLowerCase()}…`}
-              className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
-              >
-                <X className="size-3" />
-              </button>
-            )}
-          </div>
+          {searchable ? (
+            <div className="flex items-center gap-2 border-b border-border/40 px-2.5 py-2">
+              <Search className="size-3.5 flex-shrink-0 text-muted-foreground" aria-hidden />
+              <input
+                autoFocus
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={`Search ${label.toLowerCase()}…`}
+                className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </div>
+          ) : null}
 
           <ul className="max-h-44 overflow-y-auto py-1" role="listbox">
             {filtered.length === 0 ? (
@@ -129,8 +145,10 @@ function SlotSelectorComponent({
                       selected?.id === opt.id && "bg-primary/10 text-primary",
                     )}
                   >
-                    <span className="font-medium">{renderOption ? renderOption(opt) : opt.name}</span>
-                    {opt.meta && (
+                    <span className="min-w-0 flex-1 font-medium">
+                      {renderOption ? renderOption(opt) : opt.name}
+                    </span>
+                    {opt.meta && !hideOptionMeta && (
                       <span className="text-muted-foreground">{opt.meta}</span>
                     )}
                   </button>

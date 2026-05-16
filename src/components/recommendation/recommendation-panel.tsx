@@ -15,6 +15,7 @@ import {
   Target,
 } from "lucide-react";
 
+import { FORMAT_RULES } from "@/data/format-rules";
 import { ALL_POKEMON_TYPES } from "@/data/type-chart";
 import type { PokemonDetail } from "@/types/pokemon";
 import type {
@@ -400,10 +401,16 @@ export function RecommendationPanel() {
   const setError = useRecommendationStore((state) => state.setError);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const formatRules = FORMAT_RULES[team.format];
 
   const activePokemonCount = useMemo(
     () => team.pokemon.filter((slot) => slot.pokemon !== null).length,
     [team.pokemon],
+  );
+
+  const effectiveFilters = useMemo(
+    () => ({ ...filters, format: team.format }),
+    [filters, team.format],
   );
 
   const executeFetch = useCallback(
@@ -438,14 +445,14 @@ export function RecommendationPanel() {
   useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {
-      void executeFetch(filters, controller.signal);
+      void executeFetch(effectiveFilters, controller.signal);
     }, 300);
 
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [executeFetch, filters]);
+  }, [effectiveFilters, executeFetch]);
 
   const handleSetFilters = useCallback(
     (partial: Partial<RecommendationFilters>) => {
@@ -457,10 +464,15 @@ export function RecommendationPanel() {
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-md">
       {/* panel header */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2">
           <Lightbulb className="size-4 text-yellow-400/80" aria-hidden />
-          <h2 className="text-sm font-semibold text-foreground">Recommendations</h2>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-foreground">Recommendations</h2>
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              Tuned for {formatRules.label}: {formatRules.recommendationSummary}
+            </p>
+          </div>
           {activePokemonCount > 0 ? (
             <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">
               {results.length}
@@ -492,7 +504,7 @@ export function RecommendationPanel() {
           <button
             type="button"
             onClick={() => {
-              void executeFetch(filters);
+              void executeFetch(effectiveFilters);
             }}
             disabled={isLoading || activePokemonCount === 0}
             aria-label="Refresh recommendations"
@@ -530,7 +542,7 @@ export function RecommendationPanel() {
           title="Recommendations unavailable"
           message={error}
           onRetry={() => {
-            void executeFetch(filters);
+            void executeFetch(effectiveFilters);
           }}
           isRetrying={isLoading}
         />
@@ -554,7 +566,7 @@ export function RecommendationPanel() {
       {/* footer hint */}
       {!isLoading && results.length > 0 ? (
         <p className="text-center text-[10px] text-muted-foreground/40">
-          Ranked by synergy · updating as your team changes
+          Ranked by {formatRules.label.toLowerCase()} fit · updating as your team changes
         </p>
       ) : null}
     </section>

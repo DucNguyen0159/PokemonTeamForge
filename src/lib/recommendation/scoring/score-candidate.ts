@@ -10,6 +10,21 @@ import { RECOMMENDATION_WEIGHTS } from "../weights/recommendation-weights";
 import type { ScoredCandidate, TeamAnalysis } from "../types";
 import { statMatchesTier } from "../utils/stat-tier";
 
+type ScoringWeights = Record<keyof typeof RECOMMENDATION_WEIGHTS, number>;
+
+function getFormatAdjustedWeights(format: RecommendationFilters["format"]): ScoringWeights {
+  const formatWeights = FORMAT_RULES[format].recommendationWeights;
+
+  return {
+    ...RECOMMENDATION_WEIGHTS,
+    missingRole: RECOMMENDATION_WEIGHTS.missingRole * formatWeights.missingRole,
+    defensiveSynergy: RECOMMENDATION_WEIGHTS.defensiveSynergy * formatWeights.defensiveSynergy,
+    offensiveCoverage: RECOMMENDATION_WEIGHTS.offensiveCoverage * formatWeights.offensiveCoverage,
+    formatBonus: RECOMMENDATION_WEIGHTS.formatBonus * formatWeights.formatSynergy,
+    statTierMatch: RECOMMENDATION_WEIGHTS.statTierMatch * formatWeights.statBalance,
+  };
+}
+
 function addReason(
   reasons: RecommendationReason[],
   reason: RecommendationReason,
@@ -38,6 +53,7 @@ function scoreMissingRoles(
   candidate: Pokemon,
   analysis: TeamAnalysis,
   reasons: RecommendationReason[],
+  weights: ScoringWeights,
 ): number {
   const matchedMissing = analysis.missingRoles.filter((role) => candidate.roles.includes(role));
 
@@ -45,7 +61,7 @@ function scoreMissingRoles(
     return 0;
   }
 
-  const impact = RECOMMENDATION_WEIGHTS.missingRole * matchedMissing.length;
+  const impact = weights.missingRole * matchedMissing.length;
   addReason(reasons, {
     type: "missing_role",
     message: `Fills missing team role${matchedMissing.length > 1 ? "s" : ""}: ${matchedMissing.join(", ").replaceAll("_", " ")}.`,
@@ -58,6 +74,7 @@ function scoreDefensiveSynergy(
   candidate: Pokemon,
   analysis: TeamAnalysis,
   reasons: RecommendationReason[],
+  weights: ScoringWeights,
 ): number {
   const candidateTypes = getCandidateTypes(candidate);
   let score = 0;
@@ -66,7 +83,7 @@ function scoreDefensiveSynergy(
   analysis.majorWeaknesses.forEach((type) => {
     const multiplier = calculateTypeEffectiveness(type, candidateTypes);
     if (multiplier === 0 || multiplier < 1) {
-      score += RECOMMENDATION_WEIGHTS.defensiveSynergy;
+      score += weights.defensiveSynergy;
       coveredWeaknesses += 1;
       return;
     }
@@ -86,7 +103,7 @@ function scoreDefensiveSynergy(
     addReason(reasons, {
       type: "defensive_synergy",
       message: `Improves defensive profile against ${coveredWeaknesses} major team weakness${coveredWeaknesses > 1 ? "es" : ""}.`,
-      scoreImpact: RECOMMENDATION_WEIGHTS.defensiveSynergy * coveredWeaknesses,
+      scoreImpact: weights.defensiveSynergy * coveredWeaknesses,
     });
   }
 
@@ -97,6 +114,7 @@ function scoreOffensiveCoverage(
   candidate: Pokemon,
   analysis: TeamAnalysis,
   reasons: RecommendationReason[],
+  weights: ScoringWeights,
 ): number {
   const candidateMoveTypes = new Set(candidate.moves.map((move) => move.type));
   const improvedCoverage = analysis.missingCoverage.filter((targetType) =>
@@ -107,7 +125,7 @@ function scoreOffensiveCoverage(
     return 0;
   }
 
-  const impact = improvedCoverage.length * RECOMMENDATION_WEIGHTS.offensiveCoverage;
+  const impact = improvedCoverage.length * weights.offensiveCoverage;
   addReason(reasons, {
     type: "offensive_coverage",
     message: `Adds pressure into uncovered matchups: ${improvedCoverage.slice(0, 3).join(", ")}${improvedCoverage.length > 3 ? ", ..." : ""}.`,
@@ -120,6 +138,7 @@ function scoreFormatBonus(
   candidate: Pokemon,
   filters: RecommendationFilters,
   reasons: RecommendationReason[],
+  weights: ScoringWeights,
 ): number {
   const checklist = FORMAT_RULES[filters.format].checklist;
   const candidateTags = getCandidateMoveTags(candidate);
@@ -139,7 +158,7 @@ function scoreFormatBonus(
     return 0;
   }
 
-  const impact = matchCount * RECOMMENDATION_WEIGHTS.formatBonus;
+  const impact = matchCount * weights.formatBonus;
   addReason(reasons, {
     type: "format_bonus",
     message: `Fits ${filters.format} utility priorities (${requiredRoleMatches.length + recommendedRoleMatches.length} role match${requiredRoleMatches.length + recommendedRoleMatches.length === 1 ? "" : "es"}).`,
@@ -152,6 +171,7 @@ function scoreStatTierMatch(
   candidate: Pokemon,
   filters: RecommendationFilters,
   reasons: RecommendationReason[],
+  weights: ScoringWeights,
 ): number {
   const requestedTiers = [
     { key: "attackTier", value: candidate.stats.attack },
@@ -168,7 +188,7 @@ function scoreStatTierMatch(
     return 0;
   }
 
-  const impact = matched.length * RECOMMENDATION_WEIGHTS.statTierMatch;
+  const impact = matched.length * weights.statTierMatch;
   addReason(reasons, {
     type: "stat_tier_match",
     message: `Matches ${matched.length}/${strictFiltersCount} requested stat tier filters.`,
@@ -182,13 +202,14 @@ function scoreAbilitySynergy(
   analysis: TeamAnalysis,
   filters: RecommendationFilters,
   reasons: RecommendationReason[],
+  weights: ScoringWeights,
 ): number {
   const abilitySlugs = candidate.abilities.map((ability) => ability.slug);
   let score = 0;
   const matchedSignals: string[] = [];
 
   if (abilitySlugs.includes("levitate") && analysis.majorWeaknesses.includes("ground")) {
-    score += RECOMMENDATION_WEIGHTS.abilitySynergy;
+    score += weights.abilitySynergy;
     matchedSignals.push("Levitate helps with Ground pressure");
   }
 
@@ -196,7 +217,7 @@ function scoreAbilitySynergy(
     (filters.format === "doubles" || filters.format === "triples") &&
     abilitySlugs.includes("intimidate")
   ) {
-    score += RECOMMENDATION_WEIGHTS.abilitySynergy;
+    score += weights.abilitySynergy;
     matchedSignals.push("Intimidate is strong in multi-target formats");
   }
 
@@ -204,7 +225,7 @@ function scoreAbilitySynergy(
     ["drizzle", "drought", "sand-stream", "snow-warning"].includes(slug),
   );
   if (hasWeatherAbility || candidate.roles.includes("weather_abuser") || candidate.roles.includes("weather_setter")) {
-    score += Math.round(RECOMMENDATION_WEIGHTS.abilitySynergy / 2);
+    score += Math.round(weights.abilitySynergy / 2);
     matchedSignals.push("Weather plan support");
   }
 
@@ -262,14 +283,15 @@ export function scoreCandidate(
   filters: RecommendationFilters,
 ): ScoredCandidate {
   const reasons: RecommendationReason[] = [];
+  const weights = getFormatAdjustedWeights(filters.format);
   let score = 0;
 
-  score += scoreMissingRoles(candidate, analysis, reasons);
-  score += scoreDefensiveSynergy(candidate, analysis, reasons);
-  score += scoreOffensiveCoverage(candidate, analysis, reasons);
-  score += scoreFormatBonus(candidate, filters, reasons);
-  score += scoreAbilitySynergy(candidate, analysis, filters, reasons);
-  score += scoreStatTierMatch(candidate, filters, reasons);
+  score += scoreMissingRoles(candidate, analysis, reasons, weights);
+  score += scoreDefensiveSynergy(candidate, analysis, reasons, weights);
+  score += scoreOffensiveCoverage(candidate, analysis, reasons, weights);
+  score += scoreFormatBonus(candidate, filters, reasons, weights);
+  score += scoreAbilitySynergy(candidate, analysis, filters, reasons, weights);
+  score += scoreStatTierMatch(candidate, filters, reasons, weights);
   score += applyCompositionPenalties(candidate, analysis, reasons);
 
   const sortedReasons = [...reasons].sort((a, b) => b.scoreImpact - a.scoreImpact).slice(0, 5);

@@ -9,7 +9,9 @@ import { getSelectedMovesWithOwners } from "./shared/team-helpers";
 import { isSuperEffectiveAgainst } from "./shared/type-effectiveness";
 
 export function calculateOffensiveCoverage(team: Team): OffensiveCoverageResult {
-  const selectedMoves = getSelectedMovesWithOwners(team);
+  const selectedMoves = getSelectedMovesWithOwners(team).filter(
+    ({ move }) => move.category !== "status",
+  );
 
   const entries: OffensiveCoverageEntry[] = ALL_POKEMON_TYPES.map((targetType) => {
     const matchingMoves = selectedMoves
@@ -29,6 +31,7 @@ export function calculateOffensiveCoverage(team: Team): OffensiveCoverageResult 
     return {
       targetType,
       superEffectiveMoveTypes,
+      coverageCount: matchingMoves.length,
       hasCoverage: matchingMoves.length > 0,
       matchingMoves,
     };

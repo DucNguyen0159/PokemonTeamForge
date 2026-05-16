@@ -18,6 +18,11 @@ export interface FormatScoringWeights {
 }
 
 export interface FormatRules {
+  label: string;
+  description: string;
+  checklistSummary: string;
+  coverageNote: string;
+  recommendationSummary: string;
   slotCount: 6;
   emphasis: string[];
   checklist: FormatChecklistRuleSet;
@@ -26,6 +31,12 @@ export interface FormatRules {
 
 export const FORMAT_RULES: Record<BattleFormat, FormatRules> = {
   singles: {
+    label: "Singles",
+    description:
+      "One active Pokemon at a time. Prioritizes hazards, switching, setup pressure, pivots, and defensive stability.",
+    checklistSummary: "Hazards, removal, pivots, setup pressure, and role balance.",
+    coverageNote: "Coverage helps identify safe switch-ins and stacked weaknesses.",
+    recommendationSummary: "Tuned for hazards, pivoting, setup pressure, and defensive stability.",
     slotCount: 6,
     emphasis: ["hazards", "pivoting", "setup pressure", "defensive stability"],
     checklist: {
@@ -44,6 +55,12 @@ export const FORMAT_RULES: Record<BattleFormat, FormatRules> = {
     },
   },
   doubles: {
+    label: "Doubles",
+    description:
+      "Two Pokemon are active at once. Prioritizes Protect, speed control, Fake Out, redirection, spread moves, and positioning.",
+    checklistSummary: "Protect, speed control, Fake Out, redirection, and spread pressure.",
+    coverageNote: "Coverage should be paired with Protect, speed control, and board positioning.",
+    recommendationSummary: "Tuned for Protect, speed control, redirection, Fake Out, and spread pressure.",
     slotCount: 6,
     emphasis: [
       "protect usage",
@@ -68,6 +85,12 @@ export const FORMAT_RULES: Record<BattleFormat, FormatRules> = {
     },
   },
   triples: {
+    label: "Triples",
+    description:
+      "Three Pokemon are active at once. Prioritizes spread pressure, speed control, positioning support, and teamwide utility.",
+    checklistSummary: "Spread pressure, speed control, positioning support, and teamwide utility.",
+    coverageNote: "Coverage highlights shared weaknesses across a wider active board.",
+    recommendationSummary: "Tuned for spread pressure, positioning support, speed control, and teamwide utility.",
     slotCount: 6,
     emphasis: ["spread pressure", "positioning support", "speed control", "teamwide synergy"],
     checklist: {

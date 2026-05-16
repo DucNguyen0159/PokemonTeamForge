@@ -32,6 +32,9 @@ const createEmptyTeam = (format: BattleFormat = "singles"): Team => ({
   ),
 });
 
+const getDefaultAbility = (pokemon: Pokemon | null): Ability | null =>
+  pokemon?.abilities.length === 1 ? pokemon.abilities[0] : null;
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
@@ -64,7 +67,7 @@ const normalizeTeam = (team: unknown): Team => {
     return {
       slot: targetSlot,
       pokemon: incoming.pokemon ?? null,
-      selectedAbility: incoming.selectedAbility ?? null,
+      selectedAbility: incoming.selectedAbility ?? getDefaultAbility(incoming.pokemon ?? null),
       selectedItem: incoming.selectedItem ?? null,
       moves,
       isShiny: incoming.isShiny ?? false,
@@ -154,7 +157,7 @@ export const useTeamStore = create<TeamStoreState>()(
           team: updateSlot(state.team, slot, (teamSlot) => ({
             ...teamSlot,
             pokemon,
-            selectedAbility: null,
+            selectedAbility: getDefaultAbility(pokemon),
             selectedItem: null,
             moves: MOVE_SLOT_ORDER.map((moveSlot) => ({ slot: moveSlot, move: null })),
           })),
@@ -170,7 +173,7 @@ export const useTeamStore = create<TeamStoreState>()(
           team: updateSlot(state.team, slot, (teamSlot) => ({
             ...teamSlot,
             pokemon,
-            selectedAbility: null,
+            selectedAbility: getDefaultAbility(pokemon),
             selectedItem: null,
             moves: MOVE_SLOT_ORDER.map((moveSlot) => ({ slot: moveSlot, move: null })),
           })),

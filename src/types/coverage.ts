@@ -12,6 +12,7 @@ export interface DefensiveCoverageEntry {
   resistCount: number;
   immuneCount: number;
   neutralCount: number;
+  netScore: number;
   affectedPokemon: DefensivePokemonMatch[];
 }
 
@@ -37,6 +38,7 @@ export interface OffensiveMoveMatch {
 export interface OffensiveCoverageEntry {
   targetType: PokemonType;
   superEffectiveMoveTypes: PokemonType[];
+  coverageCount: number;
   hasCoverage: boolean;
   matchingMoves: OffensiveMoveMatch[];
 }

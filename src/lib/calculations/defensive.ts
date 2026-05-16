@@ -44,6 +44,7 @@ export function calculateDefensiveCoverage(team: Team): DefensiveCoverageResult 
       resistCount,
       immuneCount,
       neutralCount,
+      netScore: resistCount + immuneCount - weakCount,
       affectedPokemon,
     };
   });
