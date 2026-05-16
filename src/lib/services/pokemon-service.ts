@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
 import type { PokemonListPayload } from "@/types/api";
 import type { PokemonType } from "@/types/shared";
 import type { PokemonDetail, PokemonListItem } from "@/types/pokemon";
@@ -33,6 +34,7 @@ type PokeApiPokemonListPage = {
 };
 
 const pokemonDetailCache = new Map<string, PokemonDetail>();
+const pokemonListItemCache = new Map<string, PokemonListItem>();
 
 let pokemonIndexCache: PokemonRef[] | null = null;
 const typeSlugCache = new Map<PokemonType, Set<string>>();
@@ -46,6 +48,8 @@ export interface PokemonListQuery {
   legendary?: boolean;
   page?: number;
   limit?: number;
+  sortBy?: PokemonListSortKey;
+  sortDirection?: PokemonListSortDirection;
 }
 
 async function pokeApiFetch<T>(pathOrUrl: string): Promise<T> {
@@ -179,9 +183,113 @@ async function ensureGenerationSpeciesNames(generation: number): Promise<string[
   return names;
 }
 
+function sortKeyNeedsStatHydration(sortKey: PokemonListSortKey): boolean {
+  return sortKey !== "id" && sortKey !== "name";
+}
+
+async function hydratePokemonListItem(slug: string): Promise<PokemonListItem | null> {
+  const cached = pokemonListItemCache.get(slug);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const rawPokemon = await pokeApiFetch<PokeApiPokemonResponse>(`/pokemon/${slug}`);
+    const rawSpecies = await pokeApiFetch<PokeApiSpeciesResponse>(
+      `/pokemon-species/${rawPokemon.species.name}`,
+    );
+
+    const item = normalizePokeApiToPokemonListItem(rawPokemon, rawSpecies);
+    pokemonListItemCache.set(slug, item);
+
+    return item;
+  } catch {
+    return null;
+  }
+}
+
+/** Hydrate in fixed-size parallel chunks to limit load on PokéAPI while preserving slug order. */
+async function hydratePokemonListItemsWithConcurrency(
+  slugs: string[],
+  concurrency: number,
+): Promise<PokemonListItem[]> {
+  const out: PokemonListItem[] = [];
+  const size = Math.max(1, concurrency);
+
+  for (let offset = 0; offset < slugs.length; offset += size) {
+    const chunk = slugs.slice(offset, offset + size);
+    const batch = await Promise.all(chunk.map((slug) => hydratePokemonListItem(slug)));
+    out.push(...batch.filter((entry): entry is PokemonListItem => Boolean(entry)));
+  }
+
+  return out;
+}
+
+function comparePokemonRefs(a: PokemonRef, b: PokemonRef, sortKey: PokemonListSortKey, dir: PokemonListSortDirection): number {
+  let cmp = 0;
+
+  if (sortKey === "name") {
+    cmp = a.name.localeCompare(b.name);
+  } else {
+    cmp = a.id - b.id;
+  }
+
+  return dir === "asc" ? cmp : -cmp;
+}
+
+function comparePokemonListItems(
+  a: PokemonListItem,
+  b: PokemonListItem,
+  sortKey: PokemonListSortKey,
+  dir: PokemonListSortDirection,
+): number {
+  let cmp = 0;
+
+  switch (sortKey) {
+    case "id":
+      cmp = a.id - b.id;
+      break;
+    case "name":
+      cmp = a.name.localeCompare(b.name);
+      break;
+    case "total":
+      cmp = a.total - b.total;
+      break;
+    case "hp":
+      cmp = a.hp - b.hp;
+      break;
+    case "attack":
+      cmp = a.attack - b.attack;
+      break;
+    case "defense":
+      cmp = a.defense - b.defense;
+      break;
+    case "specialAttack":
+      cmp = a.specialAttack - b.specialAttack;
+      break;
+    case "specialDefense":
+      cmp = a.specialDefense - b.specialDefense;
+      break;
+    case "speed":
+      cmp = a.speed - b.speed;
+      break;
+    default:
+      cmp = a.id - b.id;
+  }
+
+  if (cmp === 0) {
+    cmp = a.id - b.id;
+  }
+
+  return dir === "asc" ? cmp : -cmp;
+}
+
 export async function getPokemonList(query: PokemonListQuery): Promise<PokemonListPayload> {
   const page = clampPagination(query.page, 1, 10_000);
   const limit = clampPagination(query.limit, 24, 100);
+
+  const sortBy = query.sortBy ?? "id";
+  const sortDirection = query.sortDirection ?? "asc";
 
   if (typeof query.generation === "number" && (!Number.isInteger(query.generation) || query.generation < 1 || query.generation > 9)) {
     return {
@@ -197,42 +305,44 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
   const generationSpeciesNames =
     typeof query.generation === "number" ? await ensureGenerationSpeciesNames(query.generation) : null;
 
-  const matchingSlugs = index
-    .filter((ref) => {
-      if (typeSet && !typeSet.has(ref.name)) {
-        return false;
-      }
+  const matchingRefs = index.filter((ref) => {
+    if (typeSet && !typeSet.has(ref.name)) {
+      return false;
+    }
 
-      if (generationSpeciesNames && !slugMatchesGeneration(ref.name, generationSpeciesNames)) {
-        return false;
-      }
+    if (generationSpeciesNames && !slugMatchesGeneration(ref.name, generationSpeciesNames)) {
+      return false;
+    }
 
-      if (!matchesSearch(ref.name, query.search)) {
-        return false;
-      }
+    if (!matchesSearch(ref.name, query.search)) {
+      return false;
+    }
 
-      return true;
-    })
-    .map((ref) => ref.name);
+    return true;
+  });
 
-  const total = matchingSlugs.length;
+  const total = matchingRefs.length;
   const start = (page - 1) * limit;
-  const pageSlugs = matchingSlugs.slice(start, start + limit);
 
-  const hydrated = await Promise.all(
-    pageSlugs.map(async (slug): Promise<PokemonListItem | null> => {
-      try {
-        const rawPokemon = await pokeApiFetch<PokeApiPokemonResponse>(`/pokemon/${slug}`);
-        const rawSpecies = await pokeApiFetch<PokeApiSpeciesResponse>(
-          `/pokemon-species/${rawPokemon.species.name}`,
-        );
+  if (sortKeyNeedsStatHydration(sortBy)) {
+    const hydratedAll = await hydratePokemonListItemsWithConcurrency(
+      matchingRefs.map((ref) => ref.name),
+      12,
+    );
+    hydratedAll.sort((a, b) => comparePokemonListItems(a, b, sortBy, sortDirection));
 
-        return normalizePokeApiToPokemonListItem(rawPokemon, rawSpecies);
-      } catch {
-        return null;
-      }
-    }),
-  );
+    return {
+      pokemon: hydratedAll.slice(start, start + limit),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  const orderedRefs = [...matchingRefs].sort((a, b) => comparePokemonRefs(a, b, sortBy, sortDirection));
+  const pageSlugs = orderedRefs.slice(start, start + limit).map((ref) => ref.name);
+
+  const hydrated = await Promise.all(pageSlugs.map((slug) => hydratePokemonListItem(slug)));
 
   const pokemon = hydrated.filter((entry): entry is PokemonListItem => Boolean(entry));
 

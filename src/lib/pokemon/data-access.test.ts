@@ -12,6 +12,8 @@ describe("pokemon data access", () => {
       page: 2,
       limit: 60,
       type: "fire",
+      sortBy: "total",
+      sortDirection: "desc",
     });
 
     expect(params.get("search")).toBe("char");
@@ -19,6 +21,8 @@ describe("pokemon data access", () => {
     expect(params.get("type")).toBe("fire");
     expect(params.get("page")).toBe("2");
     expect(params.get("limit")).toBe("60");
+    expect(params.get("sortBy")).toBe("total");
+    expect(params.get("sortDirection")).toBe("desc");
   });
 
   it("returns API list payload without mock-size limits", async () => {

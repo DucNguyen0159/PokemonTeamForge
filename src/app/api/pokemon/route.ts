@@ -1,3 +1,4 @@
+import { isPokemonListSortKey, type PokemonListSortDirection } from "@/constants/pokemon-list-sort";
 import { ALL_POKEMON_TYPES } from "@/data/type-chart";
 import type { PokemonType } from "@/types/shared";
 import type { PokemonListPayload } from "@/types/api";
@@ -29,6 +30,10 @@ function parseNumberQuery(value: string | null): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function parseSortDirection(value: string | null): PokemonListSortDirection {
+  return value === "desc" ? "desc" : "asc";
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
@@ -37,6 +42,10 @@ export async function GET(request: Request) {
     rawType && ALL_POKEMON_TYPES.includes(rawType as PokemonType)
       ? (rawType as PokemonType)
       : undefined;
+  const rawSortBy = searchParams.get("sortBy");
+  const sortBy =
+    rawSortBy && isPokemonListSortKey(rawSortBy) ? rawSortBy : undefined;
+
   const query = {
     search: searchParams.get("search") ?? undefined,
     generation: parseNumberQuery(searchParams.get("generation")),
@@ -45,6 +54,8 @@ export async function GET(request: Request) {
     legendary: parseBooleanQuery(searchParams.get("legendary")),
     page: parseNumberQuery(searchParams.get("page")),
     limit: parseNumberQuery(searchParams.get("limit")),
+    sortBy,
+    sortDirection: parseSortDirection(searchParams.get("sortDirection")),
   };
 
   try {

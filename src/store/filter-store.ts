@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
 import type { StrategyType } from "@/types/strategy";
 import type {
   BattleFormat,
@@ -13,8 +14,8 @@ type PokedexFilters = {
   type: PokemonType | "all";
   generation: number | "all";
   region: string | "all";
-  sortBy: "id" | "name" | "total";
-  sortDirection: "asc" | "desc";
+  sortBy: PokemonListSortKey;
+  sortDirection: PokemonListSortDirection;
 };
 
 type StrategyFilters = {
