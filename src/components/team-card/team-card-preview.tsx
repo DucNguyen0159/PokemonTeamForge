@@ -6,11 +6,15 @@ import { Inter, Luckiest_Guy, Montserrat } from "next/font/google";
 
 import type {
   TeamCardBackgroundAsset,
-  TeamCardFormOption,
   TeamCardIconOption,
   TeamCardTrainerVariant,
 } from "@/data/team-card-assets";
-import type { TeamCardDetailRow, TeamCardSlotCustomization, TeamCardSpriteMode } from "@/types/team-card";
+import type {
+  TeamCardDetailRow,
+  TeamCardSlotCustomization,
+  TeamCardSpriteMode,
+  TeamCardVisualStyle,
+} from "@/types/team-card";
 import type { TeamPokemon } from "@/types/team";
 
 /** Option E: geometric display title + neutral body (Inter reads similar to system UI without explicit webfont). */
@@ -44,9 +48,8 @@ type TeamCardPreviewProps = {
   trainer: TeamCardTrainerVariant;
   spriteMode: TeamCardSpriteMode;
   slotCustomizations: TeamCardSlotCustomization[];
+  visualStyle: TeamCardVisualStyle;
   detailIconOptions: TeamCardIconOption[];
-  formOptions: TeamCardFormOption[];
-  slotIconOptions: TeamCardIconOption[];
 };
 
 /** Inset for artwork + content (tighter bottom = more room for team + trainer). */
@@ -68,6 +71,80 @@ const SLOT_FROSTED_DISK_STYLE: CSSProperties = {
     "inset 0 2px 0 rgba(255,255,255,0.55), inset 0 -1px 0 rgba(15,23,42,0.08), 0 8px 18px rgba(0,0,0,0.2)",
 };
 
+function getOverlayGradient(intensity: TeamCardVisualStyle["overlayIntensity"]): string {
+  if (intensity === "low") {
+    return "linear-gradient(90deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.14) 100%)";
+  }
+  if (intensity === "high") {
+    return "linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.26) 50%, rgba(0,0,0,0.34) 100%)";
+  }
+  return "linear-gradient(90deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.16) 50%, rgba(0,0,0,0.22) 100%)";
+}
+
+function getSpriteFilter(glow: TeamCardVisualStyle["spriteGlow"], hasPokemon: boolean): string {
+  if (!hasPokemon) {
+    return "opacity(0.45)";
+  }
+  if (glow === "off") {
+    return "drop-shadow(0 2px 5px rgba(0,0,0,0.35))";
+  }
+  if (glow === "strong") {
+    return "drop-shadow(0 3px 7px rgba(0,0,0,0.48)) drop-shadow(0 0 14px rgba(255,255,255,0.42))";
+  }
+  return "drop-shadow(0 2px 5px rgba(0,0,0,0.35)) drop-shadow(0 0 8px rgba(255,255,255,0.24))";
+}
+
+function getLabelStyle(style: TeamCardVisualStyle["labelStyle"]): CSSProperties {
+  if (style === "minimal") {
+    return {
+      background: "transparent",
+      color: "rgba(255,255,255,0.95)",
+      borderRadius: 0,
+      padding: "0 2px",
+      border: "none",
+      textShadow: STICKER_OUTLINE_SHADOW,
+    };
+  }
+  if (style === "pill") {
+    return {
+      background: "rgba(15,23,42,0.72)",
+      color: "rgba(255,255,255,0.95)",
+      borderRadius: "999px",
+      padding: "2px 7px",
+      border: "1px solid rgba(255,255,255,0.18)",
+      textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+    };
+  }
+  return {
+    background: "rgba(248,250,252,0.94)",
+    color: "#1f2937",
+    borderRadius: "999px",
+    padding: "1px 6px",
+    border: "1px solid rgba(15,23,42,0.08)",
+    textShadow: "none",
+  };
+}
+
+function getCardBorderStyle(style: TeamCardVisualStyle["borderStyle"]): Pick<CSSProperties, "border" | "boxShadow"> {
+  if (style === "none") {
+    return {
+      border: "1px solid rgba(255,255,255,0.08)",
+      boxShadow: "0 14px 36px rgba(0,0,0,0.38)",
+    };
+  }
+  if (style === "neon") {
+    return {
+      border: "1px solid rgba(125,211,252,0.55)",
+      boxShadow:
+        "0 18px 48px rgba(0,0,0,0.45), 0 0 28px rgba(125,211,252,0.22), inset 0 1px 0 rgba(255,255,255,0.16)",
+    };
+  }
+  return {
+    border: "1px solid rgba(255,255,255,0.18)",
+    boxShadow: "0 18px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12)",
+  };
+}
+
 const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps>(
   function TeamCardPreview(
     {
@@ -79,9 +156,8 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
       trainer,
       spriteMode,
       slotCustomizations,
+      visualStyle,
       detailIconOptions,
-      formOptions,
-      slotIconOptions,
     },
     ref,
   ) {
@@ -94,18 +170,12 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
       () => new Map(detailIconOptions.map((entry) => [entry.slug, entry])),
       [detailIconOptions],
     );
-    const formMap = useMemo(
-      () => new Map(formOptions.map((entry) => [entry.slug, entry.symbol])),
-      [formOptions],
-    );
-    const slotIconMap = useMemo(
-      () => new Map(slotIconOptions.map((entry) => [entry.slug, entry.symbol])),
-      [slotIconOptions],
-    );
     const hasTrainerHeadline = trainerName.trim().length > 0;
     const subtitleRow = trainerDetails[0];
     const hasSubtitleLine = Boolean(subtitleRow?.text?.trim());
     const showTrainerHeaderRow = hasTrainerHeadline || hasSubtitleLine;
+    const labelStyle = getLabelStyle(visualStyle.labelStyle);
+    const cardBorderStyle = getCardBorderStyle(visualStyle.borderStyle);
     const subtitleIcon =
       hasSubtitleLine && subtitleRow ? detailIconMap.get(subtitleRow.iconSlug) : undefined;
 
@@ -123,8 +193,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
           borderRadius: "18px",
           background:
             "linear-gradient(135deg, rgba(76,29,89,0.95) 0%, rgba(45,27,60,0.98) 46%, rgba(24,18,38,0.98) 100%)",
-          border: "1px solid rgba(255,255,255,0.18)",
-          boxShadow: "0 18px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12)",
+          ...cardBorderStyle,
         }}
       >
         {/* Background — longhand only (no `background` shorthand) to avoid React warnings vs backgroundSize/Position */}
@@ -155,8 +224,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
             bottom: CARD_ART_INSET_BOTTOM,
             left: CARD_ART_INSET_X,
             borderRadius: "12px",
-            background:
-              "linear-gradient(90deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.16) 50%, rgba(0,0,0,0.22) 100%)",
+            background: getOverlayGradient(visualStyle.overlayIntensity),
           }}
         />
 
@@ -337,14 +405,6 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                       ? (pokemon.spriteShiny ?? pokemon.spriteNormal)
                       : (pokemon.spriteNormal ?? pokemon.spriteShiny)
                     : null;
-                const formSymbol =
-                  customization && customization.formSlug !== "none"
-                    ? formMap.get(customization.formSlug) ?? null
-                    : null;
-                const iconSymbol =
-                  customization && customization.iconSlug !== "none"
-                    ? slotIconMap.get(customization.iconSlug) ?? null
-                    : null;
 
                 return (
                   <div
@@ -389,57 +449,6 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                           ...SLOT_FROSTED_DISK_STYLE,
                         }}
                       />
-                      {(formSymbol || iconSymbol) && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "clamp(2px, 0.55vw, 6px)",
-                            right: "clamp(10%, 12%, 18%)",
-                            display: "flex",
-                            gap: 3,
-                            zIndex: 2,
-                          }}
-                        >
-                          {formSymbol ? (
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                minWidth: 14,
-                                height: 14,
-                                alignItems: "center",
-                                justifyContent: "center",
-                                borderRadius: 999,
-                                fontSize: 8,
-                                fontWeight: 700,
-                                color: "rgba(255,255,255,0.9)",
-                                background: "rgba(15,23,42,0.8)",
-                                border: "1px solid rgba(255,255,255,0.18)",
-                              }}
-                            >
-                              {formSymbol}
-                            </span>
-                          ) : null}
-                          {iconSymbol ? (
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                minWidth: 14,
-                                height: 14,
-                                alignItems: "center",
-                                justifyContent: "center",
-                                borderRadius: 999,
-                                fontSize: 8,
-                                fontWeight: 700,
-                                color: "rgba(255,255,255,0.9)",
-                                background: "rgba(15,23,42,0.8)",
-                                border: "1px solid rgba(255,255,255,0.18)",
-                              }}
-                            >
-                              {iconSymbol}
-                            </span>
-                          ) : null}
-                        </div>
-                      )}
                       <img
                         src={spriteUrl ?? POKEMON_PLACEHOLDER}
                         alt={pokemon?.name ?? `Slot ${idx + 1}`}
@@ -453,9 +462,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                           width: "clamp(54px, 11.8vw, 122px)",
                           height: "clamp(54px, 11.8vw, 122px)",
                           objectFit: "contain",
-                          filter: pokemon
-                            ? "drop-shadow(0 2px 5px rgba(0,0,0,0.35))"
-                            : "opacity(0.45)",
+                          filter: getSpriteFilter(visualStyle.spriteGlow, Boolean(pokemon)),
                         }}
                       />
                     </div>
@@ -471,12 +478,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
-                          background: "rgba(248,250,252,0.94)",
-                          color: "#1f2937",
-                          borderRadius: "999px",
-                          padding: "1px 6px",
-                          border: "1px solid rgba(15,23,42,0.08)",
-                          textShadow: "none",
+                          ...labelStyle,
                         }}
                       >
                         {pokemon.name}

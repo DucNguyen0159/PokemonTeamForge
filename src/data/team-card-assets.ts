@@ -39,10 +39,11 @@ export type TeamCardIconOption = {
   imagePath?: string;
 };
 
-export type TeamCardFormOption = {
+export type TeamCardSlotBadgeOption = {
   slug: string;
   label: string;
-  symbol: string;
+  shortLabel: string;
+  description: string;
 };
 
 export const TEAM_CARD_BACKGROUND_CATEGORIES: TeamCardBackgroundCategory[] = [
@@ -341,21 +342,16 @@ export const TEAM_CARD_DETAIL_ICON_OPTIONS: TeamCardIconOption[] = [
   },
 ];
 
-export const TEAM_CARD_SLOT_FORM_OPTIONS: TeamCardFormOption[] = [
-  { slug: "none", label: "None", symbol: "—" },
-  { slug: "alpha", label: "Alpha", symbol: "A" },
-  { slug: "mega", label: "Mega", symbol: "M" },
-  { slug: "gmax", label: "Dynamax", symbol: "G" },
-  { slug: "shadow", label: "Shadow", symbol: "S" },
-  { slug: "purified", label: "Purified", symbol: "P" },
-];
-
-export const TEAM_CARD_SLOT_ICON_OPTIONS: TeamCardIconOption[] = [
-  { slug: "none", label: "None", symbol: "—" },
-  { slug: "star", label: "Star", symbol: "★" },
-  { slug: "crown", label: "Crown", symbol: "♛" },
-  { slug: "fire", label: "Fire", symbol: "🔥" },
-  { slug: "ice", label: "Ice", symbol: "❄" },
-  { slug: "bolt", label: "Bolt", symbol: "⚡" },
-  { slug: "leaf", label: "Leaf", symbol: "🍃" },
+export const TEAM_CARD_SLOT_BADGE_OPTIONS: TeamCardSlotBadgeOption[] = [
+  { slug: "none", label: "None", shortLabel: "", description: "No extra slot label." },
+  { slug: "ace", label: "Ace", shortLabel: "Ace", description: "Primary star or win condition." },
+  { slug: "lead", label: "Lead", shortLabel: "Lead", description: "Typical opening Pokémon." },
+  { slug: "mvp", label: "MVP", shortLabel: "MVP", description: "Favorite or most important member." },
+  { slug: "sweeper", label: "Sweeper", shortLabel: "Sweep", description: "Late-game cleaner or setup threat." },
+  { slug: "support", label: "Support", shortLabel: "Support", description: "Utility, redirection, healing, or setup support." },
+  { slug: "wall", label: "Wall", shortLabel: "Wall", description: "Defensive anchor." },
+  { slug: "pivot", label: "Pivot", shortLabel: "Pivot", description: "Momentum and switching glue." },
+  { slug: "mega", label: "Mega", shortLabel: "Mega", description: "Mega form callout." },
+  { slug: "dynamax", label: "Dynamax", shortLabel: "D-Max", description: "Dynamax/Gigantamax callout." },
+  { slug: "legend", label: "Legend", shortLabel: "Legend", description: "Legendary or signature slot." },
 ];

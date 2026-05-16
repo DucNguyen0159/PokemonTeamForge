@@ -1,15 +1,20 @@
 import {
   TEAM_CARD_BACKGROUND_ASSETS,
   TEAM_CARD_DETAIL_ICON_OPTIONS,
-  TEAM_CARD_SLOT_FORM_OPTIONS,
-  TEAM_CARD_SLOT_ICON_OPTIONS,
+  TEAM_CARD_SLOT_BADGE_OPTIONS,
   TEAM_CARD_TRAINER_VARIANTS,
 } from "@/data/team-card-assets";
 import {
   type TeamCardConfig,
   type TeamCardDetailRow,
+  type TeamCardLabelStyle,
+  type TeamCardOverlayIntensity,
+  type TeamCardPresetId,
   type TeamCardSlotCustomization,
+  type TeamCardSpriteGlow,
   type TeamCardSpriteMode,
+  type TeamCardVisualStyle,
+  type TeamCardBorderStyle,
   TEAM_CARD_TRAINER_NAME_MAX_LENGTH,
 } from "@/types/team-card";
 
@@ -55,10 +60,17 @@ const DEFAULT_SLOT_CUSTOMIZATIONS: TeamCardSlotCustomization[] = Array.from(
   { length: 6 },
   (_, idx) => ({
     slot: idx + 1,
-    formSlug: "none",
-    iconSlug: "none",
+    badgeSlug: "none",
   }),
 );
+
+export const DEFAULT_TEAM_CARD_VISUAL_STYLE: TeamCardVisualStyle = {
+  presetId: "neon-city",
+  overlayIntensity: "medium",
+  spriteGlow: "soft",
+  labelStyle: "badge",
+  borderStyle: "subtle",
+};
 
 const STORAGE_VERSION = 1;
 
@@ -69,6 +81,47 @@ type PersistedPayload = {
 
 function isValidSpriteMode(value: unknown): value is TeamCardSpriteMode {
   return value === "normal" || value === "shiny";
+}
+
+function isValidPresetId(value: unknown): value is TeamCardPresetId {
+  return (
+    value === "neon-city" ||
+    value === "storm-battle" ||
+    value === "cosmic-arena" ||
+    value === "classic-league" ||
+    value === "volcanic-core" ||
+    value === "minimal-focus"
+  );
+}
+
+function isValidOverlayIntensity(value: unknown): value is TeamCardOverlayIntensity {
+  return value === "low" || value === "medium" || value === "high";
+}
+
+function isValidSpriteGlow(value: unknown): value is TeamCardSpriteGlow {
+  return value === "off" || value === "soft" || value === "strong";
+}
+
+function isValidLabelStyle(value: unknown): value is TeamCardLabelStyle {
+  return value === "minimal" || value === "badge" || value === "pill";
+}
+
+function isValidBorderStyle(value: unknown): value is TeamCardBorderStyle {
+  return value === "none" || value === "subtle" || value === "neon";
+}
+
+function normalizeVisualStyle(raw: unknown, fallback: TeamCardVisualStyle): TeamCardVisualStyle {
+  const value = raw && typeof raw === "object" ? (raw as Partial<TeamCardVisualStyle>) : {};
+
+  return {
+    presetId: isValidPresetId(value.presetId) ? value.presetId : fallback.presetId,
+    overlayIntensity: isValidOverlayIntensity(value.overlayIntensity)
+      ? value.overlayIntensity
+      : fallback.overlayIntensity,
+    spriteGlow: isValidSpriteGlow(value.spriteGlow) ? value.spriteGlow : fallback.spriteGlow,
+    labelStyle: isValidLabelStyle(value.labelStyle) ? value.labelStyle : fallback.labelStyle,
+    borderStyle: isValidBorderStyle(value.borderStyle) ? value.borderStyle : fallback.borderStyle,
+  };
 }
 
 function coerceString(value: unknown, fallback: string): string {
@@ -91,6 +144,7 @@ export function createDefaultTeamCardConfig(teamName?: string): TeamCardConfig {
       teamName?.trim() ? teamName.trim() : "Trainer",
     ),
     detailRows: DEFAULT_DETAIL_ROWS,
+    visualStyle: DEFAULT_TEAM_CARD_VISUAL_STYLE,
     globalSpriteMode: "normal",
     slotCustomizations: DEFAULT_SLOT_CUSTOMIZATIONS,
   };
@@ -108,8 +162,7 @@ export function normalizeTeamCardConfig(
   const validBackgroundSlugs = new Set(TEAM_CARD_BACKGROUND_ASSETS.map((entry) => entry.slug));
   const validTrainerSlugs = new Set(TEAM_CARD_TRAINER_VARIANTS.map((entry) => entry.slug));
   const validDetailIcons = new Set(TEAM_CARD_DETAIL_ICON_OPTIONS.map((entry) => entry.slug));
-  const validFormSlugs = new Set(TEAM_CARD_SLOT_FORM_OPTIONS.map((entry) => entry.slug));
-  const validSlotIcons = new Set(TEAM_CARD_SLOT_ICON_OPTIONS.map((entry) => entry.slug));
+  const validBadgeSlugs = new Set(TEAM_CARD_SLOT_BADGE_OPTIONS.map((entry) => entry.slug));
 
   const detailRows = normalizeDetailRows(raw.detailRows, fallback.detailRows, validDetailIcons);
 
@@ -125,8 +178,7 @@ export function normalizeTeamCardConfig(
     slotMap.set(slot, {
       slot,
       spriteMode: isValidSpriteMode(entry.spriteMode) ? entry.spriteMode : undefined,
-      formSlug: validFormSlugs.has(entry.formSlug) ? entry.formSlug : "none",
-      iconSlug: validSlotIcons.has(entry.iconSlug) ? entry.iconSlug : "none",
+      badgeSlug: validBadgeSlugs.has(entry.badgeSlug) ? entry.badgeSlug : "none",
     });
   });
 
@@ -135,8 +187,7 @@ export function normalizeTeamCardConfig(
     return (
       slotMap.get(slot) ?? {
         slot,
-        formSlug: "none",
-        iconSlug: "none",
+        badgeSlug: "none",
       }
     );
   });
@@ -152,6 +203,7 @@ export function normalizeTeamCardConfig(
       coerceString(raw.trainerName, fallback.trainerName),
     ),
     detailRows,
+    visualStyle: normalizeVisualStyle(raw.visualStyle, fallback.visualStyle),
     globalSpriteMode: isValidSpriteMode(raw.globalSpriteMode)
       ? raw.globalSpriteMode
       : fallback.globalSpriteMode,

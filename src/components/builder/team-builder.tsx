@@ -38,7 +38,7 @@ export function TeamBuilder() {
           </ErrorBoundary>
         </div>
 
-        <aside className="flex w-full flex-col gap-4 lg:w-[360px] lg:flex-shrink-0 lg:overflow-y-auto">
+        <aside className="flex min-w-0 w-full flex-col gap-4 overflow-x-hidden lg:w-[360px] lg:flex-shrink-0 lg:overflow-y-auto">
           <ErrorBoundary title="Coverage unavailable">
             <CoveragePanel />
           </ErrorBoundary>

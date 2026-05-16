@@ -46,8 +46,7 @@ describe("team-card config", () => {
     expect(normalized.trainerVariantSlug).toBe(fallback.trainerVariantSlug);
     expect(normalized.globalSpriteMode).toBe("normal");
     expect(normalized.slotCustomizations[0].spriteMode).toBe("shiny");
-    expect(normalized.slotCustomizations[0].formSlug).toBe("none");
-    expect(normalized.slotCustomizations[0].iconSlug).toBe("none");
+    expect(normalized.slotCustomizations[0].badgeSlug).toBe("none");
     expect(normalized.detailRows).toHaveLength(1);
     expect(normalized.detailRows[0].text).toBe(fallback.detailRows[0].text);
   });

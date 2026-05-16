@@ -462,7 +462,7 @@ export function RecommendationPanel() {
   );
 
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-md">
+    <section className="flex min-w-0 flex-col gap-3 overflow-x-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-md">
       {/* panel header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
@@ -553,7 +553,7 @@ export function RecommendationPanel() {
       ) : (
         <div
           className={cn(
-            "flex flex-col gap-2 overflow-y-auto",
+            "flex min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto",
             results.length > 4 && "max-h-[520px] pr-0.5",
           )}
         >
