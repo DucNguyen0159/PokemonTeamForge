@@ -10,6 +10,7 @@ import type {
 } from "@/types/recommendation";
 import type { Pokemon } from "@/types/pokemon";
 import type { PokemonType, TeamRole } from "@/types/shared";
+import type { TeamPokemon } from "@/types/team";
 
 import { filterCandidates } from "./filters/filter-candidates";
 import { rankRecommendations } from "./ranking/rank-recommendations";
@@ -17,6 +18,10 @@ import { scoreCandidate } from "./scoring/score-candidate";
 import type { TeamAnalysis } from "./types";
 
 const DEFAULT_RESULT_COUNT = 8;
+const RESULT_CACHE_TTL_MS = 1000 * 60 * 2;
+const RESULT_CACHE_MAX_ENTRIES = 100;
+
+const recommendationResultCache = new Map<string, { expiresAt: number; data: RecommendationResponse }>();
 
 function buildRoleCounts(roles: TeamRole[]): Map<TeamRole, number> {
   return roles.reduce((map, role) => {
@@ -30,6 +35,66 @@ function buildTypeCounts(types: PokemonType[]): Map<PokemonType, number> {
     map.set(type, (map.get(type) ?? 0) + 1);
     return map;
   }, new Map<PokemonType, number>());
+}
+
+function teamSlotCacheKey(slot: TeamPokemon) {
+  const pokemon = slot.pokemon;
+  return {
+    slot: slot.slot,
+    pokemon: pokemon
+      ? {
+          slug: pokemon.slug,
+          primaryType: pokemon.primaryType,
+          secondaryType: pokemon.secondaryType ?? null,
+          roles: [...pokemon.roles].sort(),
+          stats: pokemon.stats,
+        }
+      : null,
+    ability: slot.selectedAbility?.slug ?? null,
+    item: slot.selectedItem?.slug ?? null,
+    moves: slot.moves.map((entry) => ({
+      slot: entry.slot,
+      move: entry.move?.slug ?? null,
+    })),
+  };
+}
+
+function recommendationCacheKey(request: RecommendationRequest): string {
+  return JSON.stringify({
+    filters: request.filters,
+    team: {
+      format: request.team.format,
+      pokemon: request.team.pokemon.map(teamSlotCacheKey),
+    },
+  });
+}
+
+function getCachedRecommendation(key: string): RecommendationResponse | null {
+  const cached = recommendationResultCache.get(key);
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    recommendationResultCache.delete(key);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function setCachedRecommendation(key: string, data: RecommendationResponse): void {
+  if (recommendationResultCache.size >= RESULT_CACHE_MAX_ENTRIES) {
+    const firstKey = recommendationResultCache.keys().next().value;
+    if (firstKey) {
+      recommendationResultCache.delete(firstKey);
+    }
+  }
+
+  recommendationResultCache.set(key, {
+    expiresAt: Date.now() + RESULT_CACHE_TTL_MS,
+    data,
+  });
 }
 
 function analyzeTeam(request: RecommendationRequest): TeamAnalysis {
@@ -106,9 +171,17 @@ export function generateRecommendations(request: RecommendationRequest): Recomme
 export async function generateRecommendationsFromSharedSource(
   request: RecommendationRequest,
 ): Promise<RecommendationResponse> {
+  const cacheKey = recommendationCacheKey(request);
+  const cached = getCachedRecommendation(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const supabasePool = await getPokemonRecommendationPool();
   if (supabasePool.length > 0) {
-    return generateRecommendationsWithPool(request, supabasePool);
+    const response = generateRecommendationsWithPool(request, supabasePool);
+    setCachedRecommendation(cacheKey, response);
+    return response;
   }
 
   const strategyTeams = await getStrategyTeams();
@@ -118,6 +191,8 @@ export async function generateRecommendationsFromSharedSource(
       .map((pokemon) => [pokemon.slug, pokemon] as const),
   );
 
-  return generateRecommendationsWithPool(request, Array.from(candidateMap.values()));
+  const response = generateRecommendationsWithPool(request, Array.from(candidateMap.values()));
+  setCachedRecommendation(cacheKey, response);
+  return response;
 }
 

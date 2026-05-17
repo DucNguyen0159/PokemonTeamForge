@@ -25,6 +25,7 @@ export interface Pokemon {
   spriteNormal: string;
   spriteShiny?: string | null;
   isLegendaryOrMythical: boolean;
+  isFullyEvolved: boolean;
   abilities: Ability[];
   moves: Move[];
   roles: TeamRole[];
@@ -47,6 +48,7 @@ export interface PokemonListItem {
   total: number;
   spriteNormal: string;
   isLegendaryOrMythical: boolean;
+  isFullyEvolved: boolean;
 }
 
 export interface EvolutionStage {

@@ -179,7 +179,37 @@ async function listPokemonRefs(limit) {
   return Number.isFinite(limit) ? refs.slice(0, limit) : refs;
 }
 
-function normalizePokemon(rawPokemon, rawSpecies, normalizedMoves) {
+function evolutionChainNodeForSpecies(chainNode, speciesSlug) {
+  if (!chainNode) {
+    return null;
+  }
+
+  if (chainNode.species?.name === speciesSlug) {
+    return chainNode;
+  }
+
+  for (const child of chainNode.evolves_to ?? []) {
+    const match = evolutionChainNodeForSpecies(child, speciesSlug);
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+}
+
+async function isFullyEvolvedSpecies(rawSpecies, caches) {
+  const chainUrl = rawSpecies.evolution_chain?.url;
+  if (!chainUrl) {
+    return true;
+  }
+
+  const rawEvolutionChain = await fetchWithCache(caches.evolutionChains, chainUrl);
+  const node = evolutionChainNodeForSpecies(rawEvolutionChain.chain, rawSpecies.name);
+  return (node?.evolves_to?.length ?? 0) === 0;
+}
+
+function normalizePokemon(rawPokemon, rawSpecies, normalizedMoves, isFullyEvolved) {
   const sortedTypes = [...rawPokemon.types].sort((a, b) => a.slot - b.slot);
   const statsByName = new Map(rawPokemon.stats.map((entry) => [entry.stat.name, entry.base_stat]));
   const hp = statsByName.get("hp") ?? 0;
@@ -210,6 +240,7 @@ function normalizePokemon(rawPokemon, rawSpecies, normalizedMoves) {
     ...stats,
     is_legendary: Boolean(rawSpecies.is_legendary),
     is_mythical: Boolean(rawSpecies.is_mythical),
+    is_fully_evolved: isFullyEvolved,
     sprite_normal_url: pickPokeApiSprite(rawPokemon, "normal"),
     sprite_shiny_url: pickPokeApiSprite(rawPokemon, "shiny") || null,
     roles: deriveRolesFromStatsAndMoves(stats, normalizedMoves),
@@ -247,6 +278,7 @@ async function fetchWithCache(cache, path) {
 async function buildPokemonImportRows(ref, caches, moveTags) {
   const rawPokemon = await pokeApiGet(ref.url);
   const rawSpecies = await fetchWithCache(caches.species, `/pokemon-species/${rawPokemon.species.name}`);
+  const isFullyEvolved = await isFullyEvolvedSpecies(rawSpecies, caches);
 
   const rawAbilities = await Promise.all(
     rawPokemon.abilities.map((entry) =>
@@ -275,7 +307,7 @@ async function buildPokemonImportRows(ref, caches, moveTags) {
     pokemon_id: rawPokemon.id,
     move_id: move.id,
   }));
-  const pokemonRow = normalizePokemon(rawPokemon, rawSpecies, moveRows);
+  const pokemonRow = normalizePokemon(rawPokemon, rawSpecies, moveRows, isFullyEvolved);
 
   return {
     pokemonRows: [pokemonRow],
@@ -332,6 +364,7 @@ async function main() {
     const moveTags = await loadMoveTags();
     const caches = {
       species: new Map(),
+      evolutionChains: new Map(),
       abilities: new Map(),
       moves: new Map(),
     };

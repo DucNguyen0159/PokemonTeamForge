@@ -53,9 +53,40 @@ function generationNumber(name) {
   return romanMap[numericSegment] ?? 0;
 }
 
-function expectedPokemonCore(rawPokemon, rawSpecies) {
+function evolutionChainNodeForSpecies(chainNode, speciesSlug) {
+  if (!chainNode) {
+    return null;
+  }
+
+  if (chainNode.species?.name === speciesSlug) {
+    return chainNode;
+  }
+
+  for (const child of chainNode.evolves_to ?? []) {
+    const match = evolutionChainNodeForSpecies(child, speciesSlug);
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+}
+
+async function isFullyEvolvedSpecies(rawSpecies) {
+  const chainUrl = rawSpecies.evolution_chain?.url;
+  if (!chainUrl) {
+    return true;
+  }
+
+  const rawEvolutionChain = await pokeApiGet(chainUrl);
+  const node = evolutionChainNodeForSpecies(rawEvolutionChain.chain, rawSpecies.name);
+  return (node?.evolves_to?.length ?? 0) === 0;
+}
+
+async function expectedPokemonCore(rawPokemon, rawSpecies) {
   const sortedTypes = [...rawPokemon.types].sort((a, b) => a.slot - b.slot);
   const stats = new Map(rawPokemon.stats.map((entry) => [entry.stat.name, entry.base_stat]));
+  const isFullyEvolved = await isFullyEvolvedSpecies(rawSpecies);
 
   return {
     id: rawPokemon.id,
@@ -71,6 +102,7 @@ function expectedPokemonCore(rawPokemon, rawSpecies) {
     speed: stats.get("speed") ?? 0,
     is_legendary: Boolean(rawSpecies.is_legendary),
     is_mythical: Boolean(rawSpecies.is_mythical),
+    is_fully_evolved: isFullyEvolved,
   };
 }
 
@@ -100,7 +132,7 @@ async function countTable(supabase, table) {
 async function validatePokemon(supabase, slug) {
   const rawPokemon = await pokeApiGet(`/pokemon/${slug}`);
   const rawSpecies = await pokeApiGet(`/pokemon-species/${rawPokemon.species.name}`);
-  const expected = expectedPokemonCore(rawPokemon, rawSpecies);
+  const expected = await expectedPokemonCore(rawPokemon, rawSpecies);
 
   const { data, error } = await supabase
     .from("pokemon")
@@ -129,6 +161,7 @@ async function validatePokemon(supabase, slug) {
     "speed",
     "is_legendary",
     "is_mythical",
+    "is_fully_evolved",
   ]);
 }
 

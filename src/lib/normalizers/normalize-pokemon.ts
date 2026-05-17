@@ -267,6 +267,7 @@ export function normalizePokeApiToPokemonListItem(
     total,
     spriteNormal: pickPokeApiSprite(pokemon, "normal"),
     isLegendaryOrMythical: Boolean(species.is_legendary || species.is_mythical),
+    isFullyEvolved: true,
   };
 }
 
@@ -330,6 +331,7 @@ export function normalizePokeApiPokemonDetail(input: {
     spriteNormal: pickPokeApiSprite(pokemon, "normal"),
     spriteShiny: pickPokeApiSprite(pokemon, "shiny") || null,
     isLegendaryOrMythical: Boolean(species.is_legendary || species.is_mythical),
+    isFullyEvolved: true,
     abilities,
     moves,
     roles,
@@ -355,5 +357,6 @@ export function toPokemonListItem(pokemon: Pokemon): PokemonListItem {
     total: pokemon.stats.total,
     spriteNormal: pokemon.spriteNormal,
     isLegendaryOrMythical: pokemon.isLegendaryOrMythical,
+    isFullyEvolved: pokemon.isFullyEvolved,
   };
 }

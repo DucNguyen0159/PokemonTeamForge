@@ -402,6 +402,7 @@ export function RecommendationPanel() {
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const formatRules = FORMAT_RULES[team.format];
+  const hasResults = results.length > 0;
 
   const activePokemonCount = useMemo(
     () => team.pokemon.filter((slot) => slot.pokemon !== null).length,
@@ -537,7 +538,7 @@ export function RecommendationPanel() {
           <Loader2 className="size-4 animate-spin" aria-hidden />
           Analyzing team…
         </div>
-      ) : error ? (
+      ) : error && !hasResults ? (
         <ErrorMessage
           title="Recommendations unavailable"
           message={error}
@@ -546,25 +547,41 @@ export function RecommendationPanel() {
           }}
           isRetrying={isLoading}
         />
-      ) : results.length === 0 ? (
+      ) : !hasResults ? (
         <p className="py-4 text-center text-xs text-muted-foreground/60">
           No candidates match the current filters.
         </p>
       ) : (
-        <div
-          className={cn(
-            "flex min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto",
-            results.length > 4 && "max-h-[520px] pr-0.5",
-          )}
-        >
-          {results.map((result) => (
-            <RecommendationCard key={result.pokemon.slug} result={result} />
-          ))}
+        <div className="flex min-w-0 flex-col gap-2">
+          {isLoading ? (
+            <div className="inline-flex items-center gap-1.5 self-start rounded-full border border-border/40 bg-background/40 px-2 py-1 text-[10px] text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" aria-hidden />
+              Refreshing recommendations…
+            </div>
+          ) : null}
+
+          {error ? (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-[11px] text-destructive">
+              {error}
+            </p>
+          ) : null}
+
+          <div
+            className={cn(
+              "flex min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto",
+              results.length > 4 && "max-h-[520px] pr-0.5",
+              isLoading && "opacity-80",
+            )}
+          >
+            {results.map((result) => (
+              <RecommendationCard key={result.pokemon.slug} result={result} />
+            ))}
+          </div>
         </div>
       )}
 
       {/* footer hint */}
-      {!isLoading && results.length > 0 ? (
+      {!isLoading && hasResults ? (
         <p className="text-center text-[10px] text-muted-foreground/40">
           Ranked by {formatRules.label.toLowerCase()} fit · updating as your team changes
         </p>

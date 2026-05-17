@@ -48,6 +48,7 @@ describe("pokemon data access", () => {
             total: 300,
             spriteNormal: "/sprite.png",
             isLegendaryOrMythical: false,
+            isFullyEvolved: true,
           })),
           total: 1025,
           page: 1,

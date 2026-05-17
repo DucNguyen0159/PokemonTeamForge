@@ -47,6 +47,7 @@ describe("strategy preset hydration", () => {
         spriteNormal: "/pikachu.png",
         spriteShiny: null,
         isLegendaryOrMythical: false,
+        isFullyEvolved: false,
         roles: ["speed_control"],
         abilities: [{ id: 1, name: "Static", slug: "static", description: "" }],
         moves: [

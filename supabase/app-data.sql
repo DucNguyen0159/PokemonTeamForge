@@ -36,12 +36,16 @@ create table if not exists public.pokemon (
   ) stored,
   is_legendary boolean not null default false,
   is_mythical boolean not null default false,
+  is_fully_evolved boolean not null default true,
   sprite_normal_url text,
   sprite_shiny_url text,
   roles text[] not null default '{}',
   source_updated_at timestamptz,
   imported_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.pokemon
+  add column if not exists is_fully_evolved boolean not null default true;
 
 create table if not exists public.abilities (
   id int primary key,
@@ -134,6 +138,7 @@ create index if not exists idx_pokemon_special_attack on public.pokemon (special
 create index if not exists idx_pokemon_special_defense on public.pokemon (special_defense desc, id asc);
 create index if not exists idx_pokemon_speed on public.pokemon (speed desc, id asc);
 create index if not exists idx_pokemon_roles on public.pokemon using gin (roles);
+create index if not exists idx_pokemon_is_fully_evolved on public.pokemon (is_fully_evolved);
 
 -- Join table indexes.
 create index if not exists idx_pokemon_abilities_ability_id on public.pokemon_abilities (ability_id);

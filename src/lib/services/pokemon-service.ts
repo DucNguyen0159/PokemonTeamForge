@@ -3,9 +3,10 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
+import { RECOMMENDATION_ALLOWED_PRE_EVOLUTION_SET } from "@/data/recommendation-candidates";
 import type { PokemonListPayload } from "@/types/api";
 import type { MoveCategory, PokemonType, TeamRole } from "@/types/shared";
-import type { PokemonDetail, PokemonListItem } from "@/types/pokemon";
+import type { Pokemon, PokemonDetail, PokemonListItem } from "@/types/pokemon";
 import type { Ability } from "@/types/ability";
 import type { Move, MoveTag } from "@/types/move";
 
@@ -55,6 +56,7 @@ type PokemonRow = {
   total: number;
   is_legendary: boolean;
   is_mythical: boolean;
+  is_fully_evolved: boolean;
   sprite_normal_url: string | null;
   sprite_shiny_url: string | null;
   roles: TeamRole[] | null;
@@ -91,15 +93,34 @@ type PokemonMoveJoinRow = {
   moves: MoveRow | MoveRow[] | null;
 };
 
+type PokemonAbilityCandidateJoinRow = PokemonAbilityJoinRow & {
+  pokemon_id: number;
+};
+
 const pokemonDetailCache = new Map<string, PokemonDetail>();
 const pokemonListItemCache = new Map<string, PokemonListItem>();
 
 let pokemonIndexCache: PokemonRef[] | null = null;
-let recommendationPoolCache: { expiresAt: number; data: PokemonDetail[] } | null = null;
+let recommendationPoolCache: { expiresAt: number; data: Pokemon[] } | null = null;
 const typeSlugCache = new Map<PokemonType, Set<string>>();
 const generationSpeciesNamesCache = new Map<number, string[]>();
 const RECOMMENDATION_POOL_CACHE_TTL_MS = 1000 * 60 * 15;
 const RECOMMENDATION_POOL_LIMIT = 1200;
+const ROLE_MOVE_TAGS: Partial<Record<TeamRole, MoveTag[]>> = {
+  hazard_setter: ["entry_hazard"],
+  hazard_remover: ["hazard_removal"],
+  pivot: ["pivot"],
+  setup_sweeper: ["setup"],
+  speed_control: ["speed_control"],
+  weather_setter: ["weather"],
+  weather_abuser: ["weather"],
+  trick_room_setter: ["trick_room", "speed_control"],
+  trick_room_abuser: ["trick_room"],
+  redirection_support: ["redirection"],
+  status_spreader: ["status"],
+  priority_user: ["priority"],
+  trap_user: ["trap"],
+};
 
 function hasSupabaseServerEnv(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -163,6 +184,7 @@ function toPokemonListItemFromRow(row: PokemonRow): PokemonListItem {
     total: row.total,
     spriteNormal: row.sprite_normal_url ?? "",
     isLegendaryOrMythical: row.is_legendary || row.is_mythical,
+    isFullyEvolved: row.is_fully_evolved,
   };
 }
 
@@ -197,6 +219,77 @@ function relatedOne<T>(value: T | T[] | null): T | null {
     return value[0] ?? null;
   }
   return value;
+}
+
+function chunkArray<T>(values: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function recommendationCategoryForStats(row: PokemonRow): MoveCategory {
+  if (row.attack > row.special_attack) {
+    return "physical";
+  }
+  if (row.special_attack > row.attack) {
+    return "special";
+  }
+  return "status";
+}
+
+function moveTagsForRecommendationRoles(roles: TeamRole[]): MoveTag[] {
+  return Array.from(
+    new Set(roles.flatMap((role) => ROLE_MOVE_TAGS[role] ?? [])),
+  );
+}
+
+function buildRecommendationCandidateMoves(row: PokemonRow): Move[] {
+  const types = [row.primary_type, row.secondary_type].filter((type): type is PokemonType => Boolean(type));
+  const tags = moveTagsForRecommendationRoles(row.roles ?? []);
+  const category = recommendationCategoryForStats(row);
+
+  return types.map((type, index) => ({
+    id: -(row.id * 10 + index),
+    name: `${row.name} ${type} coverage`,
+    slug: `${row.slug}-${type}-coverage`,
+    type,
+    category,
+    priority: 0,
+    tags: index === 0 && tags.length > 0 ? tags : undefined,
+  }));
+}
+
+function toPokemonRecommendationCandidate(
+  row: PokemonRow,
+  abilities: Ability[],
+): Pokemon {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    generation: row.generation,
+    region: row.region,
+    primaryType: row.primary_type,
+    secondaryType: row.secondary_type,
+    stats: {
+      hp: row.hp,
+      attack: row.attack,
+      defense: row.defense,
+      specialAttack: row.special_attack,
+      specialDefense: row.special_defense,
+      speed: row.speed,
+      total: row.total,
+    },
+    spriteNormal: row.sprite_normal_url ?? "",
+    spriteShiny: row.sprite_shiny_url,
+    isLegendaryOrMythical: row.is_legendary || row.is_mythical,
+    isFullyEvolved: row.is_fully_evolved,
+    abilities,
+    moves: buildRecommendationCandidateMoves(row),
+    roles: row.roles ?? [],
+  };
 }
 
 export interface PokemonListQuery {
@@ -384,22 +477,6 @@ async function hydratePokemonListItemsWithConcurrency(
   return out;
 }
 
-async function hydratePokemonDetailsWithConcurrency(
-  slugs: string[],
-  concurrency: number,
-): Promise<PokemonDetail[]> {
-  const out: PokemonDetail[] = [];
-  const size = Math.max(1, concurrency);
-
-  for (let offset = 0; offset < slugs.length; offset += size) {
-    const chunk = slugs.slice(offset, offset + size);
-    const batch = await Promise.all(chunk.map((slug) => getPokemonDetailFromSupabase(slug)));
-    out.push(...batch.filter((entry): entry is PokemonDetail => Boolean(entry)));
-  }
-
-  return out;
-}
-
 function comparePokemonRefs(a: PokemonRef, b: PokemonRef, sortKey: PokemonListSortKey, dir: PokemonListSortDirection): number {
   let cmp = 0;
 
@@ -478,7 +555,7 @@ async function getPokemonListFromSupabase(
   let request = supabase
     .from("pokemon")
     .select(
-      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, sprite_normal_url, sprite_shiny_url, roles",
+      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles",
       { count: "exact" },
     );
 
@@ -549,7 +626,7 @@ export async function getPokemonListItemsBySlugs(slugs: string[]): Promise<Pokem
     const { data, error } = await supabase
       .from("pokemon")
       .select(
-        "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, sprite_normal_url, sprite_shiny_url, roles",
+        "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles",
       )
       .in("slug", missingSlugs);
 
@@ -593,7 +670,7 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
   let pokemonRequest = supabase
     .from("pokemon")
     .select(
-      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, sprite_normal_url, sprite_shiny_url, roles",
+      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles",
     )
     .limit(1);
 
@@ -664,6 +741,7 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
     spriteNormal: row.sprite_normal_url ?? "",
     spriteShiny: row.sprite_shiny_url,
     isLegendaryOrMythical: row.is_legendary || row.is_mythical,
+    isFullyEvolved: row.is_fully_evolved,
     abilities,
     moves,
     roles: row.roles ?? [],
@@ -671,7 +749,40 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
   };
 }
 
-export async function getPokemonRecommendationPool(): Promise<PokemonDetail[]> {
+async function getRecommendationCandidateAbilities(
+  pokemonIds: number[],
+): Promise<Map<number, Ability[]>> {
+  const supabase = getSupabaseServerClient();
+  const abilitiesByPokemonId = new Map<number, Ability[]>();
+
+  for (const chunk of chunkArray(pokemonIds, 400)) {
+    const { data, error } = await supabase
+      .from("pokemon_abilities")
+      .select("pokemon_id, slot, is_hidden, abilities(id, slug, name, description)")
+      .in("pokemon_id", chunk)
+      .order("slot", { ascending: true });
+
+    if (error) {
+      console.error("[Pokemon Supabase Recommendation Abilities]", error);
+      return abilitiesByPokemonId;
+    }
+
+    ((data ?? []) as PokemonAbilityCandidateJoinRow[]).forEach((entry) => {
+      const ability = relatedOne(entry.abilities);
+      if (!ability) {
+        return;
+      }
+
+      const existing = abilitiesByPokemonId.get(entry.pokemon_id) ?? [];
+      existing.push(toAbility(ability, entry.is_hidden));
+      abilitiesByPokemonId.set(entry.pokemon_id, existing);
+    });
+  }
+
+  return abilitiesByPokemonId;
+}
+
+export async function getPokemonRecommendationPool(): Promise<Pokemon[]> {
   const now = Date.now();
   if (recommendationPoolCache && recommendationPoolCache.expiresAt > now) {
     return recommendationPoolCache.data;
@@ -682,9 +793,13 @@ export async function getPokemonRecommendationPool(): Promise<PokemonDetail[]> {
   }
 
   const supabase = getSupabaseServerClient();
+  const allowedPreEvolutions = Array.from(RECOMMENDATION_ALLOWED_PRE_EVOLUTION_SET);
   const { data, error } = await supabase
     .from("pokemon")
-    .select("slug")
+    .select(
+      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles",
+    )
+    .or(`is_fully_evolved.eq.true,slug.in.(${allowedPreEvolutions.join(",")})`)
     .order("id", { ascending: true })
     .limit(RECOMMENDATION_POOL_LIMIT);
 
@@ -695,8 +810,16 @@ export async function getPokemonRecommendationPool(): Promise<PokemonDetail[]> {
     return [];
   }
 
-  const slugs = (data as Array<{ slug: string }>).map((row) => row.slug);
-  const pool = await hydratePokemonDetailsWithConcurrency(slugs, 12);
+  const pokemonRows = data as PokemonRow[];
+  const pokemonIds = pokemonRows.map((row) => row.id);
+  const abilitiesByPokemonId = await getRecommendationCandidateAbilities(pokemonIds);
+
+  const pool = pokemonRows.map((row) =>
+    toPokemonRecommendationCandidate(
+      row,
+      abilitiesByPokemonId.get(row.id) ?? [],
+    ),
+  );
 
   recommendationPoolCache = {
     expiresAt: now + RECOMMENDATION_POOL_CACHE_TTL_MS,
