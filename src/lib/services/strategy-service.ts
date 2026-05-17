@@ -29,6 +29,56 @@ const defaultResolvers: StrategyResolvers = {
   resolveItem: getItemByName,
 };
 
+const STRATEGY_DISPLAY_ORDER = new Map<string, number>(
+  [
+    "classic-balance",
+    "bulky-offense-core",
+    "weatherless-offense",
+    "rain-tempo",
+    "sun-pressure",
+    "tailwind-offense",
+    "trick-room-bulk",
+    "intimidate-cycle",
+    "priority-spam",
+    "triples-tailwind-lanes",
+    "triples-rain-spread",
+    "sand-rush",
+    "snow-aurora-veil",
+    "voltturn-pressure",
+    "terrain-control",
+    "grassy-terrain-balance",
+    "wide-guard-offense",
+    "triples-wide-guard-balance",
+    "hyper-offense-blitz",
+    "screens-setup",
+    "sticky-web-offense",
+    "hazard-stack-control",
+    "setup-spam-ho",
+    "doubles-sand-control",
+    "doubles-snow-tailwind",
+    "triples-sun-spread",
+    "triples-sand-lanes",
+    "triples-snow-veil",
+    "sand-balance",
+    "snow-veil",
+    "status-spam",
+    "semi-stall-shell",
+    "psyspam",
+    "rainroom",
+    "sunroom",
+    "tailroom-flex",
+    "triples-trick-room-phalanx",
+    "triples-redirection-setup",
+    "iron-stall",
+    "toxic-stall",
+    "perish-trap-control",
+    "triples-perish-control",
+    "beatup-justified",
+    "dozogiri",
+    "baton-pass-chain",
+  ].map((id, index) => [id, index]),
+);
+
 export async function hydrateStrategyPreset(
   preset: StrategyTeamPreset,
 ): Promise<StrategyTeam> {
@@ -52,6 +102,15 @@ function filterStrategyPreset(
   }
 
   return true;
+}
+
+function sortStrategiesForDisplay<T extends { id: string }>(strategies: T[]): T[] {
+  return [...strategies].sort((left, right) => {
+    const leftOrder = STRATEGY_DISPLAY_ORDER.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = STRATEGY_DISPLAY_ORDER.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+
+    return leftOrder - rightOrder || left.id.localeCompare(right.id);
+  });
 }
 
 export async function getStrategyTeamSummaries(
@@ -103,7 +162,9 @@ export async function getStrategyTeamSummaries(
     };
   }
 
-  return allSummaries.filter((strategy) => filterStrategyPreset(strategy, query));
+  return sortStrategiesForDisplay(
+    allSummaries.filter((strategy) => filterStrategyPreset(strategy, query)),
+  );
 }
 
 export async function getStrategyTeamByIdOrSlug(idOrSlug: string): Promise<StrategyTeam | null> {
@@ -144,6 +205,8 @@ export async function getStrategyTeams(query: StrategyQuery = {}): Promise<Strat
     };
   }
 
-  return hydratedAllStrategies.filter((strategy) => filterStrategyPreset(strategy, query));
+  return sortStrategiesForDisplay(
+    hydratedAllStrategies.filter((strategy) => filterStrategyPreset(strategy, query)),
+  );
 }
 
