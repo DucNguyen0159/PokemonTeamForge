@@ -12,10 +12,20 @@ type ExportStatus = "idle" | "exporting" | "success" | "error";
 type ExportButtonProps = {
   cardRef: React.RefObject<HTMLDivElement | null>;
   teamName: string;
+  pixelRatio?: number;
+  exportWidth?: number;
+  exportHeight?: number;
   className?: string;
 };
 
-function ExportButtonComponent({ cardRef, teamName, className }: ExportButtonProps) {
+function ExportButtonComponent({
+  cardRef,
+  teamName,
+  pixelRatio = 1,
+  exportWidth,
+  exportHeight,
+  className,
+}: ExportButtonProps) {
   const [status, setStatus] = useState<ExportStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -29,8 +39,18 @@ function ExportButtonComponent({ cardRef, teamName, className }: ExportButtonPro
 
     try {
       const { toPng } = await import("html-to-image");
+      const exportStyle =
+        exportWidth && exportHeight
+          ? {
+              width: `${exportWidth}px`,
+              height: `${exportHeight}px`,
+            }
+          : undefined;
       const dataUrl = await toPng(cardRef.current, {
-        pixelRatio: 2,
+        pixelRatio,
+        width: exportWidth,
+        height: exportHeight,
+        style: exportStyle,
         cacheBust: true,
         skipFonts: true,
         fetchRequestInit: { mode: "cors" },
@@ -58,7 +78,7 @@ function ExportButtonComponent({ cardRef, teamName, className }: ExportButtonPro
         setErrorMessage(null);
       }, 4000);
     }
-  }, [cardRef, teamName]);
+  }, [cardRef, exportHeight, exportWidth, pixelRatio, teamName]);
 
   return (
     <div className={cn("space-y-2", className)}>

@@ -5,18 +5,34 @@ import {
   TEAM_CARD_TRAINER_VARIANTS,
 } from "@/data/team-card-assets";
 import {
+  DEFAULT_TEAM_CARD_EXPORT_PRESET_ID,
+  DEFAULT_TEAM_CARD_LAYOUT_PRESET_ID,
+  DEFAULT_TEAM_CARD_STYLE_PRESET_ID,
+  TEAM_CARD_EXPORT_PRESETS,
+  TEAM_CARD_LAYOUT_PRESETS,
+  TEAM_CARD_STYLE_PRESETS,
+} from "@/data/team-card-presets";
+import {
   type TeamCardConfig,
+  type TeamCardDesignSnapshot,
   type TeamCardDetailRow,
+  type TeamCardExportPresetId,
+  type TeamCardHeaderTreatment,
   type TeamCardLabelStyle,
+  type TeamCardLayoutPresetId,
   type TeamCardOverlayIntensity,
+  type TeamCardPokemonFrameStyle,
   type TeamCardPresetId,
   type TeamCardSlotCustomization,
   type TeamCardSpriteGlow,
   type TeamCardSpriteMode,
+  type TeamCardTrainerTreatment,
   type TeamCardVisualStyle,
   type TeamCardBorderStyle,
+  TEAM_CARD_TITLE_MAX_LENGTH,
   TEAM_CARD_TRAINER_NAME_MAX_LENGTH,
 } from "@/types/team-card";
+import type { Team } from "@/types/team";
 
 const DEFAULT_DETAIL_ROWS: TeamCardDetailRow[] = [
   { id: "detail-1", iconSlug: "instagram", text: "Pokemon Trainer" },
@@ -65,11 +81,8 @@ const DEFAULT_SLOT_CUSTOMIZATIONS: TeamCardSlotCustomization[] = Array.from(
 );
 
 export const DEFAULT_TEAM_CARD_VISUAL_STYLE: TeamCardVisualStyle = {
-  presetId: "neon-city",
-  overlayIntensity: "medium",
-  spriteGlow: "soft",
-  labelStyle: "badge",
-  borderStyle: "subtle",
+  presetId: DEFAULT_TEAM_CARD_STYLE_PRESET_ID,
+  ...TEAM_CARD_STYLE_PRESETS[0].visualStyle,
 };
 
 const STORAGE_VERSION = 1;
@@ -84,14 +97,15 @@ function isValidSpriteMode(value: unknown): value is TeamCardSpriteMode {
 }
 
 function isValidPresetId(value: unknown): value is TeamCardPresetId {
-  return (
-    value === "neon-city" ||
-    value === "storm-battle" ||
-    value === "cosmic-arena" ||
-    value === "classic-league" ||
-    value === "volcanic-core" ||
-    value === "minimal-focus"
-  );
+  return TEAM_CARD_STYLE_PRESETS.some((preset) => preset.id === value);
+}
+
+function isValidLayoutPresetId(value: unknown): value is TeamCardLayoutPresetId {
+  return TEAM_CARD_LAYOUT_PRESETS.some((preset) => preset.id === value);
+}
+
+function isValidExportPresetId(value: unknown): value is TeamCardExportPresetId {
+  return TEAM_CARD_EXPORT_PRESETS.some((preset) => preset.id === value);
 }
 
 function isValidOverlayIntensity(value: unknown): value is TeamCardOverlayIntensity {
@@ -110,6 +124,18 @@ function isValidBorderStyle(value: unknown): value is TeamCardBorderStyle {
   return value === "none" || value === "subtle" || value === "neon";
 }
 
+function isValidPokemonFrameStyle(value: unknown): value is TeamCardPokemonFrameStyle {
+  return value === "none" || value === "frosted-disk" || value === "type-ring" || value === "glass-tile";
+}
+
+function isValidTrainerTreatment(value: unknown): value is TeamCardTrainerTreatment {
+  return value === "anchored-right" || value === "spotlight" || value === "hero";
+}
+
+function isValidHeaderTreatment(value: unknown): value is TeamCardHeaderTreatment {
+  return value === "compact-panel" || value === "glass-banner" || value === "minimal";
+}
+
 function normalizeVisualStyle(raw: unknown, fallback: TeamCardVisualStyle): TeamCardVisualStyle {
   const value = raw && typeof raw === "object" ? (raw as Partial<TeamCardVisualStyle>) : {};
 
@@ -121,6 +147,15 @@ function normalizeVisualStyle(raw: unknown, fallback: TeamCardVisualStyle): Team
     spriteGlow: isValidSpriteGlow(value.spriteGlow) ? value.spriteGlow : fallback.spriteGlow,
     labelStyle: isValidLabelStyle(value.labelStyle) ? value.labelStyle : fallback.labelStyle,
     borderStyle: isValidBorderStyle(value.borderStyle) ? value.borderStyle : fallback.borderStyle,
+    pokemonFrameStyle: isValidPokemonFrameStyle(value.pokemonFrameStyle)
+      ? value.pokemonFrameStyle
+      : fallback.pokemonFrameStyle,
+    trainerTreatment: isValidTrainerTreatment(value.trainerTreatment)
+      ? value.trainerTreatment
+      : fallback.trainerTreatment,
+    headerTreatment: isValidHeaderTreatment(value.headerTreatment)
+      ? value.headerTreatment
+      : fallback.headerTreatment,
   };
 }
 
@@ -136,8 +171,22 @@ export function clampTeamCardTrainerName(name: string): string {
   return name.slice(0, TEAM_CARD_TRAINER_NAME_MAX_LENGTH);
 }
 
+export function clampTeamCardTitle(title: string): string {
+  const trimmed = title.trimStart();
+  if (trimmed.length <= TEAM_CARD_TITLE_MAX_LENGTH) {
+    return trimmed;
+  }
+  return trimmed.slice(0, TEAM_CARD_TITLE_MAX_LENGTH);
+}
+
+export function defaultTeamCardTitle(teamName?: string): string {
+  return clampTeamCardTitle(teamName?.trim() ? teamName.trim() : "Team Card");
+}
+
 export function createDefaultTeamCardConfig(teamName?: string): TeamCardConfig {
   return {
+    cardTitle: defaultTeamCardTitle(teamName),
+    isCardTitleCustom: false,
     backgroundSlug: TEAM_CARD_BACKGROUND_ASSETS[0]?.slug ?? "midnight-grid",
     trainerVariantSlug: TEAM_CARD_TRAINER_VARIANTS[0]?.slug ?? "spr-masters-aaron",
     trainerName: clampTeamCardTrainerName(
@@ -145,6 +194,8 @@ export function createDefaultTeamCardConfig(teamName?: string): TeamCardConfig {
     ),
     detailRows: DEFAULT_DETAIL_ROWS,
     visualStyle: DEFAULT_TEAM_CARD_VISUAL_STYLE,
+    layoutPresetId: DEFAULT_TEAM_CARD_LAYOUT_PRESET_ID,
+    exportPresetId: DEFAULT_TEAM_CARD_EXPORT_PRESET_ID,
     globalSpriteMode: "normal",
     slotCustomizations: DEFAULT_SLOT_CUSTOMIZATIONS,
   };
@@ -165,6 +216,12 @@ export function normalizeTeamCardConfig(
   const validBadgeSlugs = new Set(TEAM_CARD_SLOT_BADGE_OPTIONS.map((entry) => entry.slug));
 
   const detailRows = normalizeDetailRows(raw.detailRows, fallback.detailRows, validDetailIcons);
+  const rawCardTitle = typeof raw.cardTitle === "string" ? clampTeamCardTitle(raw.cardTitle) : "";
+  const cardTitle = rawCardTitle.trim().length > 0 ? rawCardTitle : fallback.cardTitle;
+  const isCardTitleCustom =
+    typeof raw.isCardTitleCustom === "boolean"
+      ? raw.isCardTitleCustom
+      : rawCardTitle.trim().length > 0 && rawCardTitle !== fallback.cardTitle;
 
   const baseSlots = Array.isArray(raw.slotCustomizations)
     ? raw.slotCustomizations
@@ -193,6 +250,8 @@ export function normalizeTeamCardConfig(
   });
 
   return {
+    cardTitle,
+    isCardTitleCustom,
     backgroundSlug: validBackgroundSlugs.has(raw.backgroundSlug ?? "")
       ? (raw.backgroundSlug as string)
       : fallback.backgroundSlug,
@@ -204,6 +263,12 @@ export function normalizeTeamCardConfig(
     ),
     detailRows,
     visualStyle: normalizeVisualStyle(raw.visualStyle, fallback.visualStyle),
+    layoutPresetId: isValidLayoutPresetId(raw.layoutPresetId)
+      ? raw.layoutPresetId
+      : fallback.layoutPresetId,
+    exportPresetId: isValidExportPresetId(raw.exportPresetId)
+      ? raw.exportPresetId
+      : fallback.exportPresetId,
     globalSpriteMode: isValidSpriteMode(raw.globalSpriteMode)
       ? raw.globalSpriteMode
       : fallback.globalSpriteMode,
@@ -233,4 +298,49 @@ export function deserializeTeamCardConfig(value: string | null): TeamCardConfig 
   } catch {
     return null;
   }
+}
+
+export function hydrateTeamCardConfigFromStorage(
+  value: string | null,
+  fallback: TeamCardConfig,
+): TeamCardConfig {
+  const parsed = deserializeTeamCardConfig(value);
+  return parsed ? normalizeTeamCardConfig(parsed, fallback) : fallback;
+}
+
+export function createTeamCardDesignSnapshot(input: {
+  config: TeamCardConfig;
+  team: Team;
+  name?: string;
+  now?: string;
+}): TeamCardDesignSnapshot {
+  const { config, team } = input;
+  const timestamp = input.now ?? new Date().toISOString();
+
+  return {
+    schemaVersion: 1,
+    name: input.name?.trim() || `${team.name || "Team"} Card`,
+    teamId: team.id ?? null,
+    teamName: team.name,
+    cardTitle: config.cardTitle,
+    stylePresetId: config.visualStyle.presetId,
+    layoutPresetId: config.layoutPresetId,
+    exportPresetId: config.exportPresetId,
+    backgroundSlug: config.backgroundSlug,
+    trainerVariantSlug: config.trainerVariantSlug,
+    trainerName: config.trainerName,
+    detailRows: config.detailRows.map((row) => ({ ...row })),
+    visualStyle: { ...config.visualStyle },
+    pokemon: team.pokemon.map((slot) => {
+      const customization = config.slotCustomizations.find((entry) => entry.slot === slot.slot);
+      return {
+        slot: slot.slot,
+        pokemonSlug: slot.pokemon?.slug ?? null,
+        spriteMode: customization?.spriteMode ?? config.globalSpriteMode,
+        badgeSlug: customization?.badgeSlug ?? "none",
+      };
+    }),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
 }

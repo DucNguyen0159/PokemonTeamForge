@@ -10,14 +10,15 @@ import type {
   TeamCardTrainerVariant,
 } from "@/data/team-card-assets";
 import type {
+  TeamCardComposition,
   TeamCardDetailRow,
   TeamCardSlotCustomization,
   TeamCardSpriteMode,
   TeamCardVisualStyle,
 } from "@/types/team-card";
+import type { PokemonType } from "@/types/shared";
 import type { TeamPokemon } from "@/types/team";
 
-/** Option E: geometric display title + neutral body (Inter reads similar to system UI without explicit webfont). */
 const teamCardTitleFont = Montserrat({
   subsets: ["latin"],
   weight: ["700", "800", "900"],
@@ -25,22 +26,19 @@ const teamCardTitleFont = Montserrat({
 
 const teamCardBodyFont = Inter({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["500", "600", "700", "800"],
 });
 
-/** Rounded “sticker” / social caption style (white fill + heavy outline), per reference. */
 const trainerSocialStickerFont = Luckiest_Guy({
   weight: "400",
   subsets: ["latin"],
 });
 
-/** Thick cartoon outline: stroke + ring of shadows (readable on busy PNG backgrounds). */
 const STICKER_OUTLINE_SHADOW =
   "1px 1px 0 #0a0a0a, -1px -1px 0 #0a0a0a, 1px -1px 0 #0a0a0a, -1px 1px 0 #0a0a0a, 2px 0 0 #0a0a0a, -2px 0 0 #0a0a0a, 0 2px 0 #0a0a0a, 0 -2px 0 #0a0a0a, 2px 2px 0 #0a0a0a, -2px -2px 0 #0a0a0a, 2px -2px 0 #0a0a0a, -2px 2px 0 #0a0a0a";
 
 type TeamCardPreviewProps = {
   teamSlots: TeamPokemon[];
-  /** Builder team name; not shown on the card (trainer name is the headline). */
   teamName: string;
   trainerName: string;
   trainerDetails: TeamCardDetailRow[];
@@ -49,36 +47,45 @@ type TeamCardPreviewProps = {
   spriteMode: TeamCardSpriteMode;
   slotCustomizations: TeamCardSlotCustomization[];
   visualStyle: TeamCardVisualStyle;
+  composition: TeamCardComposition;
   detailIconOptions: TeamCardIconOption[];
 };
 
-/** Inset for artwork + content (tighter bottom = more room for team + trainer). */
-const CARD_ART_INSET_TOP = "11%";
-const CARD_ART_INSET_BOTTOM = "3.2%";
-const CARD_ART_INSET_X = "3%";
+const CARD_INSET = "3%";
 const SLOT_COUNT = 6;
 const EMPTY_SPRITE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Ccircle cx='48' cy='48' r='44' fill='%23ffffff12' stroke='%23ffffff22' stroke-width='2'/%3E%3Ccircle cx='48' cy='48' r='18' fill='%23ffffff18'/%3E%3C/svg%3E";
 const TRAINER_PLACEHOLDER = "/placeholders/trainer-placeholder.svg";
 const POKEMON_PLACEHOLDER = "/placeholders/pokemon-placeholder.svg";
 
-/** Same frosted disk treatment as Pokémon slots (readability on busy backgrounds). */
-const SLOT_FROSTED_DISK_STYLE: CSSProperties = {
-  borderRadius: "50%",
-  background:
-    "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.62) 0%, rgba(235,236,242,0.5) 42%, rgba(195,198,210,0.45) 100%)",
-  border: "1px solid rgba(255,255,255,0.42)",
-  boxShadow:
-    "inset 0 2px 0 rgba(255,255,255,0.55), inset 0 -1px 0 rgba(15,23,42,0.08), 0 8px 18px rgba(0,0,0,0.2)",
+const TYPE_ACCENTS: Record<PokemonType, string> = {
+  normal: "#a8a77a",
+  fire: "#ee8130",
+  water: "#6390f0",
+  electric: "#f7d02c",
+  grass: "#7ac74c",
+  ice: "#96d9d6",
+  fighting: "#c22e28",
+  poison: "#a33ea1",
+  ground: "#e2bf65",
+  flying: "#a98ff3",
+  psychic: "#f95587",
+  bug: "#a6b91a",
+  rock: "#b6a136",
+  ghost: "#735797",
+  dragon: "#6f35fc",
+  dark: "#705746",
+  steel: "#b7b7ce",
+  fairy: "#d685ad",
 };
 
 function getOverlayGradient(intensity: TeamCardVisualStyle["overlayIntensity"]): string {
   if (intensity === "low") {
-    return "linear-gradient(90deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.14) 100%)";
+    return "linear-gradient(90deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.08) 52%, rgba(0,0,0,0.18) 100%)";
   }
   if (intensity === "high") {
-    return "linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.26) 50%, rgba(0,0,0,0.34) 100%)";
+    return "linear-gradient(90deg, rgba(0,0,0,0.66) 0%, rgba(0,0,0,0.25) 52%, rgba(0,0,0,0.42) 100%)";
   }
-  return "linear-gradient(90deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.16) 50%, rgba(0,0,0,0.22) 100%)";
+  return "linear-gradient(90deg, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.14) 52%, rgba(0,0,0,0.28) 100%)";
 }
 
 function getSpriteFilter(glow: TeamCardVisualStyle["spriteGlow"], hasPokemon: boolean): string {
@@ -86,19 +93,19 @@ function getSpriteFilter(glow: TeamCardVisualStyle["spriteGlow"], hasPokemon: bo
     return "opacity(0.45)";
   }
   if (glow === "off") {
-    return "drop-shadow(0 2px 5px rgba(0,0,0,0.35))";
+    return "drop-shadow(0 3px 7px rgba(0,0,0,0.42))";
   }
   if (glow === "strong") {
-    return "drop-shadow(0 3px 7px rgba(0,0,0,0.48)) drop-shadow(0 0 14px rgba(255,255,255,0.42))";
+    return "drop-shadow(0 4px 9px rgba(0,0,0,0.55)) drop-shadow(0 0 16px rgba(255,255,255,0.45))";
   }
-  return "drop-shadow(0 2px 5px rgba(0,0,0,0.35)) drop-shadow(0 0 8px rgba(255,255,255,0.24))";
+  return "drop-shadow(0 3px 7px rgba(0,0,0,0.45)) drop-shadow(0 0 9px rgba(255,255,255,0.25))";
 }
 
 function getLabelStyle(style: TeamCardVisualStyle["labelStyle"]): CSSProperties {
   if (style === "minimal") {
     return {
       background: "transparent",
-      color: "rgba(255,255,255,0.95)",
+      color: "rgba(255,255,255,0.96)",
       borderRadius: 0,
       padding: "0 2px",
       border: "none",
@@ -107,10 +114,10 @@ function getLabelStyle(style: TeamCardVisualStyle["labelStyle"]): CSSProperties 
   }
   if (style === "pill") {
     return {
-      background: "rgba(15,23,42,0.72)",
-      color: "rgba(255,255,255,0.95)",
+      background: "rgba(15,23,42,0.76)",
+      color: "rgba(255,255,255,0.96)",
       borderRadius: "999px",
-      padding: "2px 7px",
+      padding: "3px 8px",
       border: "1px solid rgba(255,255,255,0.18)",
       textShadow: "0 1px 2px rgba(0,0,0,0.5)",
     };
@@ -119,7 +126,7 @@ function getLabelStyle(style: TeamCardVisualStyle["labelStyle"]): CSSProperties 
     background: "rgba(248,250,252,0.94)",
     color: "#1f2937",
     borderRadius: "999px",
-    padding: "1px 6px",
+    padding: "2px 7px",
     border: "1px solid rgba(15,23,42,0.08)",
     textShadow: "none",
   };
@@ -145,6 +152,128 @@ function getCardBorderStyle(style: TeamCardVisualStyle["borderStyle"]): Pick<CSS
   };
 }
 
+function getPokemonFrameStyle(
+  style: TeamCardVisualStyle["pokemonFrameStyle"],
+  accent: string,
+): CSSProperties {
+  if (style === "none") {
+    return {
+      borderRadius: "24px",
+      background: "rgba(15,23,42,0.16)",
+      border: "1px solid rgba(255,255,255,0.08)",
+    };
+  }
+
+  if (style === "type-ring") {
+    return {
+      borderRadius: "26px",
+      background:
+        "linear-gradient(145deg, rgba(15,23,42,0.72), rgba(15,23,42,0.26)) padding-box, " +
+        `linear-gradient(145deg, ${accent}, rgba(255,255,255,0.55)) border-box`,
+      border: "1.5px solid transparent",
+      boxShadow: `0 12px 26px rgba(0,0,0,0.28), 0 0 18px ${accent}44, inset 0 1px 0 rgba(255,255,255,0.16)`,
+    };
+  }
+
+  if (style === "glass-tile") {
+    return {
+      borderRadius: "18px",
+      background: "linear-gradient(145deg, rgba(255,255,255,0.18), rgba(15,23,42,0.42))",
+      border: "1px solid rgba(255,255,255,0.18)",
+      boxShadow: "0 12px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
+    };
+  }
+
+  return {
+    borderRadius: "999px",
+    background:
+      "radial-gradient(circle at 32% 24%, rgba(255,255,255,0.64), rgba(235,236,242,0.38) 44%, rgba(15,23,42,0.28) 100%)",
+    border: "1px solid rgba(255,255,255,0.38)",
+    boxShadow:
+      "inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -8px 22px rgba(15,23,42,0.08), 0 12px 24px rgba(0,0,0,0.26)",
+  };
+}
+
+function getHeaderPanelStyle(style: TeamCardVisualStyle["headerTreatment"]): CSSProperties {
+  if (style === "minimal") {
+    return {
+      background: "transparent",
+      border: "none",
+      boxShadow: "none",
+      padding: "0",
+    };
+  }
+
+  if (style === "glass-banner") {
+    return {
+      background:
+        "linear-gradient(135deg, rgba(15,23,42,0.58), rgba(15,23,42,0.18) 62%, rgba(15,23,42,0.05))",
+      border: "1px solid rgba(255,255,255,0.1)",
+      boxShadow: "0 10px 26px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)",
+      padding: "clamp(8px, 1.2vw, 13px) clamp(10px, 1.5vw, 16px)",
+      borderRadius: "16px",
+    };
+  }
+
+  return {
+    background:
+      "linear-gradient(135deg, rgba(15,23,42,0.44), rgba(15,23,42,0.16) 68%, rgba(15,23,42,0.04))",
+    border: "1px solid rgba(255,255,255,0.08)",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
+    padding: "clamp(7px, 1vw, 11px) clamp(9px, 1.35vw, 14px)",
+    borderRadius: "14px",
+  };
+}
+
+function getTrainerImageStyle(treatment: TeamCardVisualStyle["trainerTreatment"]): CSSProperties {
+  if (treatment === "hero") {
+    return {
+      width: "340%",
+      transform: "translateX(-50%) scale(1.24)",
+      filter: "drop-shadow(0 8px 22px rgba(0,0,0,0.62))",
+    };
+  }
+
+  if (treatment === "spotlight") {
+    return {
+      width: "315%",
+      transform: "translateX(-50%) scale(1.18)",
+      filter:
+        "drop-shadow(0 6px 20px rgba(0,0,0,0.58)) drop-shadow(0 0 18px rgba(255,255,255,0.2))",
+    };
+  }
+
+  return {
+    width: "300%",
+    transform: "translateX(-50%) scale(1.12)",
+    filter: "drop-shadow(0 5px 18px rgba(0,0,0,0.55))",
+  };
+}
+
+function trainerColumnWidth(composition: TeamCardComposition): string {
+  if (composition.pokemonArrangement === "ace-showcase") {
+    return "34%";
+  }
+  if (composition.pokemonArrangement === "grid-2x3") {
+    return "27%";
+  }
+  return "31%";
+}
+
+function pokemonFormationStyle(composition: TeamCardComposition): CSSProperties {
+  if (composition.pokemonArrangement === "ace-showcase") {
+    return {
+      gridTemplateColumns: "1.15fr repeat(2, minmax(0, 1fr))",
+      gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+    };
+  }
+
+  return {
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+  };
+}
+
 const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps>(
   function TeamCardPreview(
     {
@@ -157,6 +286,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
       spriteMode,
       slotCustomizations,
       visualStyle,
+      composition,
       detailIconOptions,
     },
     ref,
@@ -164,6 +294,10 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
     const filledSlots = useMemo(
       () => Array.from({ length: SLOT_COUNT }, (_, i) => teamSlots[i] ?? null),
       [teamSlots],
+    );
+    const slotCustomizationMap = useMemo(
+      () => new Map(slotCustomizations.map((entry) => [entry.slot, entry])),
+      [slotCustomizations],
     );
 
     const detailIconMap = useMemo(
@@ -176,18 +310,19 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
     const showTrainerHeaderRow = hasTrainerHeadline || hasSubtitleLine;
     const labelStyle = getLabelStyle(visualStyle.labelStyle);
     const cardBorderStyle = getCardBorderStyle(visualStyle.borderStyle);
+    const headerPanelStyle = getHeaderPanelStyle(visualStyle.headerTreatment);
+    const trainerImageStyle = getTrainerImageStyle(visualStyle.trainerTreatment);
+    const displayTeamName = teamName.trim() || "Team Card";
     const subtitleIcon =
       hasSubtitleLine && subtitleRow ? detailIconMap.get(subtitleRow.iconSlug) : undefined;
 
-    /* Builder team name is not shown on the card — trainer name is the headline. */
-    void teamName;
     return (
       <div
         ref={ref}
         className={teamCardBodyFont.className}
         style={{
           width: "100%",
-          aspectRatio: "5 / 3",
+          aspectRatio: composition.aspectRatio,
           position: "relative",
           overflow: "hidden",
           borderRadius: "18px",
@@ -196,208 +331,233 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
           ...cardBorderStyle,
         }}
       >
-        {/* Background — longhand only (no `background` shorthand) to avoid React warnings vs backgroundSize/Position */}
         <div
           style={{
             position: "absolute",
-            top: CARD_ART_INSET_TOP,
-            right: CARD_ART_INSET_X,
-            bottom: CARD_ART_INSET_BOTTOM,
-            left: CARD_ART_INSET_X,
-            borderRadius: "12px",
+            inset: CARD_INSET,
+            borderRadius: "14px",
             backgroundImage: background.imagePath
               ? `url(${background.imagePath}), ${background.css}`
               : background.css,
             backgroundSize: background.imagePath ? "cover, auto" : undefined,
             backgroundPosition: background.imagePath ? "center, center" : undefined,
             backgroundRepeat: background.imagePath ? "no-repeat, no-repeat" : undefined,
-            border: "1px solid rgba(255,255,255,0.35)",
+            border: "1px solid rgba(255,255,255,0.32)",
           }}
         />
 
-        {/* Overlay gradient for readability */}
         <div
           style={{
             position: "absolute",
-            top: CARD_ART_INSET_TOP,
-            right: CARD_ART_INSET_X,
-            bottom: CARD_ART_INSET_BOTTOM,
-            left: CARD_ART_INSET_X,
-            borderRadius: "12px",
-            background: getOverlayGradient(visualStyle.overlayIntensity),
+            inset: CARD_INSET,
+            borderRadius: "14px",
+            background:
+              getOverlayGradient(visualStyle.overlayIntensity) +
+              ", radial-gradient(circle at 78% 46%, rgba(255,255,255,0.22), transparent 21%), linear-gradient(180deg, rgba(0,0,0,0.16), transparent 24%, rgba(0,0,0,0.34))",
           }}
         />
 
-        {/* Decorative grid lines */}
         <div
           style={{
             position: "absolute",
-            top: CARD_ART_INSET_TOP,
-            right: CARD_ART_INSET_X,
-            bottom: CARD_ART_INSET_BOTTOM,
-            left: CARD_ART_INSET_X,
-            borderRadius: "12px",
+            inset: CARD_INSET,
+            borderRadius: "14px",
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+              "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
             backgroundSize: "48px 48px",
+            boxShadow:
+              "inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -24px 50px rgba(0,0,0,0.24)",
           }}
         />
 
-        {/* Content layer */}
         <div
           style={{
             position: "absolute",
-            top: CARD_ART_INSET_TOP,
-            right: CARD_ART_INSET_X,
-            bottom: CARD_ART_INSET_BOTTOM,
-            left: CARD_ART_INSET_X,
-            display: "flex",
-            flexDirection: "column",
-            padding: "2.4% 3.2% 0",
+            inset: CARD_INSET,
+            borderRadius: "14px",
+            overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              width: "100%",
-              position: "relative",
-            }}
-          >
           <div
             style={{
               position: "absolute",
               inset: 0,
               display: "grid",
-              gridTemplateColumns: "minmax(0, 1fr) 31%",
+              gridTemplateColumns: `minmax(0, 1fr) minmax(160px, ${trainerColumnWidth(composition)})`,
               gridTemplateRows: showTrainerHeaderRow ? "auto minmax(0, 1fr)" : "minmax(0, 1fr)",
-              columnGap: "4%",
-              rowGap: showTrainerHeaderRow ? "clamp(1px, 0.55%, 6px)" : "0px",
+              columnGap: "3.2%",
+              rowGap: "2.2%",
+              padding: "3.4% 3.7% 2.6%",
+              minHeight: 0,
             }}
           >
             {showTrainerHeaderRow ? (
-              <div style={{ gridColumn: 1, gridRow: 1, alignSelf: "start" }}>
+              <div
+                style={{
+                  gridColumn: 1,
+                  gridRow: 1,
+                  alignSelf: "start",
+                  width: "min(100%, 430px)",
+                  ...headerPanelStyle,
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
-                    flexDirection: "column",
-                    gap: "6px",
-                    maxWidth: "min(100%, 360px)",
-                    padding: "6px 10px",
-                    borderRadius: "10px",
-                    background: "rgba(15,23,42,0.35)",
-                    border: "1px solid rgba(255,255,255,0.12)",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginBottom: hasTrainerHeadline ? "4px" : 0,
+                    minWidth: 0,
                   }}
                 >
-                  {hasTrainerHeadline ? (
-                    <span
-                      className={teamCardTitleFont.className}
-                      style={{
-                        color: "rgba(255,255,255,0.95)",
-                        fontSize: "clamp(14px, 2.35vw, 24px)",
-                        fontWeight: 900,
-                        letterSpacing: "0.07em",
-                        textTransform: "uppercase",
-                        textShadow: "0 1px 8px rgba(0,0,0,0.6)",
-                        display: "-webkit-box",
-                        WebkitBoxOrient: "vertical",
-                        WebkitLineClamp: 3,
-                        overflow: "hidden",
-                        width: "100%",
-                        whiteSpace: "normal",
-                        wordBreak: "break-word",
-                        lineHeight: 1.12,
-                        textAlign: "left",
-                      }}
-                    >
-                      {trainerName}
-                    </span>
-                  ) : null}
-                  {hasSubtitleLine && subtitleRow ? (
-                    <span
-                      key={subtitleRow.id}
-                      className={trainerSocialStickerFont.className}
-                      style={{
-                        color: "#ffffff",
-                        fontSize: "clamp(11px, 1.45vw, 16px)",
-                        lineHeight: 1.15,
-                        letterSpacing: "0.02em",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        WebkitTextStroke: "1.25px #0a0a0a",
-                        paintOrder: "stroke fill",
-                        textShadow: STICKER_OUTLINE_SHADOW,
-                      }}
-                    >
-                      {subtitleIcon?.imagePath ? (
-                        <img
-                          src={subtitleIcon.imagePath}
-                          alt=""
-                          aria-hidden
-                          crossOrigin="anonymous"
-                          style={{
-                            width: "clamp(16px, 1.75vw, 22px)",
-                            height: "clamp(16px, 1.75vw, 22px)",
-                            flexShrink: 0,
-                            objectFit: "contain",
-                            filter:
-                              "drop-shadow(0 0 2px #0a0a0a) drop-shadow(0 1px 2px rgba(0,0,0,0.6))",
-                          }}
-                        />
-                      ) : (
-                        <span>{subtitleIcon?.symbol ?? "•"}</span>
-                      )}
-                      <span>{subtitleRow.text}</span>
-                    </span>
-                  ) : null}
+                  <span
+                    aria-hidden
+                    style={{
+                      width: "clamp(22px, 3vw, 34px)",
+                      aspectRatio: "1",
+                      borderRadius: "50%",
+                      background:
+                        "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.96) 0 28%, rgba(239,68,68,0.95) 29% 48%, rgba(15,23,42,0.95) 49% 54%, rgba(255,255,255,0.92) 55% 100%)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.28)",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    style={{
+                      color: "rgba(255,255,255,0.64)",
+                      fontSize: "clamp(7px, 0.8vw, 9px)",
+                      fontWeight: 800,
+                      letterSpacing: "0.16em",
+                      textTransform: "uppercase",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Trainer Card
+                  </span>
+                  <span
+                    aria-hidden
+                    style={{
+                      width: "3px",
+                      aspectRatio: "1",
+                      borderRadius: "999px",
+                      background: "rgba(255,255,255,0.26)",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    title={displayTeamName}
+                    style={{
+                      minWidth: 0,
+                      maxWidth: "min(46%, 170px)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      borderRadius: "999px",
+                      padding: "clamp(1px, 0.25vw, 3px) clamp(6px, 0.7vw, 8px)",
+                      background: "linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035))",
+                      border: "1px solid rgba(255,255,255,0.07)",
+                      color: "rgba(255,255,255,0.58)",
+                      fontSize: "clamp(6px, 0.68vw, 8px)",
+                      fontWeight: 800,
+                      letterSpacing: "0.085em",
+                      textTransform: "uppercase",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.045)",
+                    }}
+                  >
+                    {displayTeamName}
+                  </span>
                 </div>
+
+                {hasTrainerHeadline ? (
+                  <span
+                    className={teamCardTitleFont.className}
+                    style={{
+                      color: "rgba(255,255,255,0.98)",
+                      fontSize: "clamp(18px, 2.75vw, 31px)",
+                      fontWeight: 900,
+                      letterSpacing: "0.055em",
+                      textTransform: "uppercase",
+                      textShadow: "0 2px 10px rgba(0,0,0,0.62)",
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 2,
+                      overflow: "hidden",
+                      width: "100%",
+                      whiteSpace: "normal",
+                      wordBreak: "break-word",
+                      lineHeight: 1.02,
+                      textAlign: "left",
+                    }}
+                  >
+                    {trainerName}
+                  </span>
+                ) : null}
+
+                {hasSubtitleLine && subtitleRow ? (
+                  <span
+                    key={subtitleRow.id}
+                    className={trainerSocialStickerFont.className}
+                    style={{
+                      marginTop: "5px",
+                      color: "#ffffff",
+                      fontSize: "clamp(10px, 1.28vw, 15px)",
+                      lineHeight: 1.1,
+                      letterSpacing: "0.02em",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      WebkitTextStroke: "1.2px #0a0a0a",
+                      paintOrder: "stroke fill",
+                      textShadow: STICKER_OUTLINE_SHADOW,
+                    }}
+                  >
+                    {subtitleIcon?.imagePath ? (
+                      <img
+                        src={subtitleIcon.imagePath}
+                        alt=""
+                        aria-hidden
+                        crossOrigin="anonymous"
+                        style={{
+                          width: "clamp(15px, 1.65vw, 21px)",
+                          height: "clamp(15px, 1.65vw, 21px)",
+                          flexShrink: 0,
+                          objectFit: "contain",
+                          filter:
+                            "drop-shadow(0 0 2px #0a0a0a) drop-shadow(0 1px 2px rgba(0,0,0,0.6))",
+                        }}
+                      />
+                    ) : (
+                      <span>{subtitleIcon?.symbol ?? "•"}</span>
+                    )}
+                    <span>{subtitleRow.text}</span>
+                  </span>
+                ) : null}
               </div>
             ) : null}
 
-            {/* Pokémon column + vertical rule */}
             <div
               style={{
                 gridColumn: 1,
                 gridRow: showTrainerHeaderRow ? 2 : 1,
-                display: "flex",
-                flexDirection: "row",
-                gap: "3%",
                 minHeight: 0,
                 minWidth: 0,
                 alignSelf: "stretch",
+                display: "grid",
+                ...pokemonFormationStyle(composition),
+                gap: "clamp(5px, 1.35vw, 14px)",
+                padding: "clamp(3px, 0.6vw, 8px) clamp(3px, 0.7vw, 9px)",
+                borderRadius: "18px",
+                background:
+                  "radial-gradient(ellipse at 48% 82%, rgba(0,0,0,0.16), transparent 64%)",
+                border: "1px solid rgba(255,255,255,0.015)",
+                boxShadow: "0 16px 32px rgba(0,0,0,0.045)",
                 overflow: "visible",
               }}
             >
-              <div
-                style={{
-                  width: "1px",
-                  flexShrink: 0,
-                  alignSelf: "stretch",
-                  background: "rgba(255,255,255,0.22)",
-                }}
-              />
-
-              {/* Pokemon grid */}
-              <div
-                style={{
-                  flex: 1,
-                  position: "relative",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gridTemplateRows: "repeat(2, 1fr)",
-                  gap: "1.5%",
-                  height: "100%",
-                  minHeight: 0,
-                  minWidth: 0,
-                  alignItems: "center",
-                  overflow: "visible",
-                }}
-              >
               {filledSlots.map((slot, idx) => {
                 const pokemon = slot?.pokemon ?? null;
                 const slotNumber = slot?.slot ?? idx + 1;
-                const customization = slotCustomizations.find((entry) => entry.slot === slotNumber);
+                const customization = slotCustomizationMap.get(slotNumber);
                 const effectiveSpriteMode = customization?.spriteMode ?? spriteMode;
                 const spriteUrl =
                   pokemon
@@ -405,79 +565,112 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                       ? (pokemon.spriteShiny ?? pokemon.spriteNormal)
                       : (pokemon.spriteNormal ?? pokemon.spriteShiny)
                     : null;
+                const accent = pokemon ? TYPE_ACCENTS[pokemon.primaryType] : "rgba(255,255,255,0.45)";
+                const secondaryAccent = pokemon?.secondaryType
+                  ? TYPE_ACCENTS[pokemon.secondaryType]
+                  : accent;
+                const frameStyle = getPokemonFrameStyle(visualStyle.pokemonFrameStyle, accent);
 
                 return (
                   <div
-                    key={idx}
+                    key={slotNumber}
                     style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "4px",
-                      padding: "4px 0 2px",
                       position: "relative",
                       minHeight: 0,
-                      width: "100%",
+                      minWidth: 0,
+                      gridRow: composition.pokemonArrangement === "ace-showcase" && idx === 0 ? "1 / 3" : undefined,
+                      gridColumn: composition.pokemonArrangement === "ace-showcase" && idx === 0 ? "1" : undefined,
+                      transform:
+                        composition.pokemonArrangement === "diagonal-lines"
+                          ? `translateY(${idx % 2 === 0 ? "-4%" : "4%"})`
+                          : undefined,
+                      display: "grid",
+                      gridTemplateRows: "minmax(0, 1fr) auto",
+                      alignItems: "center",
+                      justifyItems: "center",
+                      padding: "clamp(3px, 0.7vw, 8px)",
                       overflow: "visible",
-                      zIndex: 1,
                     }}
                   >
-                    {/* Frosted disk sits behind sprite; sprite is larger and may extend past the circle */}
+                    <div
+                      aria-hidden
+                      style={{
+                        position: "absolute",
+                        inset: "8% 8% auto",
+                        height: "65%",
+                        borderRadius: "999px",
+                        background: `radial-gradient(circle, ${accent}28 0%, transparent 66%)`,
+                        filter: "blur(6px)",
+                        opacity: pokemon ? 1 : 0.4,
+                      }}
+                    />
+
                     <div
                       style={{
                         position: "relative",
-                        width: "100%",
+                        zIndex: 1,
+                        width: "min(100%, clamp(70px, 11vw, 124px))",
+                        aspectRatio: "1",
                         display: "flex",
-                        justifyContent: "center",
                         alignItems: "center",
-                        minHeight: "clamp(52px, 10vw, 96px)",
-                        overflow: "visible",
+                        justifyContent: "center",
+                        ...frameStyle,
                       }}
                     >
-                      <div
-                        aria-hidden
-                        style={{
-                          position: "absolute",
-                          left: "50%",
-                          top: "50%",
-                          transform: "translate(-50%, -50%)",
-                          width: "clamp(48px, 8.8vw, 82px)",
-                          aspectRatio: "1",
-                          zIndex: 0,
-                          pointerEvents: "none",
-                          ...SLOT_FROSTED_DISK_STYLE,
-                        }}
-                      />
+                      {pokemon ? (
+                        <span
+                          aria-hidden
+                          style={{
+                            position: "absolute",
+                            top: "8%",
+                            right: "9%",
+                            width: "clamp(7px, 0.9vw, 11px)",
+                            aspectRatio: "1",
+                            borderRadius: "50%",
+                            background: accent,
+                            boxShadow: `0 0 10px ${accent}`,
+                          }}
+                        />
+                      ) : null}
                       <img
                         src={spriteUrl ?? POKEMON_PLACEHOLDER}
                         alt={pokemon?.name ?? `Slot ${idx + 1}`}
                         crossOrigin="anonymous"
+                        loading="eager"
+                        decoding="async"
                         onError={(event) => {
                           event.currentTarget.src = pokemon ? POKEMON_PLACEHOLDER : EMPTY_SPRITE;
                         }}
                         style={{
                           position: "relative",
                           zIndex: 1,
-                          width: "clamp(54px, 11.8vw, 122px)",
-                          height: "clamp(54px, 11.8vw, 122px)",
+                          width: "112%",
+                          height: "112%",
                           objectFit: "contain",
                           filter: getSpriteFilter(visualStyle.spriteGlow, Boolean(pokemon)),
                         }}
                       />
                     </div>
+
                     {pokemon ? (
                       <span
                         style={{
-                          fontSize: "clamp(7px, 0.88vw, 10px)",
-                          fontWeight: 600,
+                          position: "relative",
+                          zIndex: 2,
+                          marginTop: "-1px",
+                          fontSize: "clamp(8px, 0.96vw, 11px)",
+                          fontWeight: 800,
                           textTransform: "capitalize",
                           textAlign: "center",
-                          lineHeight: 1.2,
+                          lineHeight: 1.1,
                           maxWidth: "100%",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
+                          boxShadow:
+                            visualStyle.labelStyle === "minimal"
+                              ? undefined
+                              : `0 0 0 1px ${secondaryAccent}26, 0 6px 14px rgba(0,0,0,0.22)`,
                           ...labelStyle,
                         }}
                       >
@@ -487,10 +680,8 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                   </div>
                 );
               })}
-              </div>
             </div>
 
-            {/* Trainer hero only on the right — full column height (name + first detail line live in the left panel). */}
             <div
               style={{
                 gridColumn: 2,
@@ -499,88 +690,88 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                 minWidth: 0,
                 alignSelf: "stretch",
                 position: "relative",
-                overflow: "hidden",
+                overflow: "visible",
+                borderRadius: "18px",
+                background:
+                  "radial-gradient(ellipse at 52% 48%, rgba(255,255,255,0.14), rgba(255,255,255,0.04) 42%, rgba(15,23,42,0) 72%)",
+                border: "1px solid rgba(255,255,255,0.03)",
               }}
             >
-              {/* Tall ellipse — higher anchor so glow is not swallowed by bottom clip */}
               <div
                 aria-hidden
                 style={{
                   position: "absolute",
                   left: "50%",
-                  bottom: "clamp(13%, 18%, 34%)",
+                  bottom: "3%",
                   transform: "translateX(-50%)",
-                  width: "min(64%, clamp(98px, 16vw, 152px))",
-                  aspectRatio: "2 / 3.15",
+                  width: visualStyle.trainerTreatment === "hero" ? "118%" : "104%",
+                  aspectRatio: "1 / 1.25",
                   borderRadius: "50%",
                   zIndex: 0,
                   pointerEvents: "none",
                   background:
-                    "radial-gradient(ellipse 105% 100% at 50% 44%, rgba(255,255,255,0.58) 0%, rgba(235,236,242,0.44) 40%, rgba(195,198,210,0.34) 68%, rgba(195,198,210,0.06) 100%)",
-                  border: "1px solid rgba(255,255,255,0.34)",
+                    "radial-gradient(ellipse 74% 92% at 50% 42%, rgba(255,255,255,0.34) 0%, rgba(235,236,242,0.17) 38%, rgba(99,102,241,0.08) 58%, rgba(15,23,42,0) 78%)",
                   boxShadow:
-                    "inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -6px 20px rgba(15,23,42,0.07), 0 10px 26px rgba(0,0,0,0.22)",
+                    "0 18px 40px rgba(0,0,0,0.16)",
+                  filter: "blur(1px)",
                 }}
               />
-              {/* Top-edge hero: crop from bottom-first; zoom expands downward from brim/hairline */}
               <div
+                aria-hidden
                 style={{
                   position: "absolute",
-                  top: 0,
-                  bottom: 0,
-                  left: "2%",
-                  right: "2%",
+                  inset: "auto 8% 6%",
+                  height: "18%",
+                  borderRadius: "50%",
+                  background: "radial-gradient(ellipse, rgba(0,0,0,0.42), transparent 70%)",
+                  filter: "blur(4px)",
                   zIndex: 1,
-                  pointerEvents: "none",
                 }}
-              >
-                <img
-                  src={trainer.imagePath}
-                  alt={trainer.name}
-                  crossOrigin="anonymous"
-                  decoding="async"
-                  onError={(event) => {
-                    event.currentTarget.src = TRAINER_PLACEHOLDER;
-                  }}
-                  style={{
-                    position: "absolute",
-                    left: "50%",
-                    top: 0,
-                    width: "300%",
-                    height: "100%",
-                    transform: "translateX(-50%) scale(1.15)",
-                    transformOrigin: "center top",
-                    objectFit: "cover",
-                    objectPosition: "center top",
-                    filter: "drop-shadow(0 4px 18px rgba(0,0,0,0.55))",
-                  }}
-                />
-              </div>
+              />
+              <img
+                src={trainer.imagePath}
+                alt={trainer.name}
+                crossOrigin="anonymous"
+                loading="eager"
+                decoding="async"
+                onError={(event) => {
+                  event.currentTarget.src = TRAINER_PLACEHOLDER;
+                }}
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: 0,
+                  height: "100%",
+                  transformOrigin: "center top",
+                  objectFit: "cover",
+                  objectPosition: "center top",
+                  zIndex: 2,
+                  ...trainerImageStyle,
+                }}
+              />
             </div>
           </div>
-          </div>
 
-          {/* Footer watermark — overlaid so it does not steal vertical space from the team grid */}
           <div
             style={{
               position: "absolute",
-              right: "2.8%",
-              bottom: "1.2%",
-              zIndex: 4,
+              right: "5.1%",
+              bottom: "3.2%",
+              zIndex: 5,
               pointerEvents: "none",
               textAlign: "right",
             }}
           >
             <span
               style={{
-                color: "rgba(255,255,255,0.25)",
-                fontSize: "clamp(7px, 0.8vw, 9px)",
-                fontWeight: 500,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.26)",
+                fontSize: "clamp(7px, 0.68vw, 8px)",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textShadow: "0 1px 5px rgba(0,0,0,0.55)",
               }}
             >
-              PokémonTeamForge
+              PokemonTeamForge
             </span>
           </div>
         </div>

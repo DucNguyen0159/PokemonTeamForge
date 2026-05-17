@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -11,10 +11,18 @@ import {
   TEAM_CARD_TRAINER_VARIANTS,
 } from "@/data/team-card-assets";
 import {
+  getTeamCardExportPreset,
+  getTeamCardLayoutPreset,
+  TEAM_CARD_EXPORT_PRESETS,
+  TEAM_CARD_LAYOUT_PRESETS,
+  TEAM_CARD_STYLE_PRESETS,
+} from "@/data/team-card-presets";
+import {
+  clampTeamCardTitle,
   clampTeamCardTrainerName,
   createDefaultTeamCardConfig,
-  deserializeTeamCardConfig,
-  normalizeTeamCardConfig,
+  defaultTeamCardTitle,
+  hydrateTeamCardConfigFromStorage,
   serializeTeamCardConfig,
 } from "@/lib/team-card/config";
 import { useTeamStore } from "@/store/team-store";
@@ -25,10 +33,12 @@ import type {
   TeamCardDetailRow,
   TeamCardLabelStyle,
   TeamCardOverlayIntensity,
-  TeamCardPresetId,
   TeamCardSpriteGlow,
   TeamCardSpriteMode,
   TeamCardVisualStyle,
+  TeamCardStylePreset,
+  TeamCardLayoutPresetId,
+  TeamCardExportPresetId,
 } from "@/types/team-card";
 
 import { TeamCardPreview } from "./team-card-preview";
@@ -46,8 +56,8 @@ type StudioTab = "style" | "trainer" | "pokemon" | "export";
 type PreviewZoom = "fit" | "full";
 
 const STUDIO_TABS: Array<{ id: StudioTab; label: string; description: string }> = [
-  { id: "style", label: "Style", description: "Presets, background, and card treatment." },
-  { id: "trainer", label: "Trainer", description: "Trainer art, headline, and subtitle." },
+  { id: "style", label: "Style", description: "Full card themes, background override, and treatment." },
+  { id: "trainer", label: "Trainer", description: "Card title, trainer art, headline, and subtitle." },
   { id: "pokemon", label: "Pokemon", description: "Global and per-slot sprite mode." },
   { id: "export", label: "Export", description: "Review output and save your PNG." },
 ];
@@ -55,59 +65,6 @@ const STUDIO_TABS: Array<{ id: StudioTab; label: string; description: string }> 
 const PREVIEW_ZOOM_OPTIONS: Array<{ id: PreviewZoom; label: string }> = [
   { id: "fit", label: "Fit" },
   { id: "full", label: "100%" },
-];
-
-type TeamCardPreset = {
-  id: TeamCardPresetId;
-  label: string;
-  description: string;
-  backgroundSlug: string;
-  visualStyle: Omit<TeamCardVisualStyle, "presetId">;
-};
-
-const TEAM_CARD_PRESETS: TeamCardPreset[] = [
-  {
-    id: "neon-city",
-    label: "Neon City",
-    description: "Bright social card with a polished stadium glow.",
-    backgroundSlug: "midnight-grid",
-    visualStyle: { overlayIntensity: "medium", spriteGlow: "soft", labelStyle: "badge", borderStyle: "neon" },
-  },
-  {
-    id: "storm-battle",
-    label: "Storm Battle",
-    description: "High contrast, dramatic, and rain-team friendly.",
-    backgroundSlug: "obsidian-wave",
-    visualStyle: { overlayIntensity: "high", spriteGlow: "strong", labelStyle: "pill", borderStyle: "subtle" },
-  },
-  {
-    id: "cosmic-arena",
-    label: "Cosmic Arena",
-    description: "Purple cosmic tone with strong sprite presence.",
-    backgroundSlug: "cosmic-void",
-    visualStyle: { overlayIntensity: "medium", spriteGlow: "strong", labelStyle: "badge", borderStyle: "neon" },
-  },
-  {
-    id: "classic-league",
-    label: "Classic League",
-    description: "Readable badge labels and balanced contrast.",
-    backgroundSlug: "storm-shift",
-    visualStyle: { overlayIntensity: "medium", spriteGlow: "soft", labelStyle: "badge", borderStyle: "subtle" },
-  },
-  {
-    id: "volcanic-core",
-    label: "Volcanic Core",
-    description: "Warm, intense, and battle-card focused.",
-    backgroundSlug: "inferno-core",
-    visualStyle: { overlayIntensity: "high", spriteGlow: "soft", labelStyle: "pill", borderStyle: "subtle" },
-  },
-  {
-    id: "minimal-focus",
-    label: "Minimal Focus",
-    description: "Lower effects, cleaner labels, and less frame glow.",
-    backgroundSlug: "glacier-depth",
-    visualStyle: { overlayIntensity: "low", spriteGlow: "off", labelStyle: "minimal", borderStyle: "none" },
-  },
 ];
 
 const SUBTITLE_PRESETS = [
@@ -155,12 +112,30 @@ function SegmentedControl<T extends string>({
   );
 }
 
+const STYLE_SWATCHES: Record<string, string> = {
+  "neon-city": "from-cyan-400/70 via-violet-500/50 to-slate-950",
+  "storm-battle": "from-slate-100/35 via-sky-500/30 to-slate-950",
+  "cosmic-arena": "from-fuchsia-400/70 via-violet-700/50 to-slate-950",
+  "classic-league": "from-amber-300/70 via-slate-500/40 to-slate-950",
+  "volcanic-core": "from-orange-400/80 via-red-700/50 to-slate-950",
+  "minimal-focus": "from-slate-300/40 via-slate-700/35 to-slate-950",
+};
+
+function PresetMetaPill({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full border border-border/40 bg-background/35 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+      {children}
+    </span>
+  );
+}
+
 export function TeamCardGenerator() {
   const team = useTeamStore((s) => s.team);
   const cardRef = useRef<HTMLDivElement>(null);
-  const hasLoadedPersistedConfigRef = useRef(false);
+  const hasStartedConfigHydrationRef = useRef(false);
 
   const [config, setConfig] = useState(() => createDefaultTeamCardConfig(team.name));
+  const [isConfigHydrated, setIsConfigHydrated] = useState(false);
   const [isBackgroundPickerOpen, setIsBackgroundPickerOpen] = useState(false);
   const [isTrainerPickerOpen, setIsTrainerPickerOpen] = useState(false);
   const [trainerPickerInstance, setTrainerPickerInstance] = useState(0);
@@ -177,6 +152,8 @@ export function TeamCardGenerator() {
     TEAM_CARD_TRAINER_CHARACTERS.find(
       (entry) => entry.slug === selectedTrainerVariant.characterSlug,
     ) ?? null;
+  const selectedLayoutPreset = getTeamCardLayoutPreset(config.layoutPresetId);
+  const selectedExportPreset = getTeamCardExportPreset(config.exportPresetId);
 
   const filledSlotCount = useMemo(
     () => team.pokemon.filter((s) => s.pokemon !== null).length,
@@ -206,30 +183,48 @@ export function TeamCardGenerator() {
   );
 
   useEffect(() => {
-    if (typeof window === "undefined" || hasLoadedPersistedConfigRef.current) {
+    if (typeof window === "undefined" || hasStartedConfigHydrationRef.current) {
       return;
     }
 
-    hasLoadedPersistedConfigRef.current = true;
+    hasStartedConfigHydrationRef.current = true;
     const fallback = createDefaultTeamCardConfig(team.name);
-    const parsed = deserializeTeamCardConfig(localStorage.getItem(TEAM_CARD_CONFIG_STORAGE_KEY));
-    const hydrated = parsed ? normalizeTeamCardConfig(parsed, fallback) : fallback;
+    const hydrated = hydrateTeamCardConfigFromStorage(
+      localStorage.getItem(TEAM_CARD_CONFIG_STORAGE_KEY),
+      fallback,
+    );
+
+    setConfig(hydrated);
+    setIsConfigHydrated(true);
+  }, [team.name]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !isConfigHydrated) {
+      return;
+    }
+    localStorage.setItem(TEAM_CARD_CONFIG_STORAGE_KEY, serializeTeamCardConfig(config));
+  }, [config, isConfigHydrated]);
+
+  useEffect(() => {
+    if (!isConfigHydrated) {
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
-      setConfig(hydrated);
+      setConfig((current) => {
+        if (current.isCardTitleCustom) {
+          return current;
+        }
+
+        const nextTitle = defaultTeamCardTitle(team.name);
+        return current.cardTitle === nextTitle ? current : { ...current, cardTitle: nextTitle };
+      });
     }, 0);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [team.name]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !hasLoadedPersistedConfigRef.current) {
-      return;
-    }
-    localStorage.setItem(TEAM_CARD_CONFIG_STORAGE_KEY, serializeTeamCardConfig(config));
-  }, [config]);
+  }, [isConfigHydrated, team.name]);
 
   function handleSlotSpriteModeChange(slot: number, mode: TeamCardSpriteMode) {
     setConfig((current) => ({
@@ -254,6 +249,14 @@ export function TeamCardGenerator() {
     setConfig((current) => ({
       ...current,
       detailRows: current.detailRows.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+    }));
+  }
+
+  function handleCardTitleChange(value: string) {
+    setConfig((current) => ({
+      ...current,
+      cardTitle: clampTeamCardTitle(value),
+      isCardTitleCustom: true,
     }));
   }
 
@@ -288,14 +291,30 @@ export function TeamCardGenerator() {
     }));
   }
 
-  function applyPreset(preset: TeamCardPreset) {
+  function applyPreset(preset: TeamCardStylePreset) {
     setConfig((current) => ({
       ...current,
       backgroundSlug: preset.backgroundSlug,
+      layoutPresetId: preset.layoutPresetId,
+      exportPresetId: preset.exportPresetId,
       visualStyle: {
         presetId: preset.id,
         ...preset.visualStyle,
       },
+    }));
+  }
+
+  function setLayoutPreset(layoutPresetId: TeamCardLayoutPresetId) {
+    setConfig((current) => ({
+      ...current,
+      layoutPresetId,
+    }));
+  }
+
+  function setExportPreset(exportPresetId: TeamCardExportPresetId) {
+    setConfig((current) => ({
+      ...current,
+      exportPresetId,
     }));
   }
 
@@ -355,13 +374,13 @@ export function TeamCardGenerator() {
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
                   <span className="rounded-full border border-border/50 bg-background/40 px-2 py-0.5">
-                    5:3
+                    {selectedLayoutPreset.composition.aspectRatio.replace(" / ", ":")}
                   </span>
                   <span className="rounded-full border border-border/50 bg-background/40 px-2 py-0.5">
-                    PNG
+                    {selectedExportPreset.format.toUpperCase()}
                   </span>
                   <span className="rounded-full border border-border/50 bg-background/40 px-2 py-0.5">
-                    2x export
+                    {selectedExportPreset.width}x{selectedExportPreset.height}
                   </span>
                 </div>
               </div>
@@ -384,7 +403,13 @@ export function TeamCardGenerator() {
                     </button>
                   ))}
                 </div>
-                <ExportButton cardRef={cardRef} teamName={team.name} />
+                <ExportButton
+                  cardRef={cardRef}
+                  teamName={config.cardTitle}
+                  pixelRatio={selectedExportPreset.pixelRatio}
+                  exportWidth={selectedExportPreset.width}
+                  exportHeight={selectedExportPreset.height}
+                />
               </div>
             </div>
 
@@ -402,7 +427,7 @@ export function TeamCardGenerator() {
                 <TeamCardPreview
                   ref={cardRef}
                   teamSlots={team.pokemon}
-                  teamName={team.name}
+                  teamName={config.cardTitle}
                   trainerName={config.trainerName}
                   trainerDetails={config.detailRows}
                   background={selectedBackground}
@@ -410,6 +435,7 @@ export function TeamCardGenerator() {
                   spriteMode={config.globalSpriteMode}
                   slotCustomizations={config.slotCustomizations}
                   visualStyle={config.visualStyle}
+                  composition={selectedLayoutPreset.composition}
                   detailIconOptions={TEAM_CARD_DETAIL_ICON_OPTIONS}
                 />
               </div>
@@ -417,10 +443,10 @@ export function TeamCardGenerator() {
 
             <div className="flex flex-col gap-3 border-t border-border/50 bg-background/25 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-0.5 text-xs text-muted-foreground">
-                <p className="truncate font-medium text-foreground">{team.name}</p>
+                <p className="truncate font-medium text-foreground">{config.cardTitle}</p>
                 <p>
                   {hasTeam
-                    ? `${selectedBackground.name} · ${config.visualStyle.presetId.replaceAll("-", " ")}`
+                    ? `${selectedBackground.name} · ${selectedLayoutPreset.label}`
                     : "Build a team first"}
                 </p>
               </div>
@@ -476,25 +502,83 @@ export function TeamCardGenerator() {
             {activeTab === "style" ? (
               <>
                 <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Style Presets
-                  </p>
-                  <div className="grid gap-2">
-                    {TEAM_CARD_PRESETS.map((preset) => (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Style Presets
+                    </p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/75">
+                      Full card themes that set the background, labels, slot frames, glow, border, and
+                      recommended layout together.
+                    </p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                    {TEAM_CARD_STYLE_PRESETS.map((preset) => (
                       <button
                         key={preset.id}
                         type="button"
                         onClick={() => applyPreset(preset)}
                         className={cn(
-                          "rounded-xl border p-3 text-left transition-colors",
+                          "group overflow-hidden rounded-xl border text-left transition-colors",
                           config.visualStyle.presetId === preset.id
                             ? "border-primary/60 bg-primary/10"
                             : "border-border/50 bg-background/25 hover:border-border/80 hover:bg-background/45",
                         )}
                       >
-                        <span className="text-sm font-semibold text-foreground">{preset.label}</span>
-                        <span className="mt-1 block text-xs text-muted-foreground">
-                          {preset.description}
+                        <span
+                          aria-hidden
+                          className={cn(
+                            "block h-12 bg-gradient-to-br opacity-90 transition-opacity group-hover:opacity-100",
+                            STYLE_SWATCHES[preset.id],
+                          )}
+                        />
+                        <span className="block space-y-2 p-3">
+                          <span className="block text-sm font-semibold text-foreground">{preset.label}</span>
+                          <span className="block text-xs leading-relaxed text-muted-foreground">
+                            {preset.description}
+                          </span>
+                          <span className="flex flex-wrap gap-1.5">
+                            <PresetMetaPill>{preset.visualStyle.labelStyle} labels</PresetMetaPill>
+                            <PresetMetaPill>{preset.visualStyle.pokemonFrameStyle}</PresetMetaPill>
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-2xl border border-border/60 bg-background/20 p-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Layout Presets
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground/75">
+                      Change how the trainer and team are composed in the exported card.
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    {TEAM_CARD_LAYOUT_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setLayoutPreset(preset.id)}
+                        aria-pressed={config.layoutPresetId === preset.id}
+                        className={cn(
+                          "rounded-xl border p-3 text-left transition-colors",
+                          config.layoutPresetId === preset.id
+                            ? "border-primary/60 bg-primary/10"
+                            : "border-border/50 bg-background/25 hover:border-border/80 hover:bg-background/45",
+                        )}
+                      >
+                        <span className="flex items-start justify-between gap-3">
+                          <span>
+                            <span className="block text-sm font-semibold text-foreground">{preset.label}</span>
+                            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                              {preset.description}
+                            </span>
+                          </span>
+                          <span className="rounded-full border border-border/50 bg-background/45 px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {preset.composition.aspectRatio.replace(" / ", ":")}
+                          </span>
                         </span>
                       </button>
                     ))}
@@ -571,9 +655,12 @@ export function TeamCardGenerator() {
 
                 <div className="rounded-2xl border border-border/60 bg-background/20 p-4">
                   <TrainerInfoPanel
+                    cardTitle={config.cardTitle}
+                    isCardTitleCustom={config.isCardTitleCustom}
                     trainerName={config.trainerName}
                     detailRows={config.detailRows}
                     detailIconOptions={TEAM_CARD_DETAIL_ICON_OPTIONS}
+                    onCardTitleChange={handleCardTitleChange}
                     onTrainerNameChange={(value) =>
                       setConfig((current) => ({
                         ...current,
@@ -611,6 +698,46 @@ export function TeamCardGenerator() {
             ) : null}
 
             {activeTab === "export" ? (
+              <div className="space-y-4">
+                <div className="space-y-3 rounded-2xl border border-border/60 bg-background/20 p-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Export Size
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground/75">
+                      Pick the PNG size before exporting. All options keep the card&apos;s 5:3 composition.
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    {TEAM_CARD_EXPORT_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setExportPreset(preset.id)}
+                        aria-pressed={config.exportPresetId === preset.id}
+                        className={cn(
+                          "rounded-xl border p-3 text-left transition-colors",
+                          config.exportPresetId === preset.id
+                            ? "border-primary/60 bg-primary/10"
+                            : "border-border/50 bg-background/25 hover:border-border/80 hover:bg-background/45",
+                        )}
+                      >
+                        <span className="flex items-start justify-between gap-3">
+                          <span>
+                            <span className="block text-sm font-semibold text-foreground">{preset.label}</span>
+                            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                              {preset.description}
+                            </span>
+                          </span>
+                          <span className="shrink-0 rounded-full border border-border/50 bg-background/45 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            {preset.width}x{preset.height}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
               <div className="space-y-4 rounded-2xl border border-border/60 bg-background/20 p-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -618,7 +745,11 @@ export function TeamCardGenerator() {
                   </p>
                   <dl className="mt-3 grid gap-2 text-xs">
                     <div className="flex justify-between gap-3">
-                      <dt className="text-muted-foreground">Team</dt>
+                      <dt className="text-muted-foreground">Card Title</dt>
+                      <dd className="truncate text-foreground">{config.cardTitle}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">Builder Team</dt>
                       <dd className="truncate text-foreground">{team.name}</dd>
                     </div>
                     <div className="flex justify-between gap-3">
@@ -632,15 +763,30 @@ export function TeamCardGenerator() {
                       </dd>
                     </div>
                     <div className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">Layout</dt>
+                      <dd className="text-foreground">{selectedLayoutPreset.label}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
                       <dt className="text-muted-foreground">Output</dt>
-                      <dd className="text-foreground">PNG · 5:3 · 2x scale</dd>
+                      <dd className="text-foreground">
+                        {selectedExportPreset.format.toUpperCase()} · {selectedExportPreset.width}x
+                        {selectedExportPreset.height}
+                      </dd>
                     </div>
                   </dl>
                 </div>
-                <ExportButton cardRef={cardRef} teamName={team.name} className="w-full [&_button]:w-full" />
+                <ExportButton
+                  cardRef={cardRef}
+                  teamName={config.cardTitle}
+                  pixelRatio={selectedExportPreset.pixelRatio}
+                  exportWidth={selectedExportPreset.width}
+                  exportHeight={selectedExportPreset.height}
+                  className="w-full [&_button]:w-full"
+                />
                 <p className="text-xs text-muted-foreground/70">
                   Export uses the live preview exactly as shown. Local assets are used for reliable PNG output.
                 </p>
+              </div>
               </div>
             ) : null}
           </div>

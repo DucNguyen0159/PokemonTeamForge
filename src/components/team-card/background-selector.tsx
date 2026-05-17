@@ -20,6 +20,10 @@ function BackgroundSelectorComponent({ selected, onOpenPicker }: BackgroundSelec
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Background
       </p>
+      <p className="text-[11px] leading-relaxed text-muted-foreground/75">
+        Swaps only the artwork behind the card. Your selected theme, labels, frames, and layout stay
+        unchanged.
+      </p>
       <div className="rounded-xl border border-border/60 bg-card/50 p-2">
         <button
           type="button"
