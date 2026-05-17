@@ -9,6 +9,7 @@ import { useTeamStore } from "@/store/team-store";
 import type { TeamPokemon } from "@/types/team";
 import type { Ability } from "@/types/ability";
 import type { Move } from "@/types/move";
+import type { Item } from "@/types/item";
 import { fetchCompetitiveItemsFromApi } from "@/lib/items/data-access";
 import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
@@ -31,6 +32,40 @@ const EMPTY_MOVES: Move[] = [];
 
 function itemMetaLabel(value: string | undefined): string | undefined {
   return value?.replace(/_/g, " ");
+}
+
+function itemInitials(name: string): string {
+  const words = name.split(/[\s-]+/).filter(Boolean);
+  if (words.length === 0) {
+    return "?";
+  }
+
+  return words.slice(0, 2).map((word) => word.charAt(0).toUpperCase()).join("");
+}
+
+function ItemIcon({ item, className }: { item: Pick<Item, "name" | "iconUrl">; className?: string }) {
+  if (item.iconUrl) {
+    return (
+      <span
+        aria-hidden
+        className={cn("size-4 shrink-0 bg-contain bg-center bg-no-repeat", className)}
+        style={{ backgroundImage: `url(${item.iconUrl})` }}
+      />
+    );
+  }
+
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "inline-flex size-4 shrink-0 items-center justify-center rounded-full",
+        "border border-border/60 bg-background/70 text-[7px] font-bold leading-none text-muted-foreground",
+        className,
+      )}
+    >
+      {itemInitials(item.name)}
+    </span>
+  );
 }
 
 type PokemonSlotProps = {
@@ -287,13 +322,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
               label="Item"
               selected={selectedItemOption}
               selectedPrefix={
-                selectedItem?.iconUrl ? (
-                  <span
-                    aria-hidden
-                    className="size-4 bg-contain bg-center bg-no-repeat"
-                    style={{ backgroundImage: `url(${selectedItem.iconUrl})` }}
-                  />
-                ) : null
+                selectedItem ? <ItemIcon item={selectedItem} className="size-4" /> : null
               }
               options={itemOptions}
               isOpen={openPanel === "item"}
@@ -311,13 +340,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
                 const item = itemQuery.data?.find((entry) => entry.id === opt.id);
                 return (
                   <span className="flex min-w-0 items-center gap-2">
-                    {item?.iconUrl ? (
-                      <span
-                        aria-hidden
-                        className="size-4 shrink-0 bg-contain bg-center bg-no-repeat"
-                        style={{ backgroundImage: `url(${item.iconUrl})` }}
-                      />
-                    ) : null}
+                    {item ? <ItemIcon item={item} /> : null}
                     <span className="truncate">{opt.name}</span>
                   </span>
                 );

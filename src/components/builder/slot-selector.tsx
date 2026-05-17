@@ -145,11 +145,11 @@ function SlotSelectorComponent({
                       selected?.id === opt.id && "bg-primary/10 text-primary",
                     )}
                   >
-                    <span className="min-w-0 flex-1 font-medium">
+                    <span className="min-w-0 flex-1 text-left font-medium">
                       {renderOption ? renderOption(opt) : opt.name}
                     </span>
                     {opt.meta && !hideOptionMeta && (
-                      <span className="text-muted-foreground">{opt.meta}</span>
+                      <span className="shrink-0 text-right text-muted-foreground">{opt.meta}</span>
                     )}
                   </button>
                 </li>
