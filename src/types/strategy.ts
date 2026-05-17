@@ -1,7 +1,7 @@
 import type { Ability } from "./ability";
 import type { Item } from "./item";
 import type { Move } from "./move";
-import type { Pokemon } from "./pokemon";
+import type { Pokemon, PokemonListItem } from "./pokemon";
 import type { BattleFormat, DifficultyLevel, TeamRole } from "./shared";
 
 export type StrategyType =
@@ -59,6 +59,25 @@ export interface StrategyTeam {
   pokemon: StrategyTeamPokemon[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface StrategyTeamSummaryPokemon {
+  slot: number;
+  pokemon: PokemonListItem;
+  role: TeamRole;
+  explanation: string;
+}
+
+export interface StrategyTeamSummary {
+  id: string;
+  name: string;
+  slug: string;
+  strategyType: StrategyType;
+  format: BattleFormat;
+  difficulty: DifficultyLevel;
+  tags: string[];
+  shortDescription: string;
+  pokemon: StrategyTeamSummaryPokemon[];
 }
 
 export interface StrategyFilters {

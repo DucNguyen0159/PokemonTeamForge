@@ -523,6 +523,64 @@ async function getPokemonListFromSupabase(
   };
 }
 
+export async function getPokemonListItemsBySlugs(slugs: string[]): Promise<PokemonListItem[]> {
+  const normalizedSlugs = Array.from(
+    new Set(slugs.map((slug) => normalizePokemonName(slug)).filter(Boolean)),
+  );
+
+  if (normalizedSlugs.length === 0) {
+    return [];
+  }
+
+  const cachedBySlug = new Map<string, PokemonListItem>();
+  const missingSlugs: string[] = [];
+
+  normalizedSlugs.forEach((slug) => {
+    const cached = pokemonListItemCache.get(slug);
+    if (cached) {
+      cachedBySlug.set(slug, cached);
+    } else {
+      missingSlugs.push(slug);
+    }
+  });
+
+  if (missingSlugs.length > 0 && hasSupabaseServerEnv()) {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("pokemon")
+      .select(
+        "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, sprite_normal_url, sprite_shiny_url, roles",
+      )
+      .in("slug", missingSlugs);
+
+    if (error) {
+      console.error("[Pokemon Supabase Summary]", error);
+    } else {
+      (data as PokemonRow[] | null)?.forEach((row) => {
+        const item = toPokemonListItemFromRow(row);
+        pokemonListItemCache.set(item.slug, item);
+        cachedBySlug.set(item.slug, item);
+      });
+    }
+  }
+
+  const stillMissingSlugs = normalizedSlugs.filter((slug) => !cachedBySlug.has(slug));
+  if (stillMissingSlugs.length > 0) {
+    const hydrated = await Promise.all(
+      stillMissingSlugs.map((slug) => hydratePokemonListItem(slug)),
+    );
+    hydrated.forEach((item) => {
+      if (item) {
+        cachedBySlug.set(item.slug, item);
+      }
+    });
+  }
+
+  return normalizedSlugs
+    .map((slug) => cachedBySlug.get(slug) ?? null)
+    .filter((item): item is PokemonListItem => Boolean(item));
+}
+
 async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDetail | null> {
   if (!hasSupabaseServerEnv()) {
     return null;

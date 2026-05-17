@@ -7,8 +7,8 @@ import { Loader2, Sparkles } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { strategyTeamToBuilderTeam } from "@/lib/strategies/strategy-to-team";
 import { useTeamStore } from "@/store/team-store";
-import type { StrategyListResponse } from "@/types/api";
-import type { StrategyTeam } from "@/types/strategy";
+import type { StrategyDetailResponse, StrategyListResponse } from "@/types/api";
+import type { StrategyTeamSummary } from "@/types/strategy";
 import { TypeBadge } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { ErrorMessage } from "@/components/error/error-message";
@@ -75,8 +75,8 @@ function StrategyCard({
   onLoad,
   isLoading,
 }: {
-  strategy: StrategyTeam;
-  onLoad: (team: StrategyTeam) => void;
+  strategy: StrategyTeamSummary;
+  onLoad: (team: StrategyTeamSummary) => void;
   isLoading: boolean;
 }) {
   return (
@@ -156,10 +156,11 @@ export function StrategyExplorer() {
     format: "all",
     difficulty: "all",
   });
-  const [strategies, setStrategies] = useState<StrategyTeam[]>([]);
+  const [strategies, setStrategies] = useState<StrategyTeamSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingTeamId, setLoadingTeamId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
   const queryString = useMemo(() => {
@@ -211,11 +212,30 @@ export function StrategyExplorer() {
     };
   }, [queryString, retryNonce]);
 
-  function handleLoadStrategy(strategy: StrategyTeam) {
+  async function handleLoadStrategy(strategy: StrategyTeamSummary) {
     setLoadingTeamId(strategy.id);
-    const builderTeam = strategyTeamToBuilderTeam(strategy);
-    loadTeam(builderTeam);
-    router.push(ROUTES.builder);
+    setLoadError(null);
+
+    try {
+      const response = await fetch(`/api/strategies/${encodeURIComponent(strategy.id)}`);
+      let payload: StrategyDetailResponse | null = null;
+      try {
+        payload = (await response.json()) as StrategyDetailResponse;
+      } catch {
+        throw new Error("Strategy team is temporarily unavailable. Please try again.");
+      }
+
+      if (!response.ok || !payload?.success || !payload.data) {
+        throw new Error(payload?.error?.message ?? "Unable to load this strategy team.");
+      }
+
+      const builderTeam = strategyTeamToBuilderTeam(payload.data);
+      loadTeam(builderTeam);
+      router.push(ROUTES.builder);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Unable to load this strategy team.");
+      setLoadingTeamId(null);
+    }
   }
 
   return (
@@ -307,15 +327,22 @@ export function StrategyExplorer() {
           No strategy teams match the selected filters.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {strategies.map((strategy) => (
-            <StrategyCard
-              key={strategy.id}
-              strategy={strategy}
-              onLoad={handleLoadStrategy}
-              isLoading={loadingTeamId === strategy.id}
-            />
-          ))}
+        <div className="space-y-3">
+          {loadError ? (
+            <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {loadError}
+            </p>
+          ) : null}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {strategies.map((strategy) => (
+              <StrategyCard
+                key={strategy.id}
+                strategy={strategy}
+                onLoad={handleLoadStrategy}
+                isLoading={loadingTeamId === strategy.id}
+              />
+            ))}
+          </div>
         </div>
       )}
 

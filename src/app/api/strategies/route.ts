@@ -1,6 +1,6 @@
-import { getStrategyTeams } from "@/lib/services/strategy-service";
+import { getStrategyTeamSummaries } from "@/lib/services/strategy-service";
 import type { DifficultyLevel } from "@/types/shared";
-import type { StrategyTeam, StrategyType } from "@/types/strategy";
+import type { StrategyTeam, StrategyTeamSummary, StrategyType } from "@/types/strategy";
 import { errorResponse, successResponse } from "@/lib/api/responses";
 
 const VALID_STRATEGY_TYPES: StrategyType[] = [
@@ -61,11 +61,11 @@ export async function GET(request: Request) {
       : undefined;
 
   try {
-    const data = await getStrategyTeams({ strategyType, format, difficulty });
-    return successResponse<StrategyTeam[]>(data);
+    const data = await getStrategyTeamSummaries({ strategyType, format, difficulty });
+    return successResponse<StrategyTeamSummary[]>(data);
   } catch (error) {
     console.error("[Strategies API]", error);
-    return errorResponse<StrategyTeam[]>(
+    return errorResponse<StrategyTeamSummary[]>(
       "SERVER_ERROR",
       "Unable to load strategy teams right now. Please try again.",
       500,
