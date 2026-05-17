@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, LayoutGrid, List, Loader2, Plus, Search, X } from "lucide-react";
 
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
@@ -136,9 +136,10 @@ export function PokedexExplorer() {
   const [sortBy, setSortBy] = useState<PokemonListSortKey>("id");
   const [sortDirection, setSortDirection] = useState<PokemonListSortDirection>("asc");
   const [view, setView] = useState<ViewMode>("cards");
-  const [page, setPage] = useState(1);
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   const addPokemon = useTeamStore((s) => s.addPokemon);
 
@@ -149,7 +150,6 @@ export function PokedexExplorer() {
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams({
-      page: String(page),
       limit: String(PAGE_SIZE),
     });
 
@@ -169,31 +169,62 @@ export function PokedexExplorer() {
     params.set("sortDirection", sortDirection);
 
     return params;
-  }, [page, debouncedSearch, typeFilter, generationFilter, sortBy, sortDirection]);
+  }, [debouncedSearch, typeFilter, generationFilter, sortBy, sortDirection]);
 
-  const listQuery = useQuery({
+  const listQuery = useInfiniteQuery({
     queryKey: ["pokedex", queryParams.toString()],
-    queryFn: () =>
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
       fetchPokemonListFromApi({
         search: debouncedSearch || undefined,
         type: typeFilter || undefined,
         generation: generationFilter === "" ? undefined : generationFilter,
-        page,
+        page: pageParam,
         limit: PAGE_SIZE,
         sortBy,
         sortDirection,
       }),
+    getNextPageParam: (lastPage) => {
+      const loadedThroughPage = lastPage.page * lastPage.limit;
+      return loadedThroughPage < lastPage.total ? lastPage.page + 1 : undefined;
+    },
     staleTime: 60_000,
-    placeholderData: (previousData) => previousData,
   });
 
-  const fullStatSortPending = Boolean(
-    listQuery.isFetching && sortKeyNeedsFullResultHydration(sortBy),
+  const loadedPokemon = useMemo(
+    () => listQuery.data?.pages.flatMap((pageData) => pageData.pokemon) ?? [],
+    [listQuery.data],
   );
 
-  const totalPages = listQuery.data
-    ? Math.max(1, Math.ceil(listQuery.data.total / listQuery.data.limit))
-    : 1;
+  const totalPokemon = listQuery.data?.pages[0]?.total ?? 0;
+  const loadedCount = loadedPokemon.length;
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = listQuery;
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasNextPage || isFetchingNextPage) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void fetchNextPage();
+        }
+      },
+      {
+        root: view === "table" ? tableScrollRef.current : null,
+        rootMargin: "480px",
+      },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, loadedCount, view]);
+
+  const fullStatSortPending = Boolean(
+    listQuery.isFetching && loadedCount === 0 && sortKeyNeedsFullResultHydration(sortBy),
+  );
 
   const hasActiveFilters = Boolean(search.trim() || typeFilter || generationFilter !== "");
 
@@ -202,7 +233,6 @@ export function PokedexExplorer() {
     setDebouncedSearch("");
     setTypeFilter("");
     setGenerationFilter("");
-    setPage(1);
   }
 
   async function handleAddToTeam(slug: string) {
@@ -229,7 +259,6 @@ export function PokedexExplorer() {
   }
 
   function handleSortColumn(next: PokemonListSortKey) {
-    setPage(1);
     if (sortBy === next) {
       setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
     } else {
@@ -262,10 +291,7 @@ export function PokedexExplorer() {
             <input
               type="search"
               value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Search Pokémon…"
               className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
               autoComplete="off"
@@ -276,10 +302,7 @@ export function PokedexExplorer() {
             <select
               aria-label="Filter by type"
               value={typeFilter}
-              onChange={(event) => {
-                setTypeFilter((event.target.value || "") as PokemonType | "");
-                setPage(1);
-              }}
+              onChange={(event) => setTypeFilter((event.target.value || "") as PokemonType | "")}
               className={cn(
                 "h-10 min-w-[8.5rem] rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -299,7 +322,6 @@ export function PokedexExplorer() {
               onChange={(event) => {
                 const next = event.target.value;
                 setGenerationFilter(next === "" ? "" : Number(next));
-                setPage(1);
               }}
               className={cn(
                 "h-10 min-w-[10rem] rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground",
@@ -321,7 +343,6 @@ export function PokedexExplorer() {
                 const next = event.target.value as PokemonListSortKey;
                 setSortBy(next);
                 setSortDirection(defaultSortDirection(next));
-                setPage(1);
               }}
               className={cn(
                 "h-10 min-w-[9.5rem] rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground",
@@ -345,7 +366,6 @@ export function PokedexExplorer() {
               }
               onClick={() => {
                 setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
-                setPage(1);
               }}
             >
               {sortDirection === "asc" ? (
@@ -406,53 +426,27 @@ export function PokedexExplorer() {
             {fullStatSortPending ? (
               <span className="inline-flex items-center gap-1.5">
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                Sorting the full filtered list (one-time fetch per filter)…
+                Loading sorted results…
               </span>
-            ) : listQuery.isFetching && !listQuery.isPending ? (
+            ) : listQuery.isFetching && !listQuery.isPending && !listQuery.isFetchingNextPage ? (
               <span className="inline-flex items-center gap-1.5">
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
                 Updating results…
               </span>
-            ) : listQuery.data ? (
+            ) : totalPokemon > 0 ? (
               <>
                 Showing{" "}
                 <span className="font-medium text-foreground">
-                  {listQuery.data.total === 0 ? 0 : (listQuery.data.page - 1) * listQuery.data.limit + 1}
+                  {loadedCount === 0 ? 0 : 1}
                   –
-                  {(listQuery.data.page - 1) * listQuery.data.limit + listQuery.data.pokemon.length}
+                  {loadedCount}
                 </span>{" "}
-                of <span className="font-medium text-foreground">{listQuery.data.total}</span> Pokémon
+                of <span className="font-medium text-foreground">{totalPokemon}</span> Pokémon
               </>
             ) : (
               " "
             )}
           </p>
-
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-9"
-              disabled={page <= 1 || listQuery.isFetching}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              Previous
-            </Button>
-            <span className="text-xs text-muted-foreground">
-              Page <span className="font-medium text-foreground">{page}</span> / {totalPages}
-            </span>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-9"
-              disabled={page >= totalPages || listQuery.isFetching}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Next
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -493,13 +487,14 @@ export function PokedexExplorer() {
           }}
           isRetrying={listQuery.isFetching}
         />
-      ) : listQuery.data?.pokemon.length === 0 ? (
+      ) : loadedCount === 0 ? (
         <p className="rounded-2xl border border-dashed border-border/60 px-4 py-12 text-center text-sm text-muted-foreground">
           No Pokémon match these filters. Try clearing search or widening your filters.
         </p>
       ) : view === "cards" ? (
+        <>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {listQuery.data?.pokemon.map((pokemon) => {
+          {loadedPokemon.map((pokemon) => {
             const primaryTypeColor = TYPE_COLORS[pokemon.primaryType] ?? "#9ca3af";
             const cardStyle = {
               "--pokedex-card-accent": primaryTypeColor,
@@ -564,8 +559,17 @@ export function PokedexExplorer() {
             );
           })}
         </div>
+        <div ref={loadMoreRef} className="flex min-h-12 items-center justify-center py-2 text-xs text-muted-foreground">
+          {listQuery.isFetchingNextPage ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              Loading more Pokémon…
+            </span>
+          ) : null}
+        </div>
+        </>
       ) : (
-        <div className="max-h-[min(72vh,calc(100dvh-10rem))] max-w-full overflow-auto overscroll-contain rounded-2xl border border-border/50">
+        <div ref={tableScrollRef} className="max-h-[min(72vh,calc(100dvh-10rem))] max-w-full overflow-auto overscroll-contain rounded-2xl border border-border/50">
           <table className="w-max border-collapse text-sm">
             {/* thead is sticky inside this scroll pane (shared vertical + horizontal overflow) so headers track horizontal scroll and stay visible while scrolling rows. */}
             <thead className="sticky top-0 z-20 text-[0.65rem] uppercase tracking-wide text-muted-foreground [&_th]:bg-muted">
@@ -666,7 +670,7 @@ export function PokedexExplorer() {
               </tr>
             </thead>
             <tbody>
-              {listQuery.data?.pokemon.map((pokemon) => (
+              {loadedPokemon.map((pokemon) => (
                 <tr
                   key={pokemon.slug}
                   className="group border-t border-border/40 bg-card/30 hover:bg-card/60"
@@ -733,6 +737,14 @@ export function PokedexExplorer() {
               ))}
             </tbody>
           </table>
+          <div ref={loadMoreRef} className="flex min-h-12 items-center justify-center py-2 text-xs text-muted-foreground">
+            {listQuery.isFetchingNextPage ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Loading more Pokémon…
+              </span>
+            ) : null}
+          </div>
         </div>
       )}
         </div>
