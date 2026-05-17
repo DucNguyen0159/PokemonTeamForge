@@ -1,11 +1,16 @@
 import "server-only";
 
+import { createClient } from "@supabase/supabase-js";
+
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
 import type { PokemonListPayload } from "@/types/api";
-import type { PokemonType } from "@/types/shared";
+import type { MoveCategory, PokemonType, TeamRole } from "@/types/shared";
 import type { PokemonDetail, PokemonListItem } from "@/types/pokemon";
+import type { Ability } from "@/types/ability";
+import type { Move, MoveTag } from "@/types/move";
 
 import {
+  buildTypeDefenseEntries,
   normalizePokeApiPokemonDetail,
   normalizePokeApiToPokemonListItem,
   type PokeApiAbilityResponse,
@@ -33,12 +38,166 @@ type PokeApiPokemonListPage = {
   results: NamedApiResource[];
 };
 
+type PokemonRow = {
+  id: number;
+  slug: string;
+  name: string;
+  generation: number;
+  region: string;
+  primary_type: PokemonType;
+  secondary_type: PokemonType | null;
+  hp: number;
+  attack: number;
+  defense: number;
+  special_attack: number;
+  special_defense: number;
+  speed: number;
+  total: number;
+  is_legendary: boolean;
+  is_mythical: boolean;
+  sprite_normal_url: string | null;
+  sprite_shiny_url: string | null;
+  roles: TeamRole[] | null;
+};
+
+type AbilityRow = {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+};
+
+type MoveRow = {
+  id: number;
+  slug: string;
+  name: string;
+  type: PokemonType;
+  category: MoveCategory;
+  power: number | null;
+  accuracy: number | null;
+  pp: number | null;
+  priority: number;
+  description: string | null;
+  tags: MoveTag[] | null;
+};
+
+type PokemonAbilityJoinRow = {
+  slot: number;
+  is_hidden: boolean;
+  abilities: AbilityRow | AbilityRow[] | null;
+};
+
+type PokemonMoveJoinRow = {
+  moves: MoveRow | MoveRow[] | null;
+};
+
 const pokemonDetailCache = new Map<string, PokemonDetail>();
 const pokemonListItemCache = new Map<string, PokemonListItem>();
 
 let pokemonIndexCache: PokemonRef[] | null = null;
+let recommendationPoolCache: { expiresAt: number; data: PokemonDetail[] } | null = null;
 const typeSlugCache = new Map<PokemonType, Set<string>>();
 const generationSpeciesNamesCache = new Map<number, string[]>();
+const RECOMMENDATION_POOL_CACHE_TTL_MS = 1000 * 60 * 15;
+const RECOMMENDATION_POOL_LIMIT = 1200;
+
+function hasSupabaseServerEnv(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
+
+function getSupabaseServerClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  return createClient(url, anonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+function sortColumnForKey(sortKey: PokemonListSortKey): keyof PokemonRow {
+  switch (sortKey) {
+    case "name":
+      return "name";
+    case "total":
+      return "total";
+    case "hp":
+      return "hp";
+    case "attack":
+      return "attack";
+    case "defense":
+      return "defense";
+    case "specialAttack":
+      return "special_attack";
+    case "specialDefense":
+      return "special_defense";
+    case "speed":
+      return "speed";
+    case "id":
+    default:
+      return "id";
+  }
+}
+
+function toPokemonListItemFromRow(row: PokemonRow): PokemonListItem {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    generation: row.generation,
+    region: row.region,
+    primaryType: row.primary_type,
+    secondaryType: row.secondary_type,
+    hp: row.hp,
+    attack: row.attack,
+    defense: row.defense,
+    specialAttack: row.special_attack,
+    specialDefense: row.special_defense,
+    speed: row.speed,
+    total: row.total,
+    spriteNormal: row.sprite_normal_url ?? "",
+    isLegendaryOrMythical: row.is_legendary || row.is_mythical,
+  };
+}
+
+function toAbility(row: AbilityRow, isHidden: boolean): Ability {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description ?? "No description available.",
+    isHidden: isHidden || undefined,
+  };
+}
+
+function toMove(row: MoveRow): Move {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    type: row.type,
+    category: row.category,
+    power: row.power,
+    accuracy: row.accuracy,
+    pp: row.pp,
+    priority: row.priority,
+    description: row.description ?? undefined,
+    tags: row.tags && row.tags.length > 0 ? row.tags : undefined,
+  };
+}
+
+function relatedOne<T>(value: T | T[] | null): T | null {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+  return value;
+}
 
 export interface PokemonListQuery {
   search?: string;
@@ -225,6 +384,22 @@ async function hydratePokemonListItemsWithConcurrency(
   return out;
 }
 
+async function hydratePokemonDetailsWithConcurrency(
+  slugs: string[],
+  concurrency: number,
+): Promise<PokemonDetail[]> {
+  const out: PokemonDetail[] = [];
+  const size = Math.max(1, concurrency);
+
+  for (let offset = 0; offset < slugs.length; offset += size) {
+    const chunk = slugs.slice(offset, offset + size);
+    const batch = await Promise.all(chunk.map((slug) => getPokemonDetailFromSupabase(slug)));
+    out.push(...batch.filter((entry): entry is PokemonDetail => Boolean(entry)));
+  }
+
+  return out;
+}
+
 function comparePokemonRefs(a: PokemonRef, b: PokemonRef, sortKey: PokemonListSortKey, dir: PokemonListSortDirection): number {
   let cmp = 0;
 
@@ -284,6 +459,195 @@ function comparePokemonListItems(
   return dir === "asc" ? cmp : -cmp;
 }
 
+async function getPokemonListFromSupabase(
+  query: PokemonListQuery,
+  page: number,
+  limit: number,
+  sortBy: PokemonListSortKey,
+  sortDirection: PokemonListSortDirection,
+): Promise<PokemonListPayload | null> {
+  if (!hasSupabaseServerEnv()) {
+    return null;
+  }
+
+  const supabase = getSupabaseServerClient();
+  const start = (page - 1) * limit;
+  const end = start + limit - 1;
+  const sortColumn = sortColumnForKey(sortBy);
+
+  let request = supabase
+    .from("pokemon")
+    .select(
+      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, sprite_normal_url, sprite_shiny_url, roles",
+      { count: "exact" },
+    );
+
+  if (typeof query.generation === "number") {
+    request = request.eq("generation", query.generation);
+  }
+
+  if (query.type) {
+    request = request.or(`primary_type.eq.${query.type},secondary_type.eq.${query.type}`);
+  }
+
+  if (typeof query.legendary === "boolean") {
+    if (query.legendary) {
+      request = request.or("is_legendary.eq.true,is_mythical.eq.true");
+    } else {
+      request = request.eq("is_legendary", false).eq("is_mythical", false);
+    }
+  }
+
+  const search = query.search?.trim();
+  if (search) {
+    const normalized = normalizeSearchQuery(search);
+    const displaySearch = search.replace(/[%_,]/g, "");
+    request = request.or(`name.ilike.%${displaySearch}%,slug.ilike.%${normalized}%`);
+  }
+
+  const { data, error, count } = await request
+    .order(sortColumn, { ascending: sortDirection === "asc" })
+    .order("id", { ascending: true })
+    .range(start, end);
+
+  if (error || !data) {
+    console.error("[Pokemon Supabase List]", error);
+    return null;
+  }
+
+  return {
+    pokemon: (data as PokemonRow[]).map(toPokemonListItemFromRow),
+    total: count ?? data.length,
+    page,
+    limit,
+  };
+}
+
+async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDetail | null> {
+  if (!hasSupabaseServerEnv()) {
+    return null;
+  }
+
+  const supabase = getSupabaseServerClient();
+  const normalized = normalizePokemonName(slugOrId);
+  const numericId = Number(normalized);
+
+  let pokemonRequest = supabase
+    .from("pokemon")
+    .select(
+      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, sprite_normal_url, sprite_shiny_url, roles",
+    )
+    .limit(1);
+
+  pokemonRequest = Number.isInteger(numericId) && numericId > 0
+    ? pokemonRequest.eq("id", numericId)
+    : pokemonRequest.eq("slug", normalized);
+
+  const { data: pokemonRows, error: pokemonError } = await pokemonRequest;
+
+  if (pokemonError) {
+    console.error("[Pokemon Supabase Detail]", pokemonError);
+    return null;
+  }
+
+  const row = (pokemonRows as PokemonRow[] | null)?.[0];
+  if (!row) {
+    return null;
+  }
+
+  const [{ data: abilityRows, error: abilityError }, { data: moveRows, error: moveError }] =
+    await Promise.all([
+      supabase
+        .from("pokemon_abilities")
+        .select("slot, is_hidden, abilities(id, slug, name, description)")
+        .eq("pokemon_id", row.id)
+        .order("slot", { ascending: true }),
+      supabase
+        .from("pokemon_moves")
+        .select("moves(id, slug, name, type, category, power, accuracy, pp, priority, description, tags)")
+        .eq("pokemon_id", row.id),
+    ]);
+
+  if (abilityError || moveError) {
+    console.error("[Pokemon Supabase Joins]", abilityError ?? moveError);
+    return null;
+  }
+
+  const abilities = ((abilityRows ?? []) as PokemonAbilityJoinRow[])
+    .map((entry) => {
+      const ability = relatedOne(entry.abilities);
+      return ability ? toAbility(ability, entry.is_hidden) : null;
+    })
+    .filter((entry): entry is Ability => Boolean(entry));
+
+  const moves = ((moveRows ?? []) as PokemonMoveJoinRow[])
+    .map((entry) => relatedOne(entry.moves))
+    .filter((entry): entry is MoveRow => Boolean(entry))
+    .map(toMove)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    generation: row.generation,
+    region: row.region,
+    primaryType: row.primary_type,
+    secondaryType: row.secondary_type,
+    stats: {
+      hp: row.hp,
+      attack: row.attack,
+      defense: row.defense,
+      specialAttack: row.special_attack,
+      specialDefense: row.special_defense,
+      speed: row.speed,
+      total: row.total,
+    },
+    spriteNormal: row.sprite_normal_url ?? "",
+    spriteShiny: row.sprite_shiny_url,
+    isLegendaryOrMythical: row.is_legendary || row.is_mythical,
+    abilities,
+    moves,
+    roles: row.roles ?? [],
+    typeDefense: buildTypeDefenseEntries(row.primary_type, row.secondary_type),
+  };
+}
+
+export async function getPokemonRecommendationPool(): Promise<PokemonDetail[]> {
+  const now = Date.now();
+  if (recommendationPoolCache && recommendationPoolCache.expiresAt > now) {
+    return recommendationPoolCache.data;
+  }
+
+  if (!hasSupabaseServerEnv()) {
+    return [];
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("pokemon")
+    .select("slug")
+    .order("id", { ascending: true })
+    .limit(RECOMMENDATION_POOL_LIMIT);
+
+  if (error || !data || data.length === 0) {
+    if (error) {
+      console.error("[Pokemon Supabase Recommendation Pool]", error);
+    }
+    return [];
+  }
+
+  const slugs = (data as Array<{ slug: string }>).map((row) => row.slug);
+  const pool = await hydratePokemonDetailsWithConcurrency(slugs, 12);
+
+  recommendationPoolCache = {
+    expiresAt: now + RECOMMENDATION_POOL_CACHE_TTL_MS,
+    data: pool,
+  };
+
+  return pool;
+}
+
 export async function getPokemonList(query: PokemonListQuery): Promise<PokemonListPayload> {
   const page = clampPagination(query.page, 1, 10_000);
   const limit = clampPagination(query.limit, 24, 100);
@@ -298,6 +662,17 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
       page,
       limit,
     };
+  }
+
+  const supabasePayload = await getPokemonListFromSupabase(
+    query,
+    page,
+    limit,
+    sortBy,
+    sortDirection,
+  );
+  if (supabasePayload && supabasePayload.total > 0) {
+    return supabasePayload;
   }
 
   const index = await ensurePokemonIndex();
@@ -364,6 +739,13 @@ export async function getPokemonByName(pokemonName: string): Promise<PokemonDeta
   const cached = pokemonDetailCache.get(slug);
   if (cached) {
     return cached;
+  }
+
+  const supabasePokemon = await getPokemonDetailFromSupabase(slug);
+  if (supabasePokemon) {
+    pokemonDetailCache.set(slug, supabasePokemon);
+    pokemonDetailCache.set(supabasePokemon.slug, supabasePokemon);
+    return supabasePokemon;
   }
 
   let rawPokemon: PokeApiPokemonResponse;

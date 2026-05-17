@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { Check, Clipboard, ClipboardPaste, Copy, Trash2, X } from "lucide-react";
 
-import { MOCK_ITEMS } from "@/data/mock-items";
 import {
   useSaveTeamMutation,
   useUpdateTeamMutation,
 } from "@/hooks/queries/use-user-teams";
+import { fetchCompetitiveItemsFromApi } from "@/lib/items/data-access";
 import { fetchPokemonDetailFromApi } from "@/lib/pokemon/data-access";
 import { formatShowdownExport } from "@/lib/parsing/format-showdown-export";
 import { parseShowdownImport } from "@/lib/parsing/parse-showdown-import";
@@ -103,6 +103,7 @@ export function BuilderControls() {
 
     const localWarnings: string[] = [...parsed.warnings];
     let importedCount = 0;
+    const itemPool = await fetchCompetitiveItemsFromApi().catch(() => []);
 
     for (let i = 0; i < parsed.sets.length; i += 1) {
       const parsedSet = parsed.sets[i];
@@ -135,7 +136,7 @@ export function BuilderControls() {
       }
 
       const item = parsedSet.item
-        ? MOCK_ITEMS.find((entry) => slugify(entry.name) === slugify(parsedSet.item!)) ?? null
+        ? itemPool.find((entry) => slugify(entry.name) === slugify(parsedSet.item!)) ?? null
         : null;
 
       if (parsedSet.item && !item) {

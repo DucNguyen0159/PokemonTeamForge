@@ -5,7 +5,7 @@ import type { StrategyTeam } from "@/types/strategy";
 
 export type StrategyResolvers = {
   resolvePokemon: (slug: string) => Promise<PokemonDetail | null>;
-  resolveItem: (name: string) => Item | null;
+  resolveItem: (name: string) => Item | null | Promise<Item | null>;
 };
 
 const strategyHydrationWarnings = new Set<string>();
@@ -55,7 +55,7 @@ async function resolveStrategySlot(
     );
   }
 
-  const item = resolvers.resolveItem(input.itemName) ?? resolvers.resolveItem("Leftovers");
+  const item = (await resolvers.resolveItem(input.itemName)) ?? (await resolvers.resolveItem("Leftovers"));
   if (!item) {
     throw new Error(
       `Strategy preset references unknown item "${input.itemName}" and no fallback is available.`,

@@ -10,11 +10,29 @@ export type ItemTag =
   | "focus_sash"
   | "utility";
 
+export type ItemCompetitiveGroup =
+  | "battle"
+  | "berries"
+  | "mega_stones"
+  | "type_boosting"
+  | "type_changing"
+  | "gems"
+  | "weather_terrain_support"
+  | "incenses_niche"
+  | "other";
+
 export interface Item {
   id: number;
   name: string;
   slug: string;
+  category?: string | null;
+  competitiveGroup?: ItemCompetitiveGroup;
+  competitiveGroupOrder?: number;
+  sortOrder?: number;
   description?: string;
+  shortEffect?: string | null;
   iconUrl?: string | null;
+  iconStoragePath?: string | null;
   tags?: ItemTag[];
+  isCompetitive?: boolean;
 }

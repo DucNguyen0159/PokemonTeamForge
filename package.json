@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "download:masters-trainers": "node scripts/download-pokemon-masters-trainers.mjs"
+    "download:masters-trainers": "node scripts/download-pokemon-masters-trainers.mjs",
+    "import:item-data": "node scripts/import-item-data.mjs",
+    "import:pokemon-data": "node scripts/import-pokemon-data.mjs",
+    "import:all-data": "node scripts/import-all-data.mjs",
+    "validate:supabase-data": "node scripts/validate-supabase-data.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

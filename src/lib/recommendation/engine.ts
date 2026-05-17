@@ -1,6 +1,7 @@
 import { FORMAT_RULES } from "@/data/format-rules";
 import { calculateDefensiveCoverage, calculateOffensiveCoverage } from "@/lib/calculations";
 import { toPokemonListItem } from "@/lib/normalizers/normalize-pokemon";
+import { getPokemonRecommendationPool } from "@/lib/services/pokemon-service";
 import { getStrategyTeams } from "@/lib/services/strategy-service";
 import type {
   RecommendationRequest,
@@ -105,6 +106,11 @@ export function generateRecommendations(request: RecommendationRequest): Recomme
 export async function generateRecommendationsFromSharedSource(
   request: RecommendationRequest,
 ): Promise<RecommendationResponse> {
+  const supabasePool = await getPokemonRecommendationPool();
+  if (supabasePool.length > 0) {
+    return generateRecommendationsWithPool(request, supabasePool);
+  }
+
   const strategyTeams = await getStrategyTeams();
   const candidateMap = new Map(
     strategyTeams

@@ -2,13 +2,14 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CheckCircle2, RefreshCw, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import { cn } from "@/utils";
 import { useTeamStore } from "@/store/team-store";
 import type { TeamPokemon } from "@/types/team";
 import type { Ability } from "@/types/ability";
 import type { Move } from "@/types/move";
-import { MOCK_ITEMS } from "@/data/mock-items";
+import { fetchCompetitiveItemsFromApi } from "@/lib/items/data-access";
 import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { SlotSelector, type SelectorOption } from "./slot-selector";
@@ -25,14 +26,12 @@ type OpenPanel =
   | "move-4"
   | null;
 
-const ITEMS_AS_OPTIONS: SelectorOption[] = MOCK_ITEMS.map((item) => ({
-  id: item.id,
-  name: item.name,
-  slug: item.slug,
-  meta: item.tags?.[0]?.replace(/_/g, " "),
-}));
 const EMPTY_ABILITIES: Ability[] = [];
 const EMPTY_MOVES: Move[] = [];
+
+function itemMetaLabel(value: string | undefined): string | undefined {
+  return value?.replace(/_/g, " ");
+}
 
 type PokemonSlotProps = {
   teamSlot: TeamPokemon;
@@ -51,6 +50,11 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
   const setAbility = useTeamStore((s) => s.setAbility);
   const setItem = useTeamStore((s) => s.setItem);
   const setMove = useTeamStore((s) => s.setMove);
+  const itemQuery = useQuery({
+    queryKey: ["competitive-items"],
+    queryFn: fetchCompetitiveItemsFromApi,
+    staleTime: 1000 * 60 * 60,
+  });
 
   const toggle = useCallback(
     (panel: OpenPanel) => setOpenPanel((prev) => (prev === panel ? null : panel)),
@@ -82,6 +86,17 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     [pokemonMoves],
+  );
+
+  const itemOptions: SelectorOption[] = useMemo(
+    () =>
+      (itemQuery.data ?? []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        meta: itemMetaLabel(item.competitiveGroup ?? item.tags?.[0]),
+      })),
+    [itemQuery.data],
   );
 
   const selectedAbilityOption = useMemo(
@@ -271,17 +286,41 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
             <SlotSelector
               label="Item"
               selected={selectedItemOption}
-              options={ITEMS_AS_OPTIONS}
+              selectedPrefix={
+                selectedItem?.iconUrl ? (
+                  <span
+                    aria-hidden
+                    className="size-4 bg-contain bg-center bg-no-repeat"
+                    style={{ backgroundImage: `url(${selectedItem.iconUrl})` }}
+                  />
+                ) : null
+              }
+              options={itemOptions}
               isOpen={openPanel === "item"}
               onToggle={() => toggle("item")}
               onSelect={(opt) => {
-                const item = MOCK_ITEMS.find((i) => i.id === opt.id) ?? null;
+                const item = itemQuery.data?.find((i) => i.id === opt.id) ?? null;
                 setItem(slot, item);
                 setOpenPanel(null);
               }}
               onClear={() => {
                 setItem(slot, null);
                 setOpenPanel(null);
+              }}
+              renderOption={(opt) => {
+                const item = itemQuery.data?.find((entry) => entry.id === opt.id);
+                return (
+                  <span className="flex min-w-0 items-center gap-2">
+                    {item?.iconUrl ? (
+                      <span
+                        aria-hidden
+                        className="size-4 shrink-0 bg-contain bg-center bg-no-repeat"
+                        style={{ backgroundImage: `url(${item.iconUrl})` }}
+                      />
+                    ) : null}
+                    <span className="truncate">{opt.name}</span>
+                  </span>
+                );
               }}
             />
           </div>

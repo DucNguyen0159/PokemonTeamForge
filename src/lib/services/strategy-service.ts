@@ -1,10 +1,10 @@
 import "server-only";
 
-import { MOCK_ITEMS } from "@/data/mock-items";
 import {
   STRATEGY_TEAM_PRESETS,
   type StrategyTeamPreset,
 } from "@/data/strategy-teams";
+import { getItemByName } from "@/lib/services/item-service";
 import { getPokemonByName } from "@/lib/services/pokemon-service";
 import {
   hydrateStrategyPresetWithResolvers,
@@ -22,22 +22,9 @@ export interface StrategyQuery {
 const STRATEGY_CACHE_TTL_MS = 1000 * 60 * 5;
 let hydratedStrategiesCache: { expiresAt: number; data: StrategyTeam[] } | null = null;
 
-function normalizeLookupToken(input: string): string {
-  return input.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
 const defaultResolvers: StrategyResolvers = {
   resolvePokemon: getPokemonByName,
-  resolveItem: (name) => {
-    const requested = normalizeLookupToken(name);
-    return (
-      MOCK_ITEMS.find(
-        (entry) =>
-          normalizeLookupToken(entry.name) === requested ||
-          normalizeLookupToken(entry.slug) === requested,
-      ) ?? null
-    );
-  },
+  resolveItem: getItemByName,
 };
 
 export async function hydrateStrategyPreset(

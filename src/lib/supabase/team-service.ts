@@ -1,6 +1,6 @@
 "use client";
 
-import { MOCK_ITEMS } from "@/data/mock-items";
+import { fetchCompetitiveItemsFromApi } from "@/lib/items/data-access";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toFriendlySupabaseMessage } from "@/lib/supabase/errors";
 import type { BattleFormat } from "@/types/shared";
@@ -132,6 +132,7 @@ function rowsFromTeam(teamId: string, team: Team): Omit<TeamPokemonRow, "id">[] 
 async function hydrateTeam(row: TeamWithPokemonRows): Promise<Team> {
   const baseTeam = createEmptyTeam(toBattleFormat(row.format));
   const teamRows = row.team_pokemon ?? [];
+  const items = await fetchCompetitiveItemsFromApi().catch(() => []);
 
   const pokemonBySlot = new Map<
     number,
@@ -171,7 +172,7 @@ async function hydrateTeam(row: TeamWithPokemonRows): Promise<Team> {
         detail.abilities.find((ability) => ability.id === rowData.ability_id) ??
         null,
       selectedItem:
-        MOCK_ITEMS.find((item) => item.id === rowData.item_id) ?? null,
+        items.find((item) => item.id === rowData.item_id) ?? null,
       moves: [
         {
           slot: 1 as const,
