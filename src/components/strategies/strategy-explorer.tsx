@@ -12,6 +12,7 @@ import type { StrategyTeamSummary } from "@/types/strategy";
 import { TypeBadge } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { ErrorMessage } from "@/components/error/error-message";
+import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils";
 
@@ -240,15 +241,18 @@ export function StrategyExplorer() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
-      <header className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Strategy Teams</p>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          Preset Archetypes
-        </h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Pick a strategy preset and load it into Team Builder instantly. Every preset is fully editable after loading.
-        </p>
-      </header>
+      <PageIntro
+        eyebrow="Strategy Teams"
+        title="Preset Archetypes"
+        description="Pick a strategy preset and load it into Team Builder instantly. Every preset is a starting point and stays fully editable after loading."
+        chips={
+          <>
+            <PageIntroChip>{strategies.length} presets</PageIntroChip>
+            <PageIntroChip>{filters.format === "all" ? "All formats" : filters.format}</PageIntroChip>
+            <PageIntroChip>{filters.difficulty === "all" ? "Any difficulty" : filters.difficulty}</PageIntroChip>
+          </>
+        }
+      />
 
       <section className="rounded-2xl border border-border/60 bg-card/60 p-4">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">

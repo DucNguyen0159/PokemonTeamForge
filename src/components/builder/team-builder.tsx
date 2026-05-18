@@ -8,11 +8,14 @@ import { CoveragePanel } from "@/components/coverage/coverage-panel";
 import { ChecklistPanel } from "@/components/checklist/checklist-panel";
 import { RecommendationPanel } from "@/components/recommendation/recommendation-panel";
 import { ErrorBoundary } from "@/components/error/error-boundary";
+import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { consumePendingLoadedTeam } from "@/lib/team/pending-team";
 import { useTeamStore } from "@/store/team-store";
 
 export function TeamBuilder() {
+  const team = useTeamStore((state) => state.team);
   const loadTeam = useTeamStore((state) => state.loadTeam);
+  const filledSlots = team.pokemon.filter((slot) => slot.pokemon).length;
 
   useEffect(() => {
     const pendingTeam = consumePendingLoadedTeam();
@@ -22,7 +25,19 @@ export function TeamBuilder() {
   }, [loadTeam]);
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-4 py-6">
+    <div className="mx-auto w-full max-w-[1400px] space-y-5 px-4 py-6">
+      <PageIntro
+        eyebrow="Builder"
+        title="Build and Analyze Your Team"
+        description="Assemble Pokémon, abilities, items, and moves while coverage, checklist, and recommendations update beside your workspace."
+        chips={
+          <>
+            <PageIntroChip>{filledSlots}/6 Pokémon loaded</PageIntroChip>
+            <PageIntroChip>{team.format} format</PageIntroChip>
+            <PageIntroChip>{team.id ? "Cloud-linked" : "Local draft"}</PageIntroChip>
+          </>
+        }
+      />
       <div className="mb-5">
         <TeamHeader />
       </div>

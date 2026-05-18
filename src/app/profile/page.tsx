@@ -7,6 +7,7 @@ import { Cloud, Loader2, LogOut, RefreshCw, ShieldCheck, Sparkles } from "lucide
 
 import { PlaceholderPage } from "@/components/layout/placeholder-page";
 import { ErrorMessage } from "@/components/error/error-message";
+import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { Button } from "@/components/ui/button";
 import {
@@ -176,25 +177,23 @@ export default function ProfilePage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
-      <header className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Profile
-        </p>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              Account Dashboard
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Manage your account, cloud sync status, and Supabase saved teams.
-              Guest tools remain available after logout.
-            </p>
-          </div>
+      <PageIntro
+        eyebrow="Profile"
+        title="Account Dashboard"
+        description="Manage your account, cloud sync status, and Supabase saved teams. Guest tools remain available after logout."
+        actions={
           <Button asChild variant="secondary" className="w-fit rounded-xl">
             <Link href="/builder">Open Builder</Link>
           </Button>
-        </div>
-      </header>
+        }
+        chips={
+          <>
+            <PageIntroChip>{teamsQuery.isSuccess ? formatTeamCount(teams.length) : "Cloud teams"}</PageIntroChip>
+            <PageIntroChip>{localTeamSummary.pokemonCount}/6 Builder Pokémon</PageIntroChip>
+            <PageIntroChip>{profile?.username || user?.email || "Signed in"}</PageIntroChip>
+          </>
+        }
+      />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
         <aside className="space-y-4">

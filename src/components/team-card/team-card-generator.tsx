@@ -26,6 +26,7 @@ import {
   serializeTeamCardConfig,
 } from "@/lib/team-card/config";
 import { useTeamStore } from "@/store/team-store";
+import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils";
 import type {
@@ -325,28 +326,20 @@ export function TeamCardGenerator() {
 
   return (
     <div className="mx-auto w-full max-w-[1300px] space-y-6 px-4 py-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Team Card Studio
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Create a Shareable Team Card
-          </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Customize your trainer, background, sprites, and slot labels, then export a polished
-            PNG for sharing.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span className="rounded-full border border-border/60 bg-card/60 px-3 py-1">
-            {filledSlotCount} / 6 Pokémon loaded
-          </span>
-          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-emerald-300">
-            PNG export ready
-          </span>
-        </div>
-      </div>
+      <PageIntro
+        eyebrow="Team Card Studio"
+        title="Create a Shareable Team Card"
+        description="Customize your trainer, background, sprites, and card identity, then export a polished PNG for sharing."
+        chips={
+          <>
+            <PageIntroChip>{filledSlotCount}/6 Pokémon loaded</PageIntroChip>
+            <PageIntroChip>{selectedExportPreset.format.toUpperCase()} export</PageIntroChip>
+            <PageIntroChip className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+              PNG ready
+            </PageIntroChip>
+          </>
+        }
+      />
 
       {/* Empty team notice */}
       {!hasTeam ? (

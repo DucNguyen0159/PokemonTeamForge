@@ -20,6 +20,7 @@ import { cn } from "@/utils";
 import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { ErrorMessage } from "@/components/error/error-message";
+import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { Button } from "@/components/ui/button";
 import { useTeamStore } from "@/store/team-store";
 
@@ -328,15 +329,18 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
       <div className={cn(view === "table" && "flex flex-col items-center")}>
         <div className={cn("space-y-6", view === "table" ? "w-max max-w-full" : "w-full")}>
-        <header className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Pokédex</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Browse Pokémon</h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Browse Pokémon in card or list view, then search, filter by type, ability, or generation, and sort by
-            National #, name, BST, or battle stats. Add contenders directly to your team without lore dumps or
-            training noise.
-          </p>
-        </header>
+        <PageIntro
+          eyebrow="Pokédex"
+          title="Browse Battle-Ready Pokémon"
+          description="Search, filter by type, ability, or generation, sort by battle stats, and add contenders directly to your current team."
+          chips={
+            <>
+              <PageIntroChip>{view === "cards" ? "Card view" : "Table view"}</PageIntroChip>
+              <PageIntroChip>{sortBy} sort</PageIntroChip>
+              <PageIntroChip>Team add enabled</PageIntroChip>
+            </>
+          }
+        />
 
         <div className="flex w-full flex-col gap-4 rounded-2xl border border-border/60 bg-card/40 p-4 shadow-sm backdrop-blur-sm sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

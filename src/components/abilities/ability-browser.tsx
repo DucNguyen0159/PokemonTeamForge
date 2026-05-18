@@ -15,6 +15,7 @@ import { HIDDEN_ABILITY_LABEL, type AbilityListItem, type AbilityTag } from "@/t
 import { cn } from "@/utils";
 import { TypeBadge } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
+import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/error/error-message";
 
@@ -123,25 +124,23 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
-      <header className="space-y-3">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Abilities
-        </p>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              Battle Ability Browser
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-              Search abilities by battle purpose, filter by competitive tags, inspect effect text,
-              and open Pokémon detail pages for species that can use each ability.
-            </p>
-          </div>
+      <PageIntro
+        eyebrow="Abilities"
+        title="Battle Ability Browser"
+        description="Search abilities by battle purpose, filter by competitive tags, inspect effect text, and open Pokémon detail pages for species that can use each ability."
+        actions={
           <Button asChild variant="secondary" className="w-fit rounded-xl">
             <Link href="/pokedex">Open Pokédex</Link>
           </Button>
-        </div>
-      </header>
+        }
+        chips={
+          <>
+            <PageIntroChip>{abilities.length || "All"} abilities</PageIntroChip>
+            <PageIntroChip>{selectedTags.length} active tags</PageIntroChip>
+            <PageIntroChip>{view === "cards" ? "Card layout" : "List layout"}</PageIntroChip>
+          </>
+        }
+      />
 
       <section className="rounded-2xl border border-border/60 bg-card/45 p-4 shadow-sm backdrop-blur-sm sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
