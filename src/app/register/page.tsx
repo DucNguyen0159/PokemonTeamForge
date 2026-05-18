@@ -16,7 +16,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const register = useAuthStore((state) => state.register);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isLoading = useAuthStore((state) => state.isLoading);
   const authError = useAuthStore((state) => state.error);
   const clearError = useAuthStore((state) => state.clearError);
 
@@ -25,6 +24,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -48,15 +48,20 @@ export default function RegisterPage() {
       return;
     }
 
-    const result = await register({ email, password, username });
-    if (!result.success) {
-      setFormError(result.message ?? "Unable to register right now.");
-      return;
-    }
+    setIsSubmitting(true);
+    try {
+      const result = await register({ email, password, username });
+      if (!result.success) {
+        setFormError(result.message ?? "Unable to register right now.");
+        return;
+      }
 
-    setFeedback(result.message ?? "Registration successful.");
-    if (!(result.message ?? "").toLowerCase().includes("check your email")) {
-      router.push(currentAuthRedirectTarget());
+      setFeedback(result.message ?? "Registration successful.");
+      if (!(result.message ?? "").toLowerCase().includes("check your email")) {
+        router.push(currentAuthRedirectTarget());
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -76,7 +81,7 @@ export default function RegisterPage() {
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             className="w-full rounded-xl border border-border/60 bg-background/55 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            placeholder="Pokemon trainer name"
+            placeholder="Pokémon trainer name"
           />
         </label>
 
@@ -117,8 +122,8 @@ export default function RegisterPage() {
         )}
 
         <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
-          <Button type="submit" className="h-10 rounded-xl px-5" disabled={isLoading}>
-            {isLoading ? "Creating account..." : "Create account"}
+          <Button type="submit" className="h-10 rounded-xl px-5" disabled={isSubmitting}>
+            {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
           <Button asChild variant="ghost" size="sm" className="h-10 rounded-xl">
             <Link href="/login">Already have an account? Sign in</Link>

@@ -63,11 +63,11 @@ export async function fetchPokemonListFromApi(query: PokemonListQuery): Promise<
   try {
     payload = (await response.json()) as ApiPayload<PokemonListPayload>;
   } catch {
-    throw new Error("Pokemon data is temporarily unavailable. Please try again.");
+    throw new Error("Pokémon data is temporarily unavailable. Please try again.");
   }
 
   if (!response.ok || !payload?.success || !payload.data) {
-    throw new Error(payload?.error?.message ?? "Unable to load Pokemon right now.");
+    throw new Error(payload?.error?.message ?? "Unable to load Pokémon right now.");
   }
 
   return payload.data;
@@ -85,11 +85,11 @@ export async function fetchPokemonDetailFromApi(slug: string): Promise<PokemonDe
   try {
     payload = (await response.json()) as ApiPayload<PokemonDetail>;
   } catch {
-    throw new Error("Pokemon details are temporarily unavailable.");
+    throw new Error("Pokémon details are temporarily unavailable.");
   }
 
   if (!response.ok || !payload?.success || !payload.data) {
-    throw new Error(payload?.error?.message ?? "Could not load that Pokemon.");
+    throw new Error(payload?.error?.message ?? "Could not load that Pokémon.");
   }
 
   return payload.data;

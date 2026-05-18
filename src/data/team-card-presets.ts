@@ -132,7 +132,7 @@ export const TEAM_CARD_LAYOUT_PRESETS: TeamCardLayoutPreset[] = [
   {
     id: "team-grid",
     label: "Team Grid",
-    description: "Clean 2x3 team formation with equal emphasis on all six Pokemon.",
+    description: "Clean 2x3 team formation with equal emphasis on all six Pokémon.",
     composition: {
       aspectRatio: "5 / 3",
       trainerAnchor: "right",
@@ -156,7 +156,7 @@ export const TEAM_CARD_LAYOUT_PRESETS: TeamCardLayoutPreset[] = [
   {
     id: "poster",
     label: "Poster",
-    description: "Hero layout that gives the first slot extra ace-Pokemon emphasis.",
+    description: "Hero layout that gives the first slot extra ace Pokémon emphasis.",
     composition: {
       aspectRatio: "5 / 3",
       trainerAnchor: "right",

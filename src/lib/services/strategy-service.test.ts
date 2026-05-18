@@ -76,12 +76,12 @@ describe("strategy preset hydration", () => {
     expect(hydrated.pokemon[0].item.name).toBe("Leftovers");
   });
 
-  it("throws when preset references missing Pokemon", async () => {
+  it("throws when preset references missing Pokémon", async () => {
     await expect(
       hydrateStrategyPresetWithResolvers(preset, {
         resolvePokemon: async () => null,
         resolveItem: () => ({ id: 1, name: "Leftovers", slug: "leftovers" }),
       }),
-    ).rejects.toThrow(/unknown Pokemon/i);
+    ).rejects.toThrow(/unknown Pokémon/i);
   });
 });

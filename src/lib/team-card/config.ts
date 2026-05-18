@@ -35,7 +35,7 @@ import {
 import type { Team } from "@/types/team";
 
 const DEFAULT_DETAIL_ROWS: TeamCardDetailRow[] = [
-  { id: "detail-1", iconSlug: "instagram", text: "Pokemon Trainer" },
+  { id: "detail-1", iconSlug: "instagram", text: "Pokémon Trainer" },
 ];
 
 function normalizeDetailRows(

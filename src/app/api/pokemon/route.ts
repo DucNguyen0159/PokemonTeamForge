@@ -66,7 +66,7 @@ export async function GET(request: Request) {
     console.error("[Pokemon List API]", error);
     return errorResponse<PokemonListPayload>(
       "SERVER_ERROR",
-      "Unable to load Pokemon right now. Please try again.",
+      "Unable to load Pokémon right now. Please try again.",
       500,
     );
   }

@@ -139,11 +139,11 @@ async function fetchPokemonDetail(slug: string): Promise<PokemonDetail> {
       error?: { message?: string };
     };
   } catch {
-    throw new Error("Could not load Pokemon right now.");
+    throw new Error("Could not load Pokémon right now.");
   }
 
   if (!response.ok || !payload?.success || !payload.data) {
-    throw new Error(payload?.error?.message ?? "Could not load Pokemon.");
+    throw new Error(payload?.error?.message ?? "Could not load Pokémon.");
   }
 
   return payload.data;

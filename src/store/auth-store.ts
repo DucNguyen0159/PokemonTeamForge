@@ -82,14 +82,36 @@ async function ensureProfileRecord(
 ): Promise<void> {
   const supabase = getSupabaseBrowserClient();
   const sanitizedUsername = sanitizeUsername(username, userId);
+  const fallbackUsername = sanitizeUsername(null, userId);
 
-  await supabase.from("profiles").upsert(
+  const { error } = await supabase.from("profiles").upsert(
     {
       id: userId,
       username: sanitizedUsername,
     },
     { onConflict: "id" },
   );
+
+  if (!error) {
+    return;
+  }
+
+  const isUsernameConflict = error.code === "23505" && sanitizedUsername !== fallbackUsername;
+  if (!isUsernameConflict) {
+    throw error;
+  }
+
+  const { error: fallbackError } = await supabase.from("profiles").upsert(
+    {
+      id: userId,
+      username: fallbackUsername,
+    },
+    { onConflict: "id" },
+  );
+
+  if (fallbackError) {
+    throw fallbackError;
+  }
 }
 
 export const useAuthStore = create<AuthStoreState>((set, get) => ({

@@ -100,7 +100,7 @@ export function GuestTeamSyncPrompt() {
                 Save your guest team to this account?
               </p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                We found a local guest team with {summary.pokemonCount} Pokemon
+                We found a local guest team with {summary.pokemonCount} Pokémon
                 {summary.moveCount > 0 ? ` and ${summary.moveCount} selected moves` : ""}.
                 Saving creates a new cloud team and will not overwrite existing saved teams.
               </p>

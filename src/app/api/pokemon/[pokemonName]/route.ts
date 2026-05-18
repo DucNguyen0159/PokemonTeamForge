@@ -16,7 +16,7 @@ export async function GET(_: Request, { params }: PokemonRouteParams) {
     if (!pokemon) {
       return errorResponse<PokemonDetail>(
         "POKEMON_NOT_FOUND",
-        `Pokemon '${pokemonName}' was not found.`,
+        `Pokémon '${pokemonName}' was not found.`,
         404,
       );
     }
@@ -26,7 +26,7 @@ export async function GET(_: Request, { params }: PokemonRouteParams) {
     console.error("[Pokemon Detail API]", error);
     return errorResponse<PokemonDetail>(
       "SERVER_ERROR",
-      "Unable to load this Pokemon right now. Please try again.",
+      "Unable to load this Pokémon right now. Please try again.",
       500,
     );
   }

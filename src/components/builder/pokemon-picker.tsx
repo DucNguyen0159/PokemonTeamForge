@@ -80,7 +80,7 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
       const detail = await fetchPokemonDetailFromApi(slug);
       onSelect(detail);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Unable to load this Pokemon.");
+      setStatus(error instanceof Error ? error.message : "Unable to load this Pokémon.");
     } finally {
       setAddingSlug(null);
     }
@@ -125,14 +125,14 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
       {status ? <ErrorMessage title="Selection unavailable" message={status} /> : null}
 
       {isPending ? (
-        <p className="py-4 text-center text-xs text-muted-foreground">Loading Pokemon...</p>
+        <p className="py-4 text-center text-xs text-muted-foreground">Loading Pokémon...</p>
       ) : isError ? (
         <ErrorMessage
-          title="Pokemon list unavailable"
+          title="Pokémon list unavailable"
           message={
             pokemonQuery.error instanceof Error
               ? pokemonQuery.error.message
-              : "Unable to load Pokemon."
+              : "Unable to load Pokémon."
           }
           onRetry={() => {
             void refetch();
@@ -141,7 +141,7 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
         />
       ) : filtered.length === 0 ? (
         <p className="py-4 text-center text-xs text-muted-foreground">
-          No Pokemon found. Try another name or type.
+          No Pokémon found. Try another name or type.
         </p>
       ) : (
         <div
@@ -186,7 +186,7 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
           {isFetchingNextPage ? (
             <div className="flex items-center justify-center py-2 text-xs text-muted-foreground">
               <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden />
-              Loading more Pokemon...
+              Loading more Pokémon...
             </div>
           ) : null}
         </div>

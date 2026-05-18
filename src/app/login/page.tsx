@@ -14,13 +14,13 @@ export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isLoading = useAuthStore((state) => state.isLoading);
   const authError = useAuthStore((state) => state.error);
   const clearError = useAuthStore((state) => state.clearError);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -38,13 +38,18 @@ export default function LoginPage() {
       return;
     }
 
-    const result = await login({ email, password });
-    if (!result.success) {
-      setFormError(result.message ?? "Unable to sign in. Please try again.");
-      return;
-    }
+    setIsSubmitting(true);
+    try {
+      const result = await login({ email, password });
+      if (!result.success) {
+        setFormError(result.message ?? "Unable to sign in. Please try again.");
+        return;
+      }
 
-    router.push(currentAuthRedirectTarget());
+      router.push(currentAuthRedirectTarget());
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -84,8 +89,8 @@ export default function LoginPage() {
         )}
 
         <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
-          <Button type="submit" className="h-10 rounded-xl px-5" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign in"}
+          <Button type="submit" className="h-10 rounded-xl px-5" disabled={isSubmitting}>
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
           <Button asChild variant="ghost" size="sm" className="h-10 rounded-xl">
             <Link href="/register">Need an account? Create one</Link>

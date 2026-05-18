@@ -67,7 +67,7 @@ function SpriteModeToggleComponent({
       <div className="space-y-2 pt-2">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-medium text-muted-foreground">
-            Per-Pokemon override
+            Per-Pokémon override
           </p>
           <button
             type="button"

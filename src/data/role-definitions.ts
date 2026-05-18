@@ -40,7 +40,7 @@ export const ROLE_DEFINITIONS: Record<TeamRole, RoleDefinition> = {
   },
   tank: {
     label: "Tank",
-    description: "Bulky Pokemon with meaningful offensive threat.",
+    description: "Bulky Pokémon with meaningful offensive threat.",
     examples: ["swampert", "tyranitar", "goodra"],
     detectionHints: ["high combined bulk", "decent offensive stats"],
   },

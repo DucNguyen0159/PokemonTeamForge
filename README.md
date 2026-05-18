@@ -74,11 +74,18 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 PokemonTeamForge uses Supabase for static catalog data and saved team data.
 
-Run the SQL files in Supabase:
+Run the SQL files in Supabase SQL Editor in this order:
 
 ```text
+supabase/auth-saved-teams.sql
 supabase/app-data.sql
 supabase/app-storage.sql
+```
+
+Then reload the Supabase REST schema cache:
+
+```sql
+notify pgrst, 'reload schema';
 ```
 
 Import catalog data:
@@ -93,7 +100,17 @@ Validate imported data:
 npm run validate:supabase-data
 ```
 
-The catalog import covers Pokemon, abilities, Pokemon-ability relationships, moves, Pokemon-move relationships, and items.
+The auth/saved-team SQL creates `profiles`, `teams`, `team_pokemon`, `team_cards`, and related RLS policies for account cloud sync. The catalog import covers Pokemon, abilities, Pokemon-ability relationships, moves, Pokemon-move relationships, and items.
+
+First-run Supabase checklist:
+
+1. Create a Supabase project.
+2. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to `.env.local`.
+3. Run the three SQL files above in order.
+4. Run `notify pgrst, 'reload schema';`.
+5. Run `npm run import:all-data`.
+6. Run `npm run validate:supabase-data`.
+7. Register or log in locally, then confirm Profile can show an empty saved-teams state and Builder can save a cloud team.
 
 ## Available Scripts
 

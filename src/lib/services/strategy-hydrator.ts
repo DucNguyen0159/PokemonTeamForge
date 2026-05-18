@@ -33,7 +33,7 @@ async function resolveStrategySlot(
 ) {
   const pokemon = await resolvers.resolvePokemon(input.pokemonSlug);
   if (!pokemon) {
-    throw new Error(`Strategy preset references unknown Pokemon: ${input.pokemonSlug}`);
+    throw new Error(`Strategy preset references unknown Pokémon: ${input.pokemonSlug}`);
   }
 
   const ability =

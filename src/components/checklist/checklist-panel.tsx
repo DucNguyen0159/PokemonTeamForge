@@ -90,7 +90,7 @@ export function ChecklistPanel() {
       </div>
 
       <p className="mt-1 text-center text-xs text-muted-foreground/50">
-        Updates from selected moves, Pokemon roles, and the current format.
+        Updates from selected moves, Pokémon roles, and the current format.
       </p>
     </section>
   );
