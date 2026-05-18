@@ -39,6 +39,17 @@ type AuthStoreState = {
 
 let authListenerInitialized = false;
 
+function signedOutState() {
+  return {
+    session: null,
+    user: null,
+    profile: null,
+    isAuthenticated: false,
+    isLoading: false,
+    error: null,
+  };
+}
+
 async function fetchUserProfile(userId: string): Promise<UserProfile | null> {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
@@ -148,14 +159,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     const supabase = getSupabaseBrowserClient();
     supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       if (!nextSession?.user) {
-        set({
-          session: null,
-          user: null,
-          profile: null,
-          isAuthenticated: false,
-          isLoading: false,
-          error: null,
-        });
+        set(signedOutState());
         return;
       }
 
@@ -268,13 +272,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         throw error;
       }
 
-      set({
-        session: null,
-        user: null,
-        profile: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+      set(signedOutState());
 
       return { success: true };
     } catch (error) {

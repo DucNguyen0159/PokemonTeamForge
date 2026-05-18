@@ -61,16 +61,23 @@ export function toFriendlySupabaseMessage(
     return "Please enter a valid email address.";
   }
 
-  if (message.includes("network") || message.includes("fetch")) {
+  if (
+    message.includes("failed to fetch") ||
+    message.includes("network") ||
+    message.includes("fetch") ||
+    message.includes("load failed")
+  ) {
     return "Unable to connect to Supabase right now. Please try again.";
   }
 
   if (
     message.includes("jwt") ||
+    message.includes("row-level security") ||
+    message.includes("rls") ||
     message.includes("unauthorized") ||
     message.includes("permission denied")
   ) {
-    return "You are not authorized for this action.";
+    return "Your session does not have access to this saved team data. Try refreshing or signing in again.";
   }
 
   if (typedError.code === "PGRST301") {

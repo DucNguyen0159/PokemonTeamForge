@@ -213,9 +213,8 @@ function PokemonSprite({
       <Image
         src={pokemon.spritePath}
         alt={pokemon.name}
-        width={size}
-        height={size}
-        className="h-[118%] w-[118%] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.45)]"
+        fill
+        className="scale-[1.18] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.45)]"
         sizes={`${size}px`}
       />
     </span>
@@ -445,14 +444,13 @@ function TeamCardMiniPreview() {
             {teamCardTeam.map((pokemon) => (
               <span
                 key={pokemon.slug}
-                className="flex aspect-square items-center justify-center rounded-full bg-white/18 ring-1 ring-white/18"
+                className="relative flex aspect-square items-center justify-center rounded-full bg-white/18 ring-1 ring-white/18"
               >
                 <Image
                   src={pokemon.spritePath}
                   alt={pokemon.name}
-                  width={30}
-                  height={30}
-                  className="h-[118%] w-[118%] object-contain drop-shadow-[0_3px_7px_rgba(0,0,0,0.55)]"
+                  fill
+                  className="scale-[1.18] object-contain drop-shadow-[0_3px_7px_rgba(0,0,0,0.55)]"
                   sizes="30px"
                 />
               </span>

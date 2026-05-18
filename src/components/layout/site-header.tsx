@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/auth-store";
@@ -12,14 +13,22 @@ const NAV_ITEMS = [
   { href: "/abilities", label: "Abilities" },
   { href: "/strategies", label: "Strategies" },
   { href: "/team-card", label: "Team Cards" },
-  { href: "/profile", label: "Profile" },
 ];
 
 export function SiteHeader() {
+  const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const profile = useAuthStore((state) => state.profile);
   const logout = useAuthStore((state) => state.logout);
   const isLoading = useAuthStore((state) => state.isLoading);
+
+  async function handleLogout() {
+    const result = await logout();
+    if (result.success) {
+      router.replace("/");
+      router.refresh();
+    }
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
@@ -50,7 +59,7 @@ export function SiteHeader() {
                   size="sm"
                   className="rounded-xl"
                   onClick={() => {
-                    void logout();
+                    void handleLogout();
                   }}
                   disabled={isLoading}
                 >

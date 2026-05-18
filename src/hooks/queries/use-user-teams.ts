@@ -17,11 +17,13 @@ export const USER_TEAMS_QUERY_KEY = ["user-teams"] as const;
 
 export function useUserTeams() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
 
   return useQuery({
     queryKey: USER_TEAMS_QUERY_KEY,
     queryFn: listUserTeams,
-    enabled: isAuthenticated,
+    enabled: isInitialized && isAuthenticated,
+    retry: 1,
   });
 }
 
