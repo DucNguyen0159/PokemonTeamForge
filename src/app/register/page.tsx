@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { AuthLayout, PasswordInput } from "@/components/auth/auth-layout";
 import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
+import { currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
 import { useAuthStore } from "@/store/auth-store";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -14,6 +15,7 @@ const MIN_PASSWORD_LENGTH = 8;
 export default function RegisterPage() {
   const router = useRouter();
   const register = useAuthStore((state) => state.register);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
   const authError = useAuthStore((state) => state.error);
   const clearError = useAuthStore((state) => state.clearError);
@@ -23,6 +25,12 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace(currentAuthRedirectTarget());
+    }
+  }, [isAuthenticated, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,52 +56,52 @@ export default function RegisterPage() {
 
     setFeedback(result.message ?? "Registration successful.");
     if (!(result.message ?? "").toLowerCase().includes("check your email")) {
-      router.push("/profile");
+      router.push(currentAuthRedirectTarget());
     }
   }
 
   return (
-    <PlaceholderPage
+    <AuthLayout
       eyebrow="Account"
-      title="Create account"
-      description="Create an account to save and sync teams with Supabase. Guest builder tools stay available either way."
+      title="Create your trainer account"
+      description="Save teams, sync edits, and keep your competitive builds organized. Guest builder tools stay available either way."
     >
-      <form onSubmit={handleSubmit} className="w-full max-w-md space-y-3">
-        <label className="block space-y-1">
-          <span className="text-xs text-muted-foreground">Username (optional)</span>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <label htmlFor="username" className="block space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Username (optional)</span>
           <input
+            id="username"
             type="text"
             autoComplete="username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="w-full rounded-xl border border-border/60 bg-background/55 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             placeholder="Pokemon trainer name"
           />
         </label>
 
-        <label className="block space-y-1">
-          <span className="text-xs text-muted-foreground">Email</span>
+        <label htmlFor="email" className="block space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Email</span>
           <input
+            id="email"
             type="email"
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="w-full rounded-xl border border-border/60 bg-background/55 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             placeholder="you@example.com"
           />
         </label>
 
-        <label className="block space-y-1">
-          <span className="text-xs text-muted-foreground">Password</span>
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            placeholder="At least 8 characters"
-          />
-        </label>
+        <PasswordInput
+          id="password"
+          label="Password"
+          value={password}
+          onChange={setPassword}
+          autoComplete="new-password"
+          placeholder="At least 8 characters"
+          helperText="Use at least 8 characters. Avoid reusing passwords from other sites."
+        />
 
         {(formError || authError) && (
           <ErrorMessage
@@ -108,15 +116,20 @@ export default function RegisterPage() {
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" className="rounded-xl" disabled={isLoading}>
+        <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
+          <Button type="submit" className="h-10 rounded-xl px-5" disabled={isLoading}>
             {isLoading ? "Creating account..." : "Create account"}
           </Button>
-          <Button asChild variant="ghost" size="sm" className="rounded-xl">
+          <Button asChild variant="ghost" size="sm" className="h-10 rounded-xl">
             <Link href="/login">Already have an account? Sign in</Link>
           </Button>
         </div>
+
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Accounts add cloud saving and sync. Guest mode remains available for building,
+          browsing, analysis, recommendations, and exports.
+        </p>
       </form>
-    </PlaceholderPage>
+    </AuthLayout>
   );
 }

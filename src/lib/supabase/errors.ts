@@ -22,7 +22,11 @@ export function toFriendlySupabaseMessage(
   const typedError = error as SupabaseLikeError;
   const message = normalizeMessage(typedError.message);
 
-  if (message.includes("invalid login credentials")) {
+  if (
+    message.includes("invalid login credentials") ||
+    message.includes("invalid credentials") ||
+    message.includes("invalid email or password")
+  ) {
     return "Email or password is incorrect.";
   }
 
@@ -33,12 +37,28 @@ export function toFriendlySupabaseMessage(
     return "Please confirm your email before signing in.";
   }
 
-  if (message.includes("already registered")) {
+  if (
+    message.includes("already registered") ||
+    message.includes("user already registered") ||
+    message.includes("already exists")
+  ) {
     return "An account with this email already exists.";
   }
 
-  if (message.includes("password")) {
-    return "Password is invalid. Please check requirements and try again.";
+  if (
+    message.includes("weak password") ||
+    message.includes("password should be") ||
+    message.includes("password must")
+  ) {
+    return "Password is too weak. Use at least 8 characters and avoid common passwords.";
+  }
+
+  if (message.includes("rate limit") || message.includes("too many requests")) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+
+  if (message.includes("email") && message.includes("invalid")) {
+    return "Please enter a valid email address.";
   }
 
   if (message.includes("network") || message.includes("fetch")) {

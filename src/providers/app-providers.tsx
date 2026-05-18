@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthInitializer } from "@/components/auth/auth-initializer";
+import { GuestTeamSyncPrompt } from "@/components/auth/guest-team-sync-prompt";
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -15,6 +16,7 @@ export function AppProviders({ children }: AppProvidersProps) {
       <QueryProvider>
         <AuthInitializer />
         {children}
+        <GuestTeamSyncPrompt />
       </QueryProvider>
     </ThemeProvider>
   );

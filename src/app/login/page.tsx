@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { AuthLayout, PasswordInput } from "@/components/auth/auth-layout";
 import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
+import { currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginPage() {
@@ -23,7 +24,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/profile");
+      router.replace(currentAuthRedirectTarget());
     }
   }, [isAuthenticated, router]);
 
@@ -43,39 +44,37 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/profile");
+    router.push(currentAuthRedirectTarget());
   }
 
   return (
-    <PlaceholderPage
+    <AuthLayout
       eyebrow="Account"
-      title="Sign in"
-      description="Log in to sync teams with Supabase. Guest mode remains available for builder, recommendations, analysis, and import/export."
+      title="Welcome back"
+      description="Sign in to sync saved teams, builder edits, recommendations, and Team Card exports. Guest mode remains available for core tools."
     >
-      <form onSubmit={handleSubmit} className="w-full max-w-md space-y-3">
-        <label className="block space-y-1">
-          <span className="text-xs text-muted-foreground">Email</span>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <label htmlFor="email" className="block space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Email</span>
           <input
+            id="email"
             type="email"
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="w-full rounded-xl border border-border/60 bg-background/55 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             placeholder="you@example.com"
           />
         </label>
 
-        <label className="block space-y-1">
-          <span className="text-xs text-muted-foreground">Password</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            placeholder="Your password"
-          />
-        </label>
+        <PasswordInput
+          id="password"
+          label="Password"
+          value={password}
+          onChange={setPassword}
+          autoComplete="current-password"
+          placeholder="Your password"
+        />
 
         {(formError || authError) && (
           <ErrorMessage
@@ -84,15 +83,20 @@ export default function LoginPage() {
           />
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" className="rounded-xl" disabled={isLoading}>
+        <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
+          <Button type="submit" className="h-10 rounded-xl px-5" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Sign in"}
           </Button>
-          <Button asChild variant="ghost" size="sm" className="rounded-xl">
-            <Link href="/register">Need an account? Register</Link>
+          <Button asChild variant="ghost" size="sm" className="h-10 rounded-xl">
+            <Link href="/register">Need an account? Create one</Link>
           </Button>
         </div>
+
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          You can keep using Builder, Pokédex, Abilities, and recommendations in guest mode.
+          Signing in only adds cloud saving and sync.
+        </p>
       </form>
-    </PlaceholderPage>
+    </AuthLayout>
   );
 }

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Session, User } from "@supabase/supabase-js";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { sanitizeUsername } from "@/lib/auth/auth-utils";
 import { toFriendlySupabaseMessage } from "@/lib/supabase/errors";
 import type { UserProfile } from "@/types/user";
 
@@ -67,14 +68,12 @@ async function ensureProfileRecord(
   username: string | null | undefined,
 ): Promise<void> {
   const supabase = getSupabaseBrowserClient();
-  const sanitizedUsername = (username ?? "").trim();
+  const sanitizedUsername = sanitizeUsername(username, userId);
 
   await supabase.from("profiles").upsert(
     {
       id: userId,
-      username:
-        sanitizedUsername ||
-        `trainer-${userId.slice(0, 8).toLowerCase()}`,
+      username: sanitizedUsername,
     },
     { onConflict: "id" },
   );
