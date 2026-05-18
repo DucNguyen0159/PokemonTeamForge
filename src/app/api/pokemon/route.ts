@@ -50,6 +50,7 @@ export async function GET(request: Request) {
     search: searchParams.get("search") ?? undefined,
     generation: parseNumberQuery(searchParams.get("generation")),
     type,
+    ability: searchParams.get("ability") ?? undefined,
     region: searchParams.get("region") ?? undefined,
     legendary: parseBooleanQuery(searchParams.get("legendary")),
     page: parseNumberQuery(searchParams.get("page")),

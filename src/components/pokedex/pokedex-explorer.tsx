@@ -2,15 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, LayoutGrid, List, Loader2, Plus, Search, X } from "lucide-react";
 
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
 import { ROUTES } from "@/constants/routes";
 import { ALL_POKEMON_TYPES } from "@/data/type-chart";
+import { HIDDEN_ABILITY_LABEL } from "@/types/ability";
 import type { PokemonListItem } from "@/types/pokemon";
 import type { PokemonType } from "@/types/shared";
-import { fetchPokemonDetailFromApi, fetchPokemonListFromApi } from "@/lib/pokemon/data-access";
+import {
+  fetchPokemonDetailFromApi,
+  fetchPokemonListFromApi,
+} from "@/lib/pokemon/data-access";
+import { fetchAbilitiesFromApi } from "@/lib/abilities/data-access";
 import { cn } from "@/utils";
 import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
@@ -128,15 +133,21 @@ function SortableColumnHeader({
   );
 }
 
-export function PokedexExplorer() {
+type PokedexExplorerProps = {
+  initialAbility?: string;
+};
+
+export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<PokemonType | "">("");
+  const [abilityFilter, setAbilityFilter] = useState(initialAbility);
   const [generationFilter, setGenerationFilter] = useState<number | "">("");
   const [sortBy, setSortBy] = useState<PokemonListSortKey>("id");
   const [sortDirection, setSortDirection] = useState<PokemonListSortDirection>("asc");
   const [view, setView] = useState<ViewMode>("cards");
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
+  const [abilityDialogPokemon, setAbilityDialogPokemon] = useState<PokemonListItem | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
@@ -161,6 +172,10 @@ export function PokedexExplorer() {
       params.set("type", typeFilter);
     }
 
+    if (abilityFilter) {
+      params.set("ability", abilityFilter);
+    }
+
     if (generationFilter !== "") {
       params.set("generation", String(generationFilter));
     }
@@ -169,7 +184,13 @@ export function PokedexExplorer() {
     params.set("sortDirection", sortDirection);
 
     return params;
-  }, [debouncedSearch, typeFilter, generationFilter, sortBy, sortDirection]);
+  }, [abilityFilter, debouncedSearch, typeFilter, generationFilter, sortBy, sortDirection]);
+
+  const abilityListQuery = useQuery({
+    queryKey: ["abilities", "pokedex-filter"],
+    queryFn: () => fetchAbilitiesFromApi({ limit: 1000 }),
+    staleTime: 1000 * 60 * 10,
+  });
 
   const listQuery = useInfiniteQuery({
     queryKey: ["pokedex", queryParams.toString()],
@@ -178,6 +199,7 @@ export function PokedexExplorer() {
       fetchPokemonListFromApi({
         search: debouncedSearch || undefined,
         type: typeFilter || undefined,
+        ability: abilityFilter || undefined,
         generation: generationFilter === "" ? undefined : generationFilter,
         page: pageParam,
         limit: PAGE_SIZE,
@@ -189,6 +211,13 @@ export function PokedexExplorer() {
       return loadedThroughPage < lastPage.total ? lastPage.page + 1 : undefined;
     },
     staleTime: 60_000,
+  });
+
+  const abilityDetailQuery = useQuery({
+    queryKey: ["pokedex-card-abilities", abilityDialogPokemon?.slug],
+    queryFn: () => fetchPokemonDetailFromApi(abilityDialogPokemon?.slug ?? ""),
+    enabled: Boolean(abilityDialogPokemon),
+    staleTime: 1000 * 60 * 10,
   });
 
   const loadedPokemon = useMemo(
@@ -222,16 +251,40 @@ export function PokedexExplorer() {
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, loadedCount, view]);
 
+  useEffect(() => {
+    if (!abilityDialogPokemon) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setAbilityDialogPokemon(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [abilityDialogPokemon]);
+
+  function closeAbilityDialog() {
+    setAbilityDialogPokemon(null);
+  }
+
+  function openAbilityDialog(pokemon: PokemonListItem) {
+    setAbilityDialogPokemon(pokemon);
+  }
+
   const fullStatSortPending = Boolean(
     listQuery.isFetching && loadedCount === 0 && sortKeyNeedsFullResultHydration(sortBy),
   );
 
-  const hasActiveFilters = Boolean(search.trim() || typeFilter || generationFilter !== "");
+  const hasActiveFilters = Boolean(search.trim() || typeFilter || abilityFilter || generationFilter !== "");
 
   function clearFilters() {
     setSearch("");
     setDebouncedSearch("");
     setTypeFilter("");
+    setAbilityFilter("");
     setGenerationFilter("");
   }
 
@@ -279,8 +332,9 @@ export function PokedexExplorer() {
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Pokédex</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Browse Pokémon</h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Browse Pokémon in card or list view, then search, filter by type or generation, and sort by National #,
-            name, BST, or battle stats. Add contenders directly to your team without lore dumps or training noise.
+            Browse Pokémon in card or list view, then search, filter by type, ability, or generation, and sort by
+            National #, name, BST, or battle stats. Add contenders directly to your team without lore dumps or
+            training noise.
           </p>
         </header>
 
@@ -312,6 +366,27 @@ export function PokedexExplorer() {
               {ALL_POKEMON_TYPES.map((type) => (
                 <option key={type} value={type}>
                   {type}
+                </option>
+              ))}
+            </select>
+
+            <select
+              aria-label="Filter by ability"
+              value={abilityFilter}
+              onChange={(event) => setAbilityFilter(event.target.value)}
+              disabled={abilityListQuery.isPending}
+              className={cn(
+                "h-10 min-w-[10rem] rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                abilityListQuery.isPending && "cursor-wait opacity-70",
+              )}
+            >
+              <option value="">
+                {abilityListQuery.isPending ? "Loading abilities..." : "All abilities"}
+              </option>
+              {abilityListQuery.data?.abilities.map((ability) => (
+                <option key={ability.slug} value={ability.slug}>
+                  {ability.name}
                 </option>
               ))}
             </select>
@@ -537,6 +612,14 @@ export function PokedexExplorer() {
                       <TypeBadge type={pokemon.primaryType} />
                       {pokemon.secondaryType ? <TypeBadge type={pokemon.secondaryType} /> : null}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => openAbilityDialog(pokemon)}
+                      className="text-xs font-medium text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      aria-label={`Show ${pokemon.name} abilities`}
+                    >
+                      Abilities
+                    </button>
                   </div>
                 </div>
                 <Button
@@ -747,6 +830,83 @@ export function PokedexExplorer() {
           </div>
         </div>
       )}
+      {abilityDialogPokemon ? (
+        <div
+          className="fixed inset-0 z-50 bg-background/25 sm:bg-background/10"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeAbilityDialog();
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pokemon-abilities-title"
+            className={cn(
+              "fixed inset-x-3 bottom-3 flex max-h-[min(72vh,32rem)] flex-col rounded-3xl border border-border/70 bg-card/95 p-4 shadow-2xl shadow-black/30",
+              "sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-24 sm:w-[22rem] sm:rounded-2xl sm:p-4",
+              "lg:right-[max(1rem,calc((100vw-72rem)/2+1rem))] lg:w-[24rem]",
+            )}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Abilities
+                </p>
+                <h2 id="pokemon-abilities-title" className="mt-1 text-lg font-semibold text-foreground">
+                  {abilityDialogPokemon.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeAbilityDialog}
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                aria-label="Close abilities"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3 overflow-y-auto pr-1">
+              {abilityDetailQuery.isPending ? (
+                <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Loading abilities...
+                </p>
+              ) : abilityDetailQuery.isError ? (
+                <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  Unable to load abilities right now.
+                </p>
+              ) : abilityDetailQuery.data?.abilities.length ? (
+                abilityDetailQuery.data.abilities.map((ability) => (
+                  <article
+                    key={ability.slug}
+                    className="rounded-xl border border-border/55 bg-background/55 p-3"
+                  >
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {ability.name}{" "}
+                      {ability.isHidden ? (
+                        <span className="font-medium text-muted-foreground">
+                          {HIDDEN_ABILITY_LABEL}
+                        </span>
+                      ) : null}
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                      {ability.description}
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No ability details are available for this Pokémon.
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
+      ) : null}
         </div>
       </div>
     </div>

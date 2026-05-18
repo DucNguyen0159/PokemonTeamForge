@@ -97,13 +97,20 @@ type PokemonAbilityCandidateJoinRow = PokemonAbilityJoinRow & {
   pokemon_id: number;
 };
 
+type AbilityEffectText = {
+  shortEffect: string;
+  fullEffect?: string;
+};
+
 const pokemonDetailCache = new Map<string, PokemonDetail>();
 const pokemonListItemCache = new Map<string, PokemonListItem>();
+const abilityEffectCache = new Map<string, AbilityEffectText>();
 
 let pokemonIndexCache: PokemonRef[] | null = null;
 let recommendationPoolCache: { expiresAt: number; data: Pokemon[] } | null = null;
 const typeSlugCache = new Map<PokemonType, Set<string>>();
 const generationSpeciesNamesCache = new Map<number, string[]>();
+const abilitySlugCache = new Map<string, Set<string>>();
 const RECOMMENDATION_POOL_CACHE_TTL_MS = 1000 * 60 * 15;
 const RECOMMENDATION_POOL_LIMIT = 1200;
 const ROLE_MOVE_TAGS: Partial<Record<TeamRole, MoveTag[]>> = {
@@ -188,12 +195,41 @@ function toPokemonListItemFromRow(row: PokemonRow): PokemonListItem {
   };
 }
 
-function toAbility(row: AbilityRow, isHidden: boolean): Ability {
+function getEnglishAbilityEffects(ability: PokeApiAbilityResponse): AbilityEffectText {
+  const englishEntry = ability.effect_entries.find((entry) => entry.language.name === "en");
+  const shortEffect = englishEntry?.short_effect?.trim() || englishEntry?.effect?.trim() || "No description available.";
+  const fullEffect = englishEntry?.effect?.trim();
+
+  return {
+    shortEffect,
+    fullEffect: fullEffect && fullEffect !== shortEffect ? fullEffect : undefined,
+  };
+}
+
+async function getAbilityEffectText(slug: string): Promise<AbilityEffectText | null> {
+  const normalized = normalizePokemonName(slug);
+  const cached = abilityEffectCache.get(normalized);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const ability = await pokeApiFetchWithRetry<PokeApiAbilityResponse>(`/ability/${normalized}`, 2);
+    const effects = getEnglishAbilityEffects(ability);
+    abilityEffectCache.set(normalized, effects);
+    return effects;
+  } catch {
+    return null;
+  }
+}
+
+function toAbility(row: AbilityRow, isHidden: boolean, effects?: AbilityEffectText | null): Ability {
   return {
     id: row.id,
     name: row.name,
     slug: row.slug,
-    description: row.description ?? "No description available.",
+    description: effects?.shortEffect ?? row.description ?? "No description available.",
+    fullEffect: effects?.fullEffect,
     isHidden: isHidden || undefined,
   };
 }
@@ -296,6 +332,7 @@ export interface PokemonListQuery {
   search?: string;
   generation?: number;
   type?: PokemonType;
+  ability?: string;
   region?: string;
   legendary?: boolean;
   page?: number;
@@ -420,6 +457,27 @@ async function ensureTypeSlugSet(type: PokemonType): Promise<Set<string>> {
   typeSlugCache.set(type, set);
 
   return set;
+}
+
+async function ensureAbilitySlugSet(ability: string): Promise<Set<string>> {
+  const normalized = normalizePokemonName(ability);
+  const cached = abilitySlugCache.get(normalized);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const data = await pokeApiFetch<{ pokemon: Array<{ pokemon: NamedApiResource }> }>(
+      `/ability/${normalized}`,
+    );
+    const set = new Set(data.pokemon.map((row) => row.pokemon.name));
+    abilitySlugCache.set(normalized, set);
+    return set;
+  } catch {
+    const empty = new Set<string>();
+    abilitySlugCache.set(normalized, empty);
+    return empty;
+  }
 }
 
 async function ensureGenerationSpeciesNames(generation: number): Promise<string[]> {
@@ -551,6 +609,53 @@ async function getPokemonListFromSupabase(
   const start = (page - 1) * limit;
   const end = start + limit - 1;
   const sortColumn = sortColumnForKey(sortBy);
+  const ability = query.ability ? normalizePokemonName(query.ability) : "";
+  let abilityPokemonIds: number[] | null = null;
+
+  if (ability) {
+    const { data: abilityRow, error: abilityError } = await supabase
+      .from("abilities")
+      .select("id")
+      .eq("slug", ability)
+      .maybeSingle();
+
+    if (abilityError) {
+      console.error("[Pokemon Supabase Ability Filter]", abilityError);
+      return null;
+    }
+
+    if (!abilityRow) {
+      return {
+        pokemon: [],
+        total: 0,
+        page,
+        limit,
+      };
+    }
+
+    const { data: abilityPokemonRows, error: abilityPokemonError } = await supabase
+      .from("pokemon_abilities")
+      .select("pokemon_id")
+      .eq("ability_id", (abilityRow as { id: number }).id);
+
+    if (abilityPokemonError) {
+      console.error("[Pokemon Supabase Ability Relationships]", abilityPokemonError);
+      return null;
+    }
+
+    abilityPokemonIds = Array.from(
+      new Set((abilityPokemonRows as Array<{ pokemon_id: number }> | null)?.map((row) => row.pokemon_id) ?? []),
+    );
+
+    if (abilityPokemonIds.length === 0) {
+      return {
+        pokemon: [],
+        total: 0,
+        page,
+        limit,
+      };
+    }
+  }
 
   let request = supabase
     .from("pokemon")
@@ -565,6 +670,10 @@ async function getPokemonListFromSupabase(
 
   if (query.type) {
     request = request.or(`primary_type.eq.${query.type},secondary_type.eq.${query.type}`);
+  }
+
+  if (abilityPokemonIds) {
+    request = request.in("id", abilityPokemonIds);
   }
 
   if (typeof query.legendary === "boolean") {
@@ -708,12 +817,19 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
     return null;
   }
 
-  const abilities = ((abilityRows ?? []) as PokemonAbilityJoinRow[])
+  const abilityJoinEntries = ((abilityRows ?? []) as PokemonAbilityJoinRow[])
     .map((entry) => {
       const ability = relatedOne(entry.abilities);
-      return ability ? toAbility(ability, entry.is_hidden) : null;
+      return ability ? { ability, isHidden: entry.is_hidden } : null;
     })
-    .filter((entry): entry is Ability => Boolean(entry));
+    .filter((entry): entry is { ability: AbilityRow; isHidden: boolean } => Boolean(entry));
+
+  const abilityEffects = await Promise.all(
+    abilityJoinEntries.map((entry) => getAbilityEffectText(entry.ability.slug)),
+  );
+  const abilities = abilityJoinEntries.map((entry, index) =>
+    toAbility(entry.ability, entry.isHidden, abilityEffects[index]),
+  );
 
   const moves = ((moveRows ?? []) as PokemonMoveJoinRow[])
     .map((entry) => relatedOne(entry.moves))
@@ -852,17 +968,22 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
     sortBy,
     sortDirection,
   );
-  if (supabasePayload && supabasePayload.total > 0) {
+  if (supabasePayload) {
     return supabasePayload;
   }
 
   const index = await ensurePokemonIndex();
   const typeSet = query.type ? await ensureTypeSlugSet(query.type) : null;
+  const abilitySet = query.ability ? await ensureAbilitySlugSet(query.ability) : null;
   const generationSpeciesNames =
     typeof query.generation === "number" ? await ensureGenerationSpeciesNames(query.generation) : null;
 
   const matchingRefs = index.filter((ref) => {
     if (typeSet && !typeSet.has(ref.name)) {
+      return false;
+    }
+
+    if (abilitySet && !abilitySet.has(ref.name)) {
       return false;
     }
 

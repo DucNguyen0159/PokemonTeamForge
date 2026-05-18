@@ -1,11 +1,12 @@
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
-import type { PokemonDetail } from "@/types/pokemon";
 import type { PokemonListPayload } from "@/types/api";
+import type { PokemonDetail } from "@/types/pokemon";
 
 type PokemonListQuery = {
   search?: string;
   generation?: number;
   type?: string;
+  ability?: string;
   page?: number;
   limit?: number;
   sortBy?: PokemonListSortKey;
@@ -29,6 +30,9 @@ export function buildPokemonListSearchParams(query: PokemonListQuery): URLSearch
   }
   if (query.type) {
     params.set("type", query.type);
+  }
+  if (query.ability) {
+    params.set("ability", query.ability);
   }
   if (typeof query.page === "number") {
     params.set("page", String(query.page));

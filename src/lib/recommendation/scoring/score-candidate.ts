@@ -1,6 +1,8 @@
 import { FORMAT_RULES } from "@/data/format-rules";
+import { abilityTagsForSlug } from "@/data/ability-tags";
 import { MOVE_TAGS } from "@/data/move-tags";
 import { calculateTypeEffectiveness, isSuperEffectiveAgainst } from "@/lib/calculations/shared/type-effectiveness";
+import type { Ability, AbilityTag } from "@/types/ability";
 import type { Pokemon } from "@/types/pokemon";
 import type { RecommendationFilters, RecommendationReason } from "@/types/recommendation";
 import type { MoveTag } from "@/types/move";
@@ -11,6 +13,55 @@ import type { ScoredCandidate, TeamAnalysis } from "../types";
 import { statMatchesTier } from "../utils/stat-tier";
 
 type ScoringWeights = Record<keyof typeof RECOMMENDATION_WEIGHTS, number>;
+
+type AbilitySignal = {
+  key: string;
+  message: string;
+  impact: number;
+};
+
+const ABILITY_IMMUNITY_MATCHUPS: Record<string, { type: PokemonType; message: string }> = {
+  "dry-skin": {
+    type: "water",
+    message: "Dry Skin gives a Water immunity and recovery angle",
+  },
+  "flash-fire": {
+    type: "fire",
+    message: "Flash Fire gives a Fire immunity and can punish Fire attacks",
+  },
+  "levitate": {
+    type: "ground",
+    message: "Levitate gives a Ground immunity for safer switching",
+  },
+  "lightning-rod": {
+    type: "electric",
+    message: "Lightning Rod redirects Electric attacks and grants immunity",
+  },
+  "motor-drive": {
+    type: "electric",
+    message: "Motor Drive gives an Electric immunity with Speed upside",
+  },
+  "sap-sipper": {
+    type: "grass",
+    message: "Sap Sipper gives a Grass immunity and Attack upside",
+  },
+  "storm-drain": {
+    type: "water",
+    message: "Storm Drain redirects Water attacks and grants immunity",
+  },
+  "volt-absorb": {
+    type: "electric",
+    message: "Volt Absorb gives an Electric immunity with recovery",
+  },
+  "water-absorb": {
+    type: "water",
+    message: "Water Absorb gives a Water immunity with recovery",
+  },
+  "well-baked-body": {
+    type: "fire",
+    message: "Well-Baked Body gives a Fire immunity and defensive boost",
+  },
+};
 
 function getFormatAdjustedWeights(format: RecommendationFilters["format"]): ScoringWeights {
   const formatWeights = FORMAT_RULES[format].recommendationWeights;
@@ -47,6 +98,32 @@ function getCandidateMoveTags(candidate: Pokemon): Set<MoveTag> {
   });
 
   return tags;
+}
+
+function getAbilityTags(ability: Ability): AbilityTag[] {
+  const tags = new Set<AbilityTag>(ability.tags ?? []);
+  abilityTagsForSlug(ability.slug).forEach((tag) => tags.add(tag));
+  return Array.from(tags);
+}
+
+function getCandidateAbilityTags(candidate: Pokemon): Set<AbilityTag> {
+  return new Set(candidate.abilities.flatMap(getAbilityTags));
+}
+
+function hasAnyAbilitySlug(candidate: Pokemon, slugs: string[]): boolean {
+  return candidate.abilities.some((ability) => slugs.includes(ability.slug));
+}
+
+function addAbilitySignal(
+  signals: AbilitySignal[],
+  seen: Set<string>,
+  signal: AbilitySignal,
+): void {
+  if (seen.has(signal.key)) {
+    return;
+  }
+  seen.add(signal.key);
+  signals.push(signal);
 }
 
 function scoreMissingRoles(
@@ -204,35 +281,97 @@ function scoreAbilitySynergy(
   reasons: RecommendationReason[],
   weights: ScoringWeights,
 ): number {
-  const abilitySlugs = candidate.abilities.map((ability) => ability.slug);
-  let score = 0;
-  const matchedSignals: string[] = [];
+  const tags = getCandidateAbilityTags(candidate);
+  const signals: AbilitySignal[] = [];
+  const seenSignals = new Set<string>();
+  const multiTargetFormat = filters.format === "doubles" || filters.format === "triples";
 
-  if (abilitySlugs.includes("levitate") && analysis.majorWeaknesses.includes("ground")) {
-    score += weights.abilitySynergy;
-    matchedSignals.push("Levitate helps with Ground pressure");
+  candidate.abilities.forEach((ability) => {
+    const matchup = ABILITY_IMMUNITY_MATCHUPS[ability.slug];
+    if (matchup && analysis.majorWeaknesses.includes(matchup.type)) {
+      addAbilitySignal(signals, seenSignals, {
+        key: `immunity-${matchup.type}`,
+        message: matchup.message,
+        impact: weights.abilitySynergy + Math.round(weights.defensiveSynergy / 2),
+      });
+    }
+  });
+
+  if (tags.has("immunity") && analysis.majorWeaknesses.length > 0) {
+    addAbilitySignal(signals, seenSignals, {
+      key: "immunity-general",
+      message: "Ability-based immunity improves defensive switching options",
+      impact: weights.abilitySynergy,
+    });
   }
 
-  if (
-    (filters.format === "doubles" || filters.format === "triples") &&
-    abilitySlugs.includes("intimidate")
-  ) {
-    score += weights.abilitySynergy;
-    matchedSignals.push("Intimidate is strong in multi-target formats");
+  if (tags.has("weather") || candidate.roles.includes("weather_abuser") || candidate.roles.includes("weather_setter")) {
+    addAbilitySignal(signals, seenSignals, {
+      key: "weather",
+      message: "Ability supports weather plans and matchup control",
+      impact: Math.round(weights.abilitySynergy * 0.75),
+    });
   }
 
-  const hasWeatherAbility = abilitySlugs.some((slug) =>
-    ["drizzle", "drought", "sand-stream", "snow-warning"].includes(slug),
-  );
-  if (hasWeatherAbility || candidate.roles.includes("weather_abuser") || candidate.roles.includes("weather_setter")) {
-    score += Math.round(weights.abilitySynergy / 2);
-    matchedSignals.push("Weather plan support");
+  if (tags.has("speed_control") || hasAnyAbilitySlug(candidate, ["prankster", "triage"])) {
+    addAbilitySignal(signals, seenSignals, {
+      key: "speed-control",
+      message: multiTargetFormat
+        ? "Ability adds speed control value for board positioning"
+        : "Ability creates speed control or priority pressure",
+      impact: multiTargetFormat ? weights.abilitySynergy : Math.round(weights.abilitySynergy * 0.75),
+    });
   }
 
-  if (matchedSignals.length > 0) {
+  if (multiTargetFormat && hasAnyAbilitySlug(candidate, ["intimidate"])) {
+    addAbilitySignal(signals, seenSignals, {
+      key: "intimidate",
+      message: "Intimidate lowers opposing Attack and is high-value support in multi-target formats",
+      impact: weights.abilitySynergy + Math.round(weights.formatBonus / 2),
+    });
+  }
+
+  if (multiTargetFormat && (tags.has("redirection") || tags.has("anti_priority"))) {
+    addAbilitySignal(signals, seenSignals, {
+      key: "support",
+      message: "Ability provides support value through redirection or priority protection",
+      impact: weights.abilitySynergy,
+    });
+  }
+
+  if (tags.has("healing")) {
+    addAbilitySignal(signals, seenSignals, {
+      key: "recovery",
+      message: "Ability adds recovery value for longer games and repeated switching",
+      impact: Math.round(weights.abilitySynergy * 0.75),
+    });
+  }
+
+  if (tags.has("status") && tags.has("immunity")) {
+    addAbilitySignal(signals, seenSignals, {
+      key: "status-protection",
+      message: "Ability gives status protection, helping preserve key roles",
+      impact: Math.round(weights.abilitySynergy * 0.75),
+    });
+  }
+
+  if (tags.has("switching") || tags.has("utility") || tags.has("item_interaction")) {
+    addAbilitySignal(signals, seenSignals, {
+      key: "utility",
+      message: "Ability adds flexible utility for positioning and matchup play",
+      impact: Math.round(weights.abilitySynergy / 2),
+    });
+  }
+
+  const selectedSignals = signals
+    .sort((a, b) => b.impact - a.impact)
+    .slice(0, 3);
+  const score = selectedSignals.reduce((total, signal) => total + signal.impact, 0);
+
+  if (selectedSignals.length > 0) {
     addReason(reasons, {
       type: "ability_synergy",
-      message: matchedSignals.join("; ") + ".",
+      message: selectedSignals.map((signal) => signal.message).join("; ") + ".",
       scoreImpact: score,
     });
   }

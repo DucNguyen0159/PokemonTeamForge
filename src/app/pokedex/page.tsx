@@ -7,6 +7,13 @@ export const metadata: Metadata = {
     "Browse Pokémon by search, type, or generation. Battle-relevant stats—add contenders straight to your team.",
 };
 
-export default function PokedexPage() {
-  return <PokedexExplorer />;
+type PokedexPageProps = {
+  searchParams?: Promise<{
+    ability?: string;
+  }>;
+};
+
+export default async function PokedexPage({ searchParams }: PokedexPageProps) {
+  const params = await searchParams;
+  return <PokedexExplorer initialAbility={params?.ability ?? ""} />;
 }

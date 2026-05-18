@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/utils";
 import { useTeamStore } from "@/store/team-store";
 import type { TeamPokemon } from "@/types/team";
-import type { Ability } from "@/types/ability";
+import { HIDDEN_ABILITY_LABEL, type Ability } from "@/types/ability";
 import type { Move } from "@/types/move";
 import type { Item } from "@/types/item";
 import { fetchCompetitiveItemsFromApi } from "@/lib/items/data-access";
@@ -105,7 +105,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
         id: a.id,
         name: a.name,
         slug: a.slug,
-        meta: a.isHidden ? "hidden" : undefined,
+        meta: a.isHidden ? HIDDEN_ABILITY_LABEL : undefined,
       })),
     [pokemonAbilities],
   );
@@ -141,6 +141,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
             id: selectedAbility.id,
             name: selectedAbility.name,
             slug: selectedAbility.slug,
+            meta: selectedAbility.isHidden ? HIDDEN_ABILITY_LABEL : undefined,
           }
         : null,
     [selectedAbility],
@@ -306,17 +307,35 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
               searchable={false}
               selectedSuffix={
                 selectedAbility?.isHidden ? (
-                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-primary">
-                    Hidden
+                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
+                    {HIDDEN_ABILITY_LABEL}
                   </span>
                 ) : null
               }
+              renderOption={(opt) => {
+                const ability = pokemon.abilities.find((entry) => entry.id === opt.id);
+                return (
+                  <span className="flex min-w-0 flex-col gap-0.5 pr-2">
+                    <span className="truncate">{opt.name}</span>
+                    {ability?.description ? (
+                      <span className="line-clamp-2 text-[11px] font-normal leading-snug text-muted-foreground">
+                        {ability.description}
+                      </span>
+                    ) : null}
+                  </span>
+                );
+              }}
               onSelect={(opt) => {
                 const ability = pokemon.abilities.find((a) => a.id === opt.id) ?? null;
                 setAbility(slot, ability);
                 setOpenPanel(null);
               }}
             />
+            {selectedAbility?.description ? (
+              <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
+                {selectedAbility.description}
+              </p>
+            ) : null}
 
             <SlotSelector
               label="Item"

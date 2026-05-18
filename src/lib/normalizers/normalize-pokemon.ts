@@ -132,6 +132,12 @@ function getEnglishAbilityDescription(ability: PokeApiAbilityResponse): string {
   return englishEntry.short_effect || englishEntry.effect || "No description available.";
 }
 
+function getEnglishAbilityFullEffect(ability: PokeApiAbilityResponse): string | undefined {
+  const englishEntry = ability.effect_entries.find((entry) => entry.language.name === "en");
+  const fullEffect = englishEntry?.effect?.trim();
+  return fullEffect || undefined;
+}
+
 function deriveRolesFromStatsAndMoves(
   stats: Pokemon["stats"],
   moves: Move[],
@@ -311,6 +317,7 @@ export function normalizePokeApiPokemonDetail(input: {
       name: toTitleCase(entry.ability.name),
       slug: entry.ability.name,
       description: detail ? getEnglishAbilityDescription(detail) : "No description available.",
+      fullEffect: detail ? getEnglishAbilityFullEffect(detail) : undefined,
       isHidden: entry.is_hidden || undefined,
     };
   });

@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Home" },
   { href: "/builder", label: "Builder" },
   { href: "/pokedex", label: "Pokedex" },
+  { href: "/abilities", label: "Abilities" },
   { href: "/strategies", label: "Strategies" },
   { href: "/team-card", label: "Team Cards" },
   { href: "/profile", label: "Profile" },

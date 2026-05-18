@@ -12,6 +12,7 @@ describe("pokemon data access", () => {
       page: 2,
       limit: 60,
       type: "fire",
+      ability: "drought",
       sortBy: "total",
       sortDirection: "desc",
     });
@@ -19,6 +20,7 @@ describe("pokemon data access", () => {
     expect(params.get("search")).toBe("char");
     expect(params.get("generation")).toBe("9");
     expect(params.get("type")).toBe("fire");
+    expect(params.get("ability")).toBe("drought");
     expect(params.get("page")).toBe("2");
     expect(params.get("limit")).toBe("60");
     expect(params.get("sortBy")).toBe("total");

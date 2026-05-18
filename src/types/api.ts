@@ -1,4 +1,5 @@
 import type { PokemonDetail, PokemonListItem } from "./pokemon";
+import type { AbilityDetail, AbilityListItem } from "./ability";
 import type { Item } from "./item";
 import type { RecommendationResponse } from "./recommendation";
 import type { StrategyTeam, StrategyTeamSummary } from "./strategy";
@@ -26,8 +27,15 @@ export interface ItemListPayload {
   total: number;
 }
 
+export interface AbilityListPayload {
+  abilities: AbilityListItem[];
+  total: number;
+}
+
 export type PokemonListResponse = ApiResponse<PokemonListPayload>;
 export type PokemonDetailResponse = ApiResponse<PokemonDetail>;
+export type AbilityListResponse = ApiResponse<AbilityListPayload>;
+export type AbilityDetailResponse = ApiResponse<AbilityDetail>;
 export type ItemListResponse = ApiResponse<ItemListPayload>;
 export type RecommendationApiResponse = ApiResponse<RecommendationResponse>;
 export type StrategyListResponse = ApiResponse<StrategyTeamSummary[]>;
