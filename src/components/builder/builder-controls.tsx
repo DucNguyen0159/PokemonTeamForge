@@ -227,7 +227,7 @@ export function BuilderControls() {
     try {
       if (team.id) {
         await updateTeamMutation.mutateAsync({ teamId: team.id, team });
-        setFeedback("Saved team updated in Supabase.");
+        setFeedback("Cloud copy updated in Supabase.");
       } else {
         const saved = await saveTeamMutation.mutateAsync(team);
         loadTeam({
@@ -238,7 +238,7 @@ export function BuilderControls() {
           updatedAt: saved.updatedAt,
           isPublic: saved.isPublic,
         });
-        setFeedback("Team saved to Supabase.");
+        setFeedback("New cloud team saved to Supabase.");
       }
     } catch (saveError) {
       setError(
@@ -317,12 +317,12 @@ export function BuilderControls() {
           size="sm"
           onClick={handleSaveTeam}
           className="gap-1.5 rounded-xl text-xs"
-          aria-label="Save current team"
+          aria-label={team.id ? "Update current cloud team" : "Save current team as a new cloud team"}
           disabled={
             isSaving || saveTeamMutation.isPending || updateTeamMutation.isPending
           }
         >
-          {isSaving ? "Saving..." : team.id ? "Update Saved Team" : "Save Team"}
+          {isSaving ? "Saving..." : team.id ? "Update Cloud Copy" : "Save as New Cloud Team"}
         </Button>
       </div>
 
@@ -330,7 +330,16 @@ export function BuilderControls() {
         <p className="text-xs text-muted-foreground">
           Guest mode is active: your current builder session is saved locally.
         </p>
-      ) : null}
+      ) : team.id ? (
+        <p className="text-xs text-muted-foreground">
+          This Builder team is linked to a saved cloud copy. Updating will overwrite that cloud
+          copy with the current Builder state.
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Saving creates a new cloud team. Existing saved teams stay unchanged.
+        </p>
+      )}
 
       {feedback ? (
         <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">

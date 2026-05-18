@@ -4,7 +4,7 @@ import { fetchCompetitiveItemsFromApi } from "@/lib/items/data-access";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toFriendlySupabaseMessage } from "@/lib/supabase/errors";
 import type { BattleFormat } from "@/types/shared";
-import type { SavedTeamSummary } from "@/types/saved-team";
+import type { SavedTeamPokemonPreview, SavedTeamSummary } from "@/types/saved-team";
 import type { Team, TeamPokemon } from "@/types/team";
 import type { PokemonDetail } from "@/types/pokemon";
 
@@ -30,6 +30,19 @@ type TeamPokemonRow = {
   move_3_id: number | null;
   move_4_id: number | null;
   is_shiny: boolean | null;
+};
+
+type TeamSummaryPokemonRow = Pick<TeamPokemonRow, "slot" | "pokemon_id">;
+
+type TeamSummaryRow = TeamRow & {
+  team_pokemon: TeamSummaryPokemonRow[] | null;
+};
+
+type PokemonPreviewRow = {
+  id: number;
+  name: string;
+  slug: string;
+  sprite_normal_url: string | null;
 };
 
 type TeamWithPokemonRows = TeamRow & {
@@ -101,7 +114,28 @@ async function ensureAuthenticatedUserId(): Promise<string> {
   return user.id;
 }
 
-function mapTeamRowToSummary(row: TeamRow): SavedTeamSummary {
+function mapTeamRowToSummary(
+  row: TeamSummaryRow,
+  pokemonById = new Map<number, PokemonPreviewRow>(),
+): SavedTeamSummary {
+  const teamPokemon = [...(row.team_pokemon ?? [])].sort((a, b) => a.slot - b.slot);
+  const pokemonPreviews: SavedTeamPokemonPreview[] = teamPokemon
+    .map((teamPokemonRow) => {
+      const pokemon = pokemonById.get(teamPokemonRow.pokemon_id);
+      if (!pokemon) {
+        return null;
+      }
+
+      return {
+        id: pokemon.id,
+        name: pokemon.name,
+        slug: pokemon.slug,
+        spriteNormal: pokemon.sprite_normal_url,
+        slot: teamPokemonRow.slot,
+      };
+    })
+    .filter((pokemon): pokemon is SavedTeamPokemonPreview => Boolean(pokemon));
+
   return {
     id: row.id,
     name: row.name,
@@ -109,6 +143,8 @@ function mapTeamRowToSummary(row: TeamRow): SavedTeamSummary {
     isPublic: row.is_public ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    filledSlotCount: teamPokemon.length,
+    pokemonPreviews,
   };
 }
 
@@ -218,14 +254,37 @@ export async function listUserTeams(): Promise<SavedTeamSummary[]> {
     await ensureAuthenticatedUserId();
     const { data, error } = await supabase
       .from("teams")
-      .select("id, user_id, name, format, is_public, created_at, updated_at")
+      .select(
+        "id, user_id, name, format, is_public, created_at, updated_at, team_pokemon(slot, pokemon_id)",
+      )
       .order("updated_at", { ascending: false });
 
     if (error) {
       throw error;
     }
 
-    return (data as TeamRow[]).map(mapTeamRowToSummary);
+    const rows = data as TeamSummaryRow[];
+    const pokemonIds = Array.from(
+      new Set(
+        rows.flatMap((row) =>
+          (row.team_pokemon ?? []).map((teamPokemon) => teamPokemon.pokemon_id),
+        ),
+      ),
+    );
+    const pokemonById = new Map<number, PokemonPreviewRow>();
+
+    if (pokemonIds.length > 0) {
+      const { data: pokemonData } = await supabase
+        .from("pokemon")
+        .select("id, name, slug, sprite_normal_url")
+        .in("id", pokemonIds);
+
+      (pokemonData as PokemonPreviewRow[] | null)?.forEach((pokemon) => {
+        pokemonById.set(pokemon.id, pokemon);
+      });
+    }
+
+    return rows.map((row) => mapTeamRowToSummary(row, pokemonById));
   } catch (error) {
     throw new Error(
       toFriendlySupabaseMessage(error, "Unable to load your saved teams."),
@@ -292,7 +351,13 @@ export async function saveTeam(team: Team): Promise<SavedTeamSummary> {
       }
     }
 
-    return mapTeamRowToSummary(createdTeam as TeamRow);
+    return mapTeamRowToSummary({
+      ...(createdTeam as TeamRow),
+      team_pokemon: teamRows.map((row) => ({
+        slot: row.slot,
+        pokemon_id: row.pokemon_id,
+      })),
+    });
   } catch (error) {
     throw new Error(
       toFriendlySupabaseMessage(error, "Unable to save your team right now."),

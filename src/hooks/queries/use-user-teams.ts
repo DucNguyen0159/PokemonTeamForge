@@ -10,6 +10,7 @@ import {
   saveTeam,
   updateSavedTeam,
 } from "@/lib/supabase/team-service";
+import { isRetryableSupabaseError } from "@/lib/supabase/errors";
 import { useAuthStore } from "@/store/auth-store";
 import type { Team } from "@/types/team";
 
@@ -23,7 +24,8 @@ export function useUserTeams() {
     queryKey: USER_TEAMS_QUERY_KEY,
     queryFn: listUserTeams,
     enabled: isInitialized && isAuthenticated,
-    retry: 1,
+    retry: (failureCount, error) =>
+      failureCount < 1 && isRetryableSupabaseError(error),
   });
 }
 

@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { sanitizeUsername } from "@/lib/auth/auth-utils";
+import { runLogoutCleanupWithTimeout } from "@/lib/auth/logout-utils";
 import { toFriendlySupabaseMessage } from "@/lib/supabase/errors";
 import type { UserProfile } from "@/types/user";
 
@@ -46,6 +47,7 @@ function signedOutState() {
     profile: null,
     isAuthenticated: false,
     isLoading: false,
+    isInitialized: true,
     error: null,
   };
 }
@@ -264,25 +266,27 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
 
   logout: async () => {
     set({ isLoading: true, error: null });
+    set(signedOutState());
 
-    try {
+    const cleanupResult = await runLogoutCleanupWithTimeout(async () => {
       const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut({ scope: "local" });
       if (error) {
         throw error;
       }
+    });
 
-      set(signedOutState());
-
+    if (cleanupResult === "completed") {
       return { success: true };
-    } catch (error) {
-      const friendly = toFriendlySupabaseMessage(
-        error,
-        "Unable to log out right now. Please try again.",
-      );
-      set({ isLoading: false, error: friendly });
-      return { success: false, message: friendly };
     }
+
+    return {
+      success: true,
+      message:
+        cleanupResult === "timed-out"
+          ? "Signed out locally. Supabase session cleanup timed out."
+          : "Signed out locally. Supabase session cleanup could not finish.",
+    };
   },
 
   clearError: () => set({ error: null }),

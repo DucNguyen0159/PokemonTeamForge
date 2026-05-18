@@ -7,6 +7,7 @@ import { Cloud, Loader2, LogOut, RefreshCw, ShieldCheck, Sparkles } from "lucide
 
 import { PlaceholderPage } from "@/components/layout/placeholder-page";
 import { ErrorMessage } from "@/components/error/error-message";
+import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { Button } from "@/components/ui/button";
 import {
   useDeleteTeamMutation,
@@ -14,8 +15,19 @@ import {
   useRenameTeamMutation,
   useUserTeams,
 } from "@/hooks/queries/use-user-teams";
+import { useResilientLogout } from "@/hooks/use-resilient-logout";
 import { savePendingLoadedTeam } from "@/lib/team/pending-team";
+import {
+  getLocalTeamSafetySummary,
+  shouldWarnBeforeCloudLoad,
+} from "@/lib/team/local-team-safety";
+import {
+  filterAndSortSavedTeams,
+  type SavedTeamFormatFilter,
+  type SavedTeamSortOption,
+} from "@/lib/team/saved-team-filters";
 import { useAuthStore } from "@/store/auth-store";
+import { useTeamStore } from "@/store/team-store";
 
 function formatUpdatedAt(value: string): string {
   try {
@@ -30,19 +42,30 @@ function formatUpdatedAt(value: string): string {
   }
 }
 
+function formatTeamCount(count: number): string {
+  return `${count} saved ${count === 1 ? "team" : "teams"}`;
+}
+
+function formatFilledSlots(count: number): string {
+  return `${count}/6 ${count === 1 ? "slot" : "slots"} filled`;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
-  const logout = useAuthStore((state) => state.logout);
-  const isLoading = useAuthStore((state) => state.isLoading);
+  const { isLoggingOut, logoutMessage, runLogout } = useResilientLogout();
+  const currentTeam = useTeamStore((state) => state.team);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [confirmingLoadTeamId, setConfirmingLoadTeamId] = useState<string | null>(null);
   const [confirmingDeleteTeamId, setConfirmingDeleteTeamId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [teamSearch, setTeamSearch] = useState("");
+  const [formatFilter, setFormatFilter] = useState<SavedTeamFormatFilter>("all");
+  const [sortOption, setSortOption] = useState<SavedTeamSortOption>("recent");
 
   const teamsQuery = useUserTeams();
   const loadTeamMutation = useLoadTeamMutation();
@@ -50,19 +73,25 @@ export default function ProfilePage() {
   const renameTeamMutation = useRenameTeamMutation();
 
   const teams = useMemo(() => teamsQuery.data ?? [], [teamsQuery.data]);
+  const visibleTeams = useMemo(
+    () =>
+      filterAndSortSavedTeams(teams, {
+        search: teamSearch,
+        format: formatFilter,
+        sort: sortOption,
+      }),
+    [formatFilter, sortOption, teamSearch, teams],
+  );
+  const hasTeamFilters = Boolean(teamSearch.trim() || formatFilter !== "all");
+  const localTeamSummary = useMemo(
+    () => getLocalTeamSafetySummary(currentTeam),
+    [currentTeam],
+  );
 
   async function handleLogout() {
     setFeedback(null);
     setError(null);
-
-    const result = await logout();
-    if (!result.success) {
-      setError(result.message ?? "Unable to log out right now. Please try again.");
-      return;
-    }
-
-    router.replace("/");
-    router.refresh();
+    await runLogout();
   }
 
   async function handleLoadTeam(teamId: string) {
@@ -211,12 +240,12 @@ export default function ProfilePage() {
                 onClick={() => {
                   void handleLogout();
                 }}
-                disabled={isLoading}
+                disabled={isLoggingOut}
               >
-                {isLoading ? (
+                {isLoggingOut ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                    Logging out...
+                    Signing out...
                   </>
                 ) : (
                   <>
@@ -225,6 +254,11 @@ export default function ProfilePage() {
                   </>
                 )}
               </Button>
+              {logoutMessage ? (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {logoutMessage}
+                </p>
+              ) : null}
             </div>
           </section>
 
@@ -236,9 +270,14 @@ export default function ProfilePage() {
               <div>
                 <h2 className="text-sm font-semibold text-foreground">Guest and local teams</h2>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  If you build as a guest, PokemonTeamForge keeps that team locally. After
-                  signing in, you can save local work as a new cloud team without overwriting
-                  existing saved teams.
+                  Your Builder currently has {localTeamSummary.pokemonCount}/6 Pokémon
+                  {localTeamSummary.moveCount > 0 ? ` and ${localTeamSummary.moveCount} moves` : ""}.
+                  Loading a different cloud team will ask for confirmation before replacing it.
+                </p>
+                <p className="mt-2 text-[11px] text-muted-foreground/75">
+                  {localTeamSummary.isCloudTeam
+                    ? "Current Builder team is linked to a cloud copy."
+                    : "Current Builder work is local until you save it as a cloud team."}
                 </p>
               </div>
             </div>
@@ -252,6 +291,13 @@ export default function ProfilePage() {
                 Cloud Teams
               </p>
               <h2 className="mt-1 text-xl font-semibold text-foreground">Saved teams</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {teamsQuery.isSuccess
+                  ? hasTeamFilters
+                    ? `${visibleTeams.length} of ${formatTeamCount(teams.length)} shown`
+                    : formatTeamCount(teams.length)
+                  : "Cloud copies available after saved-team sync loads"}
+              </p>
             </div>
             <Button
               size="sm"
@@ -276,17 +322,41 @@ export default function ProfilePage() {
             {error ? <ErrorMessage title="Action unavailable" message={error} /> : null}
 
             {teamsQuery.isLoading ? (
-              <div className="flex items-center gap-2 rounded-2xl border border-border/50 bg-background/35 px-4 py-8 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Loading your saved teams...
+              <div className="space-y-3">
+                {[0, 1].map((index) => (
+                  <div
+                    key={index}
+                    className="rounded-2xl border border-border/50 bg-background/35 p-4"
+                  >
+                    <div className="flex animate-pulse flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-2">
+                        <div className="h-4 w-44 rounded-full bg-muted/60" />
+                        <div className="h-3 w-64 max-w-full rounded-full bg-muted/40" />
+                        <div className="flex gap-1.5">
+                          {Array.from({ length: 6 }).map((_, slot) => (
+                            <div key={slot} className="size-8 rounded-xl bg-muted/35" />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="h-8 w-24 rounded-xl bg-muted/45" />
+                        <div className="h-8 w-16 rounded-xl bg-muted/35" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  Loading saved team summaries...
+                </p>
               </div>
             ) : teamsQuery.isError ? (
               <ErrorMessage
-                title="We couldn't load saved teams"
+                title="Saved teams couldn't load"
                 message={
                   teamsQuery.error instanceof Error
                     ? teamsQuery.error.message
-                    : "Check your connection or try again."
+                    : "Check your Supabase connection, auth session, or saved-team database setup."
                 }
                 onRetry={() => {
                   void teamsQuery.refetch();
@@ -296,181 +366,293 @@ export default function ProfilePage() {
               />
             ) : teams.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border/60 bg-background/25 px-4 py-10 text-center">
-                <p className="text-sm font-semibold text-foreground">No saved teams yet.</p>
+                <p className="text-sm font-semibold text-foreground">No cloud teams yet.</p>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-                  Build a team, then click Save Team in the Builder to store it in your account.
+                  Build a team, then use Save Team in the Builder to create your first Supabase
+                  cloud copy. Local guest work stays separate until you save it.
                 </p>
                 <Button asChild className="mt-4 rounded-xl">
                   <Link href="/builder">Build a Team</Link>
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-3">
-                {teams.map((team) => {
-                  const isEditing = editingTeamId === team.id;
-                  const isConfirmingLoad = confirmingLoadTeamId === team.id;
-                  const isConfirmingDelete = confirmingDeleteTeamId === team.id;
-                  return (
-                    <article
-                      key={team.id}
-                      className="rounded-2xl border border-border/55 bg-background/35 p-4"
+              <>
+                <div className="grid gap-2 rounded-2xl border border-border/45 bg-background/25 p-3 sm:grid-cols-[minmax(0,1fr)_10rem_10rem]">
+                  <label className="block space-y-1.5">
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Search
+                    </span>
+                    <input
+                      value={teamSearch}
+                      onChange={(event) => setTeamSearch(event.target.value)}
+                      placeholder="Team or Pokémon name..."
+                      className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </label>
+                  <label className="block space-y-1.5">
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Format
+                    </span>
+                    <select
+                      value={formatFilter}
+                      onChange={(event) =>
+                        setFormatFilter(event.target.value as SavedTeamFormatFilter)
+                      }
+                      className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
-                      {isEditing ? (
-                        <div className="space-y-3">
-                          <label className="block space-y-1.5">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              Team name
-                            </span>
-                            <input
-                              value={draftName}
-                              onChange={(event) => setDraftName(event.target.value)}
-                              className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                              placeholder="Team name"
-                            />
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              size="sm"
-                              className="rounded-xl"
-                              onClick={() => {
-                                void handleRenameTeam(team.id);
-                              }}
-                              disabled={renameTeamMutation.isPending}
-                            >
-                              Save name
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="rounded-xl"
-                              onClick={() => {
-                                setEditingTeamId(null);
-                                setDraftName("");
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div className="min-w-0">
-                              <p className="truncate text-base font-semibold text-foreground">
-                                {team.name}
-                              </p>
-                              <p className="mt-1 text-xs capitalize text-muted-foreground">
-                                {team.format} format · Updated {formatUpdatedAt(team.updatedAt)}
-                              </p>
-                              <span className="mt-2 inline-flex rounded-full border border-border/45 bg-card/45 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                {team.isPublic ? "Public" : "Private"}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap gap-2 sm:justify-end">
-                              <Button
-                                size="sm"
-                                className="rounded-xl"
-                                onClick={() => {
-                                  setConfirmingLoadTeamId(team.id);
-                                  setConfirmingDeleteTeamId(null);
-                                }}
-                                disabled={loadTeamMutation.isPending}
-                              >
-                                Load in Builder
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-xl"
-                                onClick={() => {
-                                  setEditingTeamId(team.id);
-                                  setDraftName(team.name);
-                                  setConfirmingLoadTeamId(null);
-                                  setConfirmingDeleteTeamId(null);
-                                }}
-                              >
-                                Rename
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                className="rounded-xl"
-                                onClick={() => {
-                                  setConfirmingDeleteTeamId(team.id);
-                                  setConfirmingLoadTeamId(null);
-                                }}
-                                disabled={deleteTeamMutation.isPending}
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
+                      <option value="all">All formats</option>
+                      <option value="singles">Singles</option>
+                      <option value="doubles">Doubles</option>
+                      <option value="triples">Triples</option>
+                    </select>
+                  </label>
+                  <label className="block space-y-1.5">
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Sort
+                    </span>
+                    <select
+                      value={sortOption}
+                      onChange={(event) =>
+                        setSortOption(event.target.value as SavedTeamSortOption)
+                      }
+                      className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <option value="recent">Recently updated</option>
+                      <option value="oldest">Oldest updated</option>
+                      <option value="name">Name A-Z</option>
+                      <option value="filled">Most complete</option>
+                    </select>
+                  </label>
+                  {hasTeamFilters ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTeamSearch("");
+                        setFormatFilter("all");
+                      }}
+                      className="text-left text-xs font-medium text-primary underline-offset-4 hover:underline sm:col-span-3"
+                    >
+                      Clear saved-team filters
+                    </button>
+                  ) : null}
+                </div>
 
-                          {isConfirmingLoad ? (
-                            <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3">
-                              <p className="text-xs leading-relaxed text-amber-100">
-                                Loading this team will replace the current Builder team. If your
-                                current Builder team is unsaved, save it first or continue only if
-                                you are ready to switch.
-                              </p>
-                              <div className="mt-2 flex flex-wrap gap-2">
+                {visibleTeams.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border/60 bg-background/25 px-4 py-8 text-center">
+                    <p className="text-sm font-semibold text-foreground">
+                      No saved teams match these filters.
+                    </p>
+                    <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+                      Try a different team name, Pokémon name, or format.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {visibleTeams.map((team) => {
+                      const isEditing = editingTeamId === team.id;
+                      const isConfirmingLoad = confirmingLoadTeamId === team.id;
+                      const isConfirmingDelete = confirmingDeleteTeamId === team.id;
+                      const warnsBeforeLoad = shouldWarnBeforeCloudLoad(currentTeam, team.id);
+                      return (
+                        <article
+                          key={team.id}
+                          className="overflow-hidden rounded-2xl border border-border/55 bg-background/35 shadow-sm"
+                        >
+                          {isEditing ? (
+                            <div className="space-y-3 p-4">
+                              <label className="block space-y-1.5">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  Team name
+                                </span>
+                                <input
+                                  value={draftName}
+                                  onChange={(event) => setDraftName(event.target.value)}
+                                  className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                  placeholder="Team name"
+                                />
+                              </label>
+                              <div className="flex flex-wrap gap-2">
                                 <Button
                                   size="sm"
                                   className="rounded-xl"
                                   onClick={() => {
-                                    void handleLoadTeam(team.id);
+                                    void handleRenameTeam(team.id);
                                   }}
-                                  disabled={loadTeamMutation.isPending}
+                                  disabled={renameTeamMutation.isPending}
                                 >
-                                  {loadTeamMutation.isPending ? "Loading..." : "Confirm Load"}
+                                  Save name
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   className="rounded-xl"
-                                  onClick={() => setConfirmingLoadTeamId(null)}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : null}
-
-                          {isConfirmingDelete ? (
-                            <div className="rounded-xl border border-destructive/35 bg-destructive/10 p-3">
-                              <p className="text-xs leading-relaxed text-destructive-foreground">
-                                Delete this saved team from your account? This does not clear your
-                                current local Builder team, but the cloud copy cannot be restored.
-                              </p>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="rounded-xl"
                                   onClick={() => {
-                                    void handleDeleteTeam(team.id);
+                                    setEditingTeamId(null);
+                                    setDraftName("");
                                   }}
-                                  disabled={deleteTeamMutation.isPending}
-                                >
-                                  {deleteTeamMutation.isPending ? "Deleting..." : "Confirm Delete"}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="rounded-xl"
-                                  onClick={() => setConfirmingDeleteTeamId(null)}
                                 >
                                   Cancel
                                 </Button>
                               </div>
                             </div>
-                          ) : null}
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
+                          ) : (
+                            <div className="space-y-3 p-4">
+                              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="truncate text-base font-semibold text-foreground">
+                                      {team.name}
+                                    </p>
+                                    <span className="inline-flex rounded-full border border-border/45 bg-card/45 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                      {team.isPublic ? "Public" : "Private"}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs capitalize text-muted-foreground">
+                                    <span>{team.format} format</span>
+                                    <span>{formatFilledSlots(team.filledSlotCount)}</span>
+                                    <span>Updated {formatUpdatedAt(team.updatedAt)}</span>
+                                  </div>
+                                  <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1">
+                                    {Array.from({ length: 6 }).map((_, index) => {
+                                      const slot = index + 1;
+                                      const pokemon = team.pokemonPreviews.find(
+                                        (preview) => preview.slot === slot,
+                                      );
+
+                                      return (
+                                        <span
+                                          key={slot}
+                                          className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/45 bg-card/45"
+                                          title={pokemon?.name ?? `Empty slot ${slot}`}
+                                        >
+                                          {pokemon ? (
+                                            <PokemonSprite
+                                              src={pokemon.spriteNormal}
+                                              alt={pokemon.name}
+                                              size={32}
+                                              className="h-full w-full object-contain p-1"
+                                            />
+                                          ) : (
+                                            <span className="text-[10px] font-medium text-muted-foreground/60">
+                                              {slot}
+                                            </span>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                                  <Button
+                                    size="sm"
+                                    className="rounded-xl sm:col-auto"
+                                    onClick={() => {
+                                      setConfirmingLoadTeamId(team.id);
+                                      setConfirmingDeleteTeamId(null);
+                                    }}
+                                    disabled={loadTeamMutation.isPending}
+                                  >
+                                    Load in Builder
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="rounded-xl"
+                                    onClick={() => {
+                                      setEditingTeamId(team.id);
+                                      setDraftName(team.name);
+                                      setConfirmingLoadTeamId(null);
+                                      setConfirmingDeleteTeamId(null);
+                                    }}
+                                  >
+                                    Rename
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="rounded-xl sm:ml-auto"
+                                    onClick={() => {
+                                      setConfirmingDeleteTeamId(team.id);
+                                      setConfirmingLoadTeamId(null);
+                                    }}
+                                    disabled={deleteTeamMutation.isPending}
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {isConfirmingLoad ? (
+                                <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3">
+                                  <p className="text-xs leading-relaxed text-amber-100">
+                                    {warnsBeforeLoad
+                                      ? `Your current Builder team has ${localTeamSummary.pokemonCount}/6 Pokémon${localTeamSummary.moveCount > 0 ? ` and ${localTeamSummary.moveCount} selected moves` : ""}. Loading this cloud team will replace the Builder workspace. Save the current team first if you want to keep it.`
+                                      : "This cloud team will be opened in Builder. Your current Builder workspace does not have separate unsaved team content at risk."}
+                                  </p>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="rounded-xl"
+                                      onClick={() => {
+                                        void handleLoadTeam(team.id);
+                                      }}
+                                      disabled={loadTeamMutation.isPending}
+                                    >
+                                      {loadTeamMutation.isPending
+                                        ? "Loading..."
+                                        : warnsBeforeLoad
+                                          ? "Replace Builder Team"
+                                          : "Open in Builder"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="rounded-xl"
+                                      onClick={() => setConfirmingLoadTeamId(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : null}
+
+                              {isConfirmingDelete ? (
+                                <div className="rounded-xl border border-destructive/35 bg-destructive/10 p-3">
+                                  <p className="text-xs leading-relaxed text-destructive-foreground">
+                                    Delete this saved team from your account? This does not clear your
+                                    current local Builder team, but the cloud copy cannot be restored.
+                                  </p>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      className="rounded-xl"
+                                      onClick={() => {
+                                        void handleDeleteTeam(team.id);
+                                      }}
+                                      disabled={deleteTeamMutation.isPending}
+                                    >
+                                      {deleteTeamMutation.isPending ? "Deleting..." : "Confirm Delete"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="rounded-xl"
+                                      onClick={() => setConfirmingDeleteTeamId(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>

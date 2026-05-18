@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useResilientLogout } from "@/hooks/use-resilient-logout";
 import { useAuthStore } from "@/store/auth-store";
 
 const NAV_ITEMS = [
@@ -16,19 +16,9 @@ const NAV_ITEMS = [
 ];
 
 export function SiteHeader() {
-  const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const profile = useAuthStore((state) => state.profile);
-  const logout = useAuthStore((state) => state.logout);
-  const isLoading = useAuthStore((state) => state.isLoading);
-
-  async function handleLogout() {
-    const result = await logout();
-    if (result.success) {
-      router.replace("/");
-      router.refresh();
-    }
-  }
+  const { isLoggingOut, runLogout } = useResilientLogout();
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
@@ -59,11 +49,11 @@ export function SiteHeader() {
                   size="sm"
                   className="rounded-xl"
                   onClick={() => {
-                    void handleLogout();
+                    void runLogout();
                   }}
-                  disabled={isLoading}
+                  disabled={isLoggingOut}
                 >
-                  {isLoading ? "Logging out..." : "Log out"}
+                  {isLoggingOut ? "Signing out..." : "Log out"}
                 </Button>
               </>
             ) : (
