@@ -1,36 +1,183 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PokemonTeamForge
+
+Battle-focused Pokemon team building app for planning teams, analyzing type coverage, browsing competitive Pokemon data, exploring abilities, using strategy presets, getting recommendations, and exporting shareable team cards.
+
+## Project Status
+
+PokemonTeamForge is in active development. The current app focuses on practical team-building workflows: build a team, analyze its strengths and weaknesses, improve it with data-driven recommendations, and share it with polished team card exports.
+
+## Live Demo
+
+No public deployment is listed yet. Run the app locally with the setup steps below.
+
+## Core Workflow
+
+PokemonTeamForge is designed around a simple loop:
+
+1. Build a team with Pokemon, abilities, items, moves, and battle format.
+2. Analyze defensive and offensive type coverage.
+3. Improve the team with strategy presets, ability insights, and recommendations.
+4. Share the result with an exportable team card.
+
+## Core Features
+
+- Team Builder with Pokemon, ability, item, move, shiny, and battle format support.
+- Type coverage analysis for defensive weaknesses and offensive pressure.
+- Battle-ready Pokedex with card/table views, search, sorting, type filters, generation filters, and ability filters.
+- Pokemon detail pages with stats, typing, abilities, descriptions, full ability effects, and move previews.
+- Ability browser with battle-focused tags, search, detail panel, Pokemon availability, and hidden ability markers.
+- Recommendation engine with role, type coverage, format, stat tier, and ability-aware scoring.
+- Strategy presets for common team archetypes and editable starting points.
+- Team Card generator with style presets, backgrounds, trainer details, layouts, export sizes, sprite options, and shareable image export.
+- Static home page previews using local curated Pokemon preview assets for fast loading.
+
+## Tech Stack
+
+- [Next.js](https://nextjs.org)
+- [React](https://react.dev)
+- [TypeScript](https://www.typescriptlang.org)
+- [Tailwind CSS](https://tailwindcss.com)
+- [Supabase](https://supabase.com)
+- [TanStack Query](https://tanstack.com/query)
+- [Zustand](https://zustand-demo.pmnd.rs)
+- [Vitest](https://vitest.dev)
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a local environment file:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+# Required for local import scripts. Never expose this in client-side code.
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Do not commit `.env.local`. The `SUPABASE_SERVICE_ROLE_KEY` value has elevated permissions and should only be used by trusted server-side scripts.
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase Data Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+PokemonTeamForge uses Supabase for static catalog data and saved team data.
 
-## Learn More
+Run the SQL files in Supabase:
 
-To learn more about Next.js, take a look at the following resources:
+```text
+supabase/app-data.sql
+supabase/app-storage.sql
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Import catalog data:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run import:all-data
+```
 
-## Deploy on Vercel
+Validate imported data:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run validate:supabase-data
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The catalog import covers Pokemon, abilities, Pokemon-ability relationships, moves, Pokemon-move relationships, and items.
+
+## Available Scripts
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm test
+npm run import:pokemon-data
+npm run import:item-data
+npm run import:all-data
+npm run validate:supabase-data
+npm run download:masters-trainers
+```
+
+## Testing and Validation
+
+Run lint:
+
+```bash
+npm run lint
+```
+
+Run TypeScript checks:
+
+```bash
+npx tsc --noEmit
+```
+
+Run tests:
+
+```bash
+npm test
+```
+
+Validate Supabase catalog data:
+
+```bash
+npm run validate:supabase-data
+```
+
+## Project Structure
+
+```text
+src/app/                 Next.js app routes and API routes
+src/components/          UI components by feature area
+src/constants/           Shared route and sort constants
+src/data/                Static app metadata, tags, presets, and preview data
+src/lib/                 Services, calculations, normalizers, and data access
+src/store/               Zustand stores
+src/types/               Shared TypeScript types
+scripts/                 Import, validation, and asset scripts
+supabase/                Supabase schema and storage SQL
+public/                 Static assets
+```
+
+## Data Sources and Credits
+
+PokemonTeamForge combines imported public Pokemon data, curated battle metadata, and local app assets.
+
+- [PokeAPI](https://pokeapi.co/) is the primary source for Pokemon, species, stats, types, abilities, moves, items, descriptions, effects, and sprite or official artwork references.
+- [PokeAPI sprites](https://github.com/PokeAPI/sprites) are used where sprite image URLs reference the public PokeAPI sprite repository.
+- [Bulbagarden Archives](https://archives.bulbagarden.net/wiki/Category:Pok%C3%A9mon_Masters_Trainer_sprites) is used by the local trainer asset download script for Pokemon Masters trainer sprites. These assets are listed as CC BY-NC-SA 2.5 / non-commercial in the generated manifest.
+- Supabase stores imported catalog data used by the app at runtime.
+- PokemonTeamForge includes curated internal metadata for ability tags, move tags, strategy presets, recommendation scoring, Team Card presets, and home page preview examples.
+
+Review each upstream source's terms before using this project commercially or redistributing generated assets.
+
+## Known Limitations
+
+- Recommendation scoring is heuristic and intended as team-building guidance, not a guaranteed competitive ranking.
+- Data freshness depends on running the import and validation scripts.
+- Some visual preview assets are curated local examples rather than live database queries.
+- Battle formats are simplified around app-supported singles, doubles, and triples workflows.
+
+## Roadmap
+
+- Continue tuning recommendation scoring and explanations.
+- Expand ability, strategy, move, and item metadata.
+- Improve team sharing, import, and export flows.
+- Add more polished mobile interactions across complex builder screens.
+- Add screenshots or demo media once the public presentation is finalized.
+
+## Disclaimer
+
+PokemonTeamForge is a fan-made project and is not affiliated with, endorsed by, or sponsored by Nintendo, Game Freak, Creatures, or The Pokemon Company. Pokemon names, sprites, artwork, and related marks belong to their respective owners.
