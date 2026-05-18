@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AbilitiesPage() {
-  return <AbilityBrowser />;
+type AbilitiesPageProps = {
+  searchParams?: Promise<{
+    ability?: string;
+  }>;
+};
+
+export default async function AbilitiesPage({ searchParams }: AbilitiesPageProps) {
+  const params = await searchParams;
+  return <AbilityBrowser initialAbility={params?.ability ?? ""} />;
 }

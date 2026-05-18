@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutGrid, List, Loader2, Search, X } from "lucide-react";
+import { ArrowRight, LayoutGrid, List, Loader2, Search, X } from "lucide-react";
 
 import { ABILITY_TAG_DEFINITIONS, ABILITY_TAG_DEFINITION_BY_ID } from "@/data/ability-tags";
 import {
@@ -39,7 +40,14 @@ function abilityMatchesSearch(ability: AbilityListItem, search: string): boolean
   );
 }
 
-export function AbilityBrowser() {
+type AbilityBrowserProps = {
+  initialAbility?: string;
+};
+
+export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<AbilityTag[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
@@ -67,7 +75,8 @@ export function AbilityBrowser() {
     [abilities, normalizedSearch, selectedTags],
   );
 
-  const activeSlug = selectedSlug ?? filteredAbilities[0]?.slug ?? null;
+  const initialSlug = initialAbility.trim() || null;
+  const activeSlug = selectedSlug ?? initialSlug ?? filteredAbilities[0]?.slug ?? null;
 
   const selectedAbilitySummary =
     filteredAbilities.find((ability) => ability.slug === activeSlug) ??
@@ -102,6 +111,14 @@ export function AbilityBrowser() {
     setSelectedTags([]);
   }
 
+  function selectAbility(slug: string) {
+    setSelectedSlug(slug);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("ability", slug);
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+  }
+
   const hasActiveFilters = Boolean(search.trim() || selectedTags.length > 0);
 
   return (
@@ -117,7 +134,7 @@ export function AbilityBrowser() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
               Search abilities by battle purpose, filter by competitive tags, inspect effect text,
-              and jump straight to Pokémon that can use each ability.
+              and open Pokémon detail pages for species that can use each ability.
             </p>
           </div>
           <Button asChild variant="secondary" className="w-fit rounded-xl">
@@ -258,7 +275,7 @@ export function AbilityBrowser() {
                   <button
                     key={ability.slug}
                     type="button"
-                    onClick={() => setSelectedSlug(ability.slug)}
+                    onClick={() => selectAbility(ability.slug)}
                     className={cn(
                       "group rounded-2xl border bg-card/45 p-4 text-left shadow-sm transition-colors",
                       "hover:border-primary/40 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -306,14 +323,14 @@ export function AbilityBrowser() {
             )}
           </section>
 
-          <aside className="h-fit rounded-2xl border border-border/60 bg-card/60 p-5 shadow-sm lg:sticky lg:top-24">
+          <aside className="h-fit rounded-2xl border border-border/60 bg-card/60 p-5 shadow-sm lg:sticky lg:top-24 lg:flex lg:max-h-[calc(100vh-7rem)] lg:flex-col lg:overflow-hidden">
             {!selectedAbilitySummary ? (
               <p className="text-sm text-muted-foreground">
                 Select an ability to view its battle details and Pokémon.
               </p>
             ) : (
-              <div className="space-y-5">
-                <div>
+              <div className="flex min-h-0 flex-col gap-5">
+                <div className="shrink-0">
                   <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Ability Detail
                   </p>
@@ -335,16 +352,25 @@ export function AbilityBrowser() {
                   </div>
                 </div>
 
-                <Button asChild variant="secondary" size="sm" className="rounded-xl">
-                  <Link href={`/pokedex?ability=${encodeURIComponent(selectedAbilitySummary.slug)}`}>
-                    View Pokédex Filter
-                  </Link>
-                </Button>
+                <div className="shrink-0 rounded-2xl border border-border/45 bg-background/30 p-3">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Want to compare this ability across the full Pokédex? Open the Pokédex with{" "}
+                    <span className="font-medium text-foreground">
+                      {selectedAbilitySummary.name}
+                    </span>{" "}
+                    already selected as the ability filter.
+                  </p>
+                  <Button asChild variant="secondary" size="sm" className="mt-3 rounded-xl">
+                    <Link href={`/pokedex?ability=${encodeURIComponent(selectedAbilitySummary.slug)}`}>
+                      Open Pokédex Filter
+                    </Link>
+                  </Button>
+                </div>
 
-                <div className="border-t border-border/50 pt-4">
+                <div className="flex min-h-0 flex-col border-t border-border/50 pt-4">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-sm font-semibold text-foreground">
-                      Pokémon With This Ability
+                      Pokémon That Can Have {selectedAbilitySummary.name}
                     </h3>
                     {abilityDetailQuery.data ? (
                       <span className="text-xs text-muted-foreground">
@@ -352,6 +378,10 @@ export function AbilityBrowser() {
                       </span>
                     ) : null}
                   </div>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Select a row to open that Pokémon&apos;s detail page.{" "}
+                    {HIDDEN_ABILITY_LABEL} means the ability is available only as a hidden ability.
+                  </p>
 
                   {abilityDetailQuery.isPending ? (
                     <p className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground">
@@ -363,12 +393,12 @@ export function AbilityBrowser() {
                       Unable to load Pokémon for this ability.
                     </p>
                   ) : abilityDetailQuery.data?.pokemon.length ? (
-                    <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
+                    <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                       {abilityDetailQuery.data.pokemon.map((pokemon) => (
                         <Link
                           key={`${pokemon.slug}-${pokemon.isHidden ? "hidden" : "standard"}`}
-                          href={`/pokemon/${pokemon.slug}`}
-                          className="flex items-center gap-3 rounded-xl border border-border/45 bg-background/35 p-2 transition-colors hover:border-primary/35 hover:bg-background/55"
+                          href={`/pokemon/${pokemon.slug}?from=abilities&ability=${encodeURIComponent(selectedAbilitySummary.slug)}`}
+                          className="group flex items-center gap-3 rounded-xl border border-border/45 bg-background/35 p-2 transition-colors hover:border-primary/35 hover:bg-background/55 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         >
                           <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-muted/50">
                             <PokemonSprite
@@ -392,6 +422,10 @@ export function AbilityBrowser() {
                               {pokemon.secondaryType ? <TypeBadge type={pokemon.secondaryType} /> : null}
                             </div>
                           </div>
+                          <span className="hidden shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary transition-colors group-hover:bg-primary/10 sm:inline-flex">
+                            View Details
+                            <ArrowRight className="size-3.5" aria-hidden />
+                          </span>
                         </Link>
                       ))}
                     </div>

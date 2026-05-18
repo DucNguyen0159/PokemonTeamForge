@@ -31,6 +31,10 @@ export function PokemonAbilitySection({ abilities }: PokemonAbilitySectionProps)
           Battle Data
         </p>
         <h2 className="text-lg font-semibold text-foreground">Abilities</h2>
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Review this Pokémon&apos;s ability effects, open the ability browser for more context, or
+          filter the Pokédex to compare Pokémon that share the same ability.
+        </p>
       </div>
 
       <div className="mt-4 space-y-3">
@@ -58,11 +62,18 @@ export function PokemonAbilitySection({ abilities }: PokemonAbilitySectionProps)
                     {ability.description}
                   </p>
                 </div>
-                <Button asChild variant="secondary" size="sm" className="shrink-0 rounded-xl">
-                  <Link href={`/pokedex?ability=${encodeURIComponent(ability.slug)}`}>
-                    Same Ability
-                  </Link>
-                </Button>
+                <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                  <Button asChild variant="outline" size="sm" className="rounded-xl">
+                    <Link href={`/abilities?ability=${encodeURIComponent(ability.slug)}`}>
+                      View Ability Detail
+                    </Link>
+                  </Button>
+                  <Button asChild variant="secondary" size="sm" className="rounded-xl">
+                    <Link href={`/pokedex?ability=${encodeURIComponent(ability.slug)}`}>
+                      View Pokémon With This Ability
+                    </Link>
+                  </Button>
+                </div>
               </div>
 
               {canExpand ? (

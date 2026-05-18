@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getPokemonByName } from "@/lib/services/pokemon-service";
+import { pokemonDetailNavigation } from "@/lib/pokemon/detail-navigation";
 import { PokemonAbilitySection } from "@/components/pokemon/pokemon-ability-section";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { TypeBadge } from "@/components/shared/type-badge";
@@ -10,6 +11,10 @@ import { Button } from "@/components/ui/button";
 
 type PokemonDetailPageProps = {
   params: Promise<{ pokemonName: string }>;
+  searchParams?: Promise<{
+    from?: string | string[];
+    ability?: string | string[];
+  }>;
 };
 
 function formatName(segment: string): string {
@@ -35,8 +40,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function PokemonDetailPage({ params }: PokemonDetailPageProps) {
+export default async function PokemonDetailPage({
+  params,
+  searchParams,
+}: PokemonDetailPageProps) {
   const { pokemonName } = await params;
+  const query = await searchParams;
 
   if (!pokemonName) {
     notFound();
@@ -56,6 +65,17 @@ export default async function PokemonDetailPage({ params }: PokemonDetailPagePro
     ["Sp. Def", pokemon.stats.specialDefense],
     ["Speed", pokemon.stats.speed],
   ] as const;
+  const abilitySlug = Array.isArray(query?.ability)
+    ? query?.ability[0]
+    : query?.ability;
+  const navigationAbility = abilitySlug
+    ? pokemon.abilities.find((ability) => ability.slug === abilitySlug)
+    : null;
+  const navigation = pokemonDetailNavigation({
+    from: query?.from,
+    ability: query?.ability,
+    abilityName: navigationAbility?.name,
+  });
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
@@ -68,9 +88,14 @@ export default async function PokemonDetailPage({ params }: PokemonDetailPagePro
             {pokemon.name}
           </h1>
         </div>
-        <Button asChild variant="ghost" size="sm" className="rounded-xl">
-          <Link href="/pokedex">Back to Pokédex</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="ghost" size="sm" className="rounded-xl">
+            <Link href={navigation.primaryHref}>{navigation.primaryLabel}</Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm" className="rounded-xl">
+            <Link href={navigation.secondaryHref}>{navigation.secondaryLabel}</Link>
+          </Button>
+        </div>
       </div>
 
       <section className="grid gap-4 rounded-[2rem] border border-border/60 bg-card/50 p-5 shadow-sm md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:p-6">
