@@ -226,7 +226,7 @@ function HeroProductPreview() {
   const exportTeam = pokemonGroup(HOME_PREVIEW_GROUPS.teamCardTeam);
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-background/45 p-3 shadow-2xl shadow-black/20 backdrop-blur">
+    <div className="ptf-float-subtle rounded-3xl border border-white/10 bg-background/45 p-3 shadow-2xl shadow-black/20 backdrop-blur">
       <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/75">
         <div className="flex items-center justify-between border-b border-border/45 bg-background/35 px-4 py-3">
           <div>
@@ -245,7 +245,7 @@ function HeroProductPreview() {
             {heroTeam.map((pokemon) => (
               <div
                 key={pokemon.slug}
-                className="rounded-2xl border border-border/45 bg-background/50 p-2.5 text-center shadow-sm"
+                className="rounded-2xl border border-border/45 bg-background/50 p-2.5 text-center shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
               >
                 <PokemonSprite pokemon={pokemon} size={42} className="mx-auto mb-1.5" />
                 <p className="truncate text-[10px] font-semibold text-foreground">{pokemon.name}</p>
@@ -492,6 +492,10 @@ export default function HomePage() {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-10 px-4 py-8 sm:space-y-14 sm:py-10 lg:px-6">
       <section className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-card/60 p-5 shadow-2xl shadow-black/10 sm:p-8 lg:p-10">
+        <div
+          aria-hidden
+          className="ptf-pulse-subtle pointer-events-none absolute right-8 top-8 h-24 w-24 rounded-full border border-primary/20 bg-primary/5 blur-sm"
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(125,211,252,0.16),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,0.14),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.18),transparent)]"

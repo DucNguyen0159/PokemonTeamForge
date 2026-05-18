@@ -31,6 +31,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground antialiased">
         <AppProviders>
+          <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
+            <div className="absolute left-1/2 top-[-18rem] h-[34rem] w-[52rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute bottom-[-18rem] right-[-12rem] h-[34rem] w-[34rem] rounded-full bg-sky-500/8 blur-3xl" />
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:56px_56px] opacity-[0.18]" />
+          </div>
           <div className="flex min-h-screen flex-col">
             <SiteHeader />
             <main className="w-full flex-1">{children}</main>

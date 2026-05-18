@@ -343,23 +343,32 @@ export function TeamCardGenerator() {
 
       {/* Empty team notice */}
       {!hasTeam ? (
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-6 text-center space-y-3">
-          <p className="text-sm font-medium text-foreground">No Pokémon in your team yet.</p>
-          <p className="text-xs text-muted-foreground">
-            Build your team first, then come back here to generate a card.
-          </p>
-          <Button asChild className="rounded-xl gap-2">
-            <Link href="/builder">
-              Open Team Builder
-              <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </Button>
+        <div className="relative overflow-hidden rounded-2xl border border-dashed border-primary/30 bg-card/60 p-6 text-center shadow-sm">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(155,181,209,0.12),transparent_38%),linear-gradient(135deg,rgba(255,255,255,0.05),transparent_42%)]"
+          />
+          <div className="relative mx-auto flex max-w-md flex-col items-center space-y-3">
+            <span className="flex size-11 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
+              <ArrowRight className="size-4" aria-hidden />
+            </span>
+            <p className="text-sm font-semibold text-foreground">No Pokémon in your team yet.</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Build your roster first, then return here to turn it into a polished export card.
+            </p>
+            <Button asChild className="rounded-xl gap-2">
+              <Link href="/builder">
+                Open Team Builder
+                <ArrowRight className="size-3.5" aria-hidden />
+              </Link>
+            </Button>
+          </div>
         </div>
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px] xl:items-start">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-xl shadow-black/10">
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-xl shadow-black/10 transition-shadow duration-300 hover:shadow-black/20">
             <div className="flex flex-col gap-3 border-b border-border/50 bg-background/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -413,7 +422,7 @@ export function TeamCardGenerator() {
               />
               <div
                 className={cn(
-                  "relative mx-auto transition-[width] duration-200",
+                  "relative mx-auto transition-[width,transform] duration-200",
                   previewZoom === "fit" ? "w-full" : "w-[960px]",
                 )}
               >
