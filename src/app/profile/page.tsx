@@ -376,7 +376,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <>
-                <div className="grid gap-2 rounded-2xl border border-border/45 bg-background/25 p-3 sm:grid-cols-[minmax(0,1fr)_10rem_10rem]">
+                <div className="grid gap-2 rounded-2xl border border-border/45 bg-background/25 p-3 md:grid-cols-[minmax(0,1fr)_10rem_10rem]">
                   <label className="block space-y-1.5">
                     <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                       Search
@@ -429,7 +429,7 @@ export default function ProfilePage() {
                         setTeamSearch("");
                         setFormatFilter("all");
                       }}
-                      className="text-left text-xs font-medium text-primary underline-offset-4 hover:underline sm:col-span-3"
+                      className="text-left text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:col-span-3"
                     >
                       Clear saved-team filters
                     </button>
@@ -544,7 +544,7 @@ export default function ProfilePage() {
                                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
                                   <Button
                                     size="sm"
-                                    className="rounded-xl sm:col-auto"
+                                    className="col-span-2 rounded-xl sm:col-auto"
                                     onClick={() => {
                                       setConfirmingLoadTeamId(team.id);
                                       setConfirmingDeleteTeamId(null);

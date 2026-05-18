@@ -163,7 +163,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
                 aria-pressed={view === "cards"}
                 onClick={() => setView("cards")}
                 className={cn(
-                  "flex size-9 items-center justify-center rounded-lg transition-colors",
+                  "flex size-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   view === "cards"
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -177,7 +177,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
                 aria-pressed={view === "list"}
                 onClick={() => setView("list")}
                 className={cn(
-                  "flex size-9 items-center justify-center rounded-lg transition-colors",
+                  "flex size-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   view === "list"
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -193,7 +193,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-10 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                className="h-10 gap-1.5 rounded-xl px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={clearFilters}
               >
                 <X className="size-3.5" aria-hidden />
@@ -203,7 +203,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex max-h-40 flex-wrap gap-2 overflow-y-auto pr-1 sm:max-h-none">
           {ABILITY_TAG_DEFINITIONS.map((definition) => {
             const active = selectedTags.includes(definition.id);
             const count = tagCounts.get(definition.id) ?? 0;
@@ -215,7 +215,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
                 onClick={() => toggleTag(definition.id)}
                 title={definition.description}
                 className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors",
+                  "rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   active
                     ? "border-primary/50 bg-primary/15 text-primary"
                     : "border-border/55 bg-background/45 text-muted-foreground hover:border-primary/35 hover:text-foreground",

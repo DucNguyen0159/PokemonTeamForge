@@ -118,7 +118,7 @@ export function SiteHeader() {
       {isMenuOpen ? (
         <div
           id="mobile-site-navigation"
-          className="border-t border-border/70 bg-background/96 px-4 py-3 shadow-xl shadow-black/20 lg:hidden"
+          className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border/70 bg-background/96 px-4 py-3 shadow-xl shadow-black/20 lg:hidden"
         >
           <div className="mx-auto grid w-full max-w-6xl gap-2">
             {NAV_ITEMS.map((item) => (
@@ -128,7 +128,7 @@ export function SiteHeader() {
                 aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
                 onClick={() => setIsMenuOpen(false)}
                 className={cn(
-                  "rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-border/60 hover:bg-card/55 hover:text-foreground",
+                  "rounded-xl border border-transparent px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border/60 hover:bg-card/55 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   isActivePath(pathname, item.href) &&
                     "border-primary/30 bg-primary/10 text-primary",
                 )}
@@ -144,7 +144,7 @@ export function SiteHeader() {
                     href="/profile"
                     onClick={() => setIsMenuOpen(false)}
                     className={cn(
-                      "rounded-xl border border-border/60 bg-card/45 px-3 py-2 text-sm font-medium",
+                      "rounded-xl border border-border/60 bg-card/45 px-3 py-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                       isActivePath(pathname, "/profile") && "border-primary/35 bg-primary/10 text-primary",
                     )}
                   >

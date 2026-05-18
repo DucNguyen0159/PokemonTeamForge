@@ -343,7 +343,7 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
         />
 
         <div className="flex w-full flex-col gap-4 rounded-2xl border border-border/60 bg-card/40 p-4 shadow-sm backdrop-blur-sm sm:p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border/50 bg-background/50 px-3 py-2">
             <Search className="size-4 flex-shrink-0 text-muted-foreground" aria-hidden />
             <input
@@ -356,13 +356,13 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-center lg:justify-end">
             <select
               aria-label="Filter by type"
               value={typeFilter}
               onChange={(event) => setTypeFilter((event.target.value || "") as PokemonType | "")}
               className={cn(
-                "h-10 min-w-[8.5rem] rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground",
+                "h-10 min-w-0 rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground lg:min-w-[8.5rem]",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               )}
             >
@@ -380,7 +380,7 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
               onChange={(event) => setAbilityFilter(event.target.value)}
               disabled={abilityListQuery.isPending}
               className={cn(
-                "h-10 min-w-[10rem] rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground",
+                "h-10 min-w-0 rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground lg:min-w-[10rem]",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 abilityListQuery.isPending && "cursor-wait opacity-70",
               )}
@@ -403,7 +403,7 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
                 setGenerationFilter(next === "" ? "" : Number(next));
               }}
               className={cn(
-                "h-10 min-w-[10rem] rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground",
+                "h-10 min-w-0 rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground lg:min-w-[10rem]",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               )}
             >
@@ -424,7 +424,7 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
                 setSortDirection(defaultSortDirection(next));
               }}
               className={cn(
-                "h-10 min-w-[9.5rem] rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground",
+                "h-10 min-w-0 rounded-xl border border-border/50 bg-background/60 px-3 text-sm text-foreground lg:min-w-[9.5rem]",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               )}
             >
@@ -439,7 +439,7 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
               type="button"
               variant="secondary"
               size="sm"
-              className="h-10 min-w-10 px-2"
+              className="h-10 min-w-10 rounded-xl px-2"
               aria-label={
                 sortDirection === "asc" ? "Sort direction: ascending. Click for descending." : "Sort direction: descending. Click for ascending."
               }
@@ -454,13 +454,13 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
               )}
             </Button>
 
-            <div className="flex items-center rounded-xl border border-border/50 bg-background/40 p-0.5">
+            <div className="flex h-10 items-center justify-center rounded-xl border border-border/50 bg-background/40 p-0.5">
               <button
                 type="button"
                 aria-pressed={view === "cards"}
                 onClick={() => setView("cards")}
                 className={cn(
-                  "flex size-9 items-center justify-center rounded-lg transition-colors",
+                  "flex size-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   view === "cards"
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -474,7 +474,7 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
                 aria-pressed={view === "table"}
                 onClick={() => setView("table")}
                 className={cn(
-                  "flex size-9 items-center justify-center rounded-lg transition-colors",
+                  "flex size-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   view === "table"
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -490,7 +490,7 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-10 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                className="h-10 gap-1.5 rounded-xl px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={clearFilters}
               >
                 <X className="size-3.5" aria-hidden />

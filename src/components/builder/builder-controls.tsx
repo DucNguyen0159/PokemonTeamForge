@@ -253,7 +253,7 @@ export function BuilderControls() {
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
         <Button
           variant={isImportOpen ? "secondary" : "outline"}
           size="sm"
@@ -306,7 +306,7 @@ export function BuilderControls() {
           variant="ghost"
           size="sm"
           onClick={clearTeam}
-          className="ml-auto gap-1.5 rounded-xl text-xs text-muted-foreground hover:text-destructive"
+          className="gap-1.5 rounded-xl text-xs text-muted-foreground hover:text-destructive sm:ml-auto"
           aria-label="Clear all Pokémon from team"
         >
           <Trash2 className="size-3.5" aria-hidden />
@@ -316,7 +316,7 @@ export function BuilderControls() {
         <Button
           size="sm"
           onClick={handleSaveTeam}
-          className="gap-1.5 rounded-xl text-xs"
+          className="col-span-2 gap-1.5 rounded-xl text-xs sm:col-span-1"
           aria-label={team.id ? "Update current cloud team" : "Save current team as a new cloud team"}
           disabled={
             isSaving || saveTeamMutation.isPending || updateTeamMutation.isPending
@@ -382,11 +382,11 @@ export function BuilderControls() {
             placeholder={`Charizard @ Heavy-Duty Boots\nAbility: Blaze\n- Flamethrower\n- Air Slash\n- Roost\n- Dragon Pulse`}
             className="min-h-32 w-full rounded-lg border border-border/60 bg-background/50 p-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs"
+              className="rounded-xl text-xs"
               onClick={() => {
                 setImportText("");
                 setWarningLines([]);
@@ -395,7 +395,7 @@ export function BuilderControls() {
             >
               Reset
             </Button>
-            <Button size="sm" className="text-xs" onClick={handleImport} disabled={isImporting}>
+            <Button size="sm" className="rounded-xl text-xs" onClick={handleImport} disabled={isImporting}>
               {isImporting ? "Importing..." : "Import to Builder"}
             </Button>
           </div>

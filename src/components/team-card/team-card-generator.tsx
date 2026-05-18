@@ -386,8 +386,8 @@ export function TeamCardGenerator() {
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex rounded-xl border border-border/60 bg-background/45 p-1">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="flex justify-center rounded-xl border border-border/60 bg-background/45 p-1">
                   {PREVIEW_ZOOM_OPTIONS.map((option) => (
                     <button
                       key={option.id}
@@ -395,7 +395,7 @@ export function TeamCardGenerator() {
                       onClick={() => setPreviewZoom(option.id)}
                       aria-pressed={previewZoom === option.id}
                       className={cn(
-                        "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                      "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                         previewZoom === option.id
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
@@ -472,7 +472,7 @@ export function TeamCardGenerator() {
         </div>
 
         <aside className="w-full rounded-2xl border border-border/60 bg-card/60 p-3 shadow-md xl:sticky xl:top-24">
-          <div className="mb-3 grid grid-cols-4 gap-1 rounded-xl border border-border/50 bg-background/30 p-1">
+          <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-border/50 bg-background/30 p-1 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
             {STUDIO_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -480,7 +480,7 @@ export function TeamCardGenerator() {
                 onClick={() => setActiveTab(tab.id)}
                 aria-pressed={activeTab === tab.id}
                 className={cn(
-                  "rounded-lg px-2 py-2 text-xs font-medium transition-colors",
+                  "rounded-lg px-2 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   activeTab === tab.id
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
@@ -520,7 +520,7 @@ export function TeamCardGenerator() {
                         type="button"
                         onClick={() => applyPreset(preset)}
                         className={cn(
-                          "group overflow-hidden rounded-xl border text-left transition-colors",
+                          "group overflow-hidden rounded-xl border text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                           config.visualStyle.presetId === preset.id
                             ? "border-primary/60 bg-primary/10"
                             : "border-border/50 bg-background/25 hover:border-border/80 hover:bg-background/45",
