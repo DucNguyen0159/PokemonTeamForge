@@ -144,7 +144,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
 
       <section className="rounded-2xl border border-border/60 bg-card/45 p-4 shadow-sm backdrop-blur-sm sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border/50 bg-background/50 px-3 py-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border/50 bg-background/50 px-3 py-2 focus-within:ring-1 focus-within:ring-ring">
             <Search className="size-4 flex-shrink-0 text-muted-foreground" aria-hidden />
             <input
               type="search"

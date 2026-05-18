@@ -59,7 +59,7 @@ type PreviewZoom = "fit" | "full";
 const STUDIO_TABS: Array<{ id: StudioTab; label: string; description: string }> = [
   { id: "style", label: "Style", description: "Full card themes, background override, and treatment." },
   { id: "trainer", label: "Trainer", description: "Card title, trainer art, headline, and subtitle." },
-  { id: "pokemon", label: "Pokemon", description: "Global and per-slot sprite mode." },
+  { id: "pokemon", label: "Pokémon", description: "Global and per-slot sprite mode." },
   { id: "export", label: "Export", description: "Review output and save your PNG." },
 ];
 
@@ -69,7 +69,7 @@ const PREVIEW_ZOOM_OPTIONS: Array<{ id: PreviewZoom; label: string }> = [
 ];
 
 const SUBTITLE_PRESETS = [
-  "Pokemon Trainer",
+  "Pokémon Trainer",
   "Champion",
   "Gym Leader",
   "Battle Strategist",
@@ -164,7 +164,7 @@ export function TeamCardGenerator() {
   const isTrainerReady = config.trainerName.trim().length > 0;
   const isSubtitleReady = Boolean(config.detailRows[0]?.text?.trim());
   const previewStatusItems = [
-    { label: `${filledSlotCount}/6 Pokemon`, isReady: filledSlotCount === 6 },
+    { label: `${filledSlotCount}/6 Pokémon`, isReady: filledSlotCount === 6 },
     { label: isTrainerReady ? "Trainer set" : "Trainer missing", isReady: isTrainerReady },
     { label: selectedBackground ? "Background set" : "Background missing", isReady: Boolean(selectedBackground) },
     { label: isSubtitleReady ? "Subtitle set" : "Subtitle optional", isReady: true },

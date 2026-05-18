@@ -116,7 +116,7 @@ export function BuilderControls() {
             `Set ${i + 1}: could not verify "${parsedSet.species}" because your connection dropped.`,
           );
         } else if (detailResult.error === "not_found") {
-          localWarnings.push(`Set ${i + 1}: Pokemon "${parsedSet.species}" was not found.`);
+          localWarnings.push(`Set ${i + 1}: Pokémon "${parsedSet.species}" was not found.`);
         } else {
           localWarnings.push(
             `Set ${i + 1}: "${parsedSet.species}" could not be imported right now.`,

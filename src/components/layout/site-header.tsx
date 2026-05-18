@@ -14,7 +14,7 @@ import { cn } from "@/utils";
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
   { href: "/builder", label: "Builder" },
-  { href: "/pokedex", label: "Pokedex" },
+  { href: "/pokedex", label: "Pokédex" },
   { href: "/abilities", label: "Abilities" },
   { href: "/strategies", label: "Strategies" },
   { href: "/team-card", label: "Team Cards" },

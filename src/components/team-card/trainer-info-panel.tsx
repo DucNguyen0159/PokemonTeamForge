@@ -106,7 +106,7 @@ export function TrainerInfoPanel({
                 <input
                   value={row.text}
                   onChange={(event) => onDetailRowChange(row.id, { text: event.target.value })}
-                  placeholder="e.g. @trainer or Pokemon Trainer"
+                  placeholder="e.g. @trainer or Pokémon Trainer"
                   className="h-9 w-full rounded-lg border border-border/60 bg-background/50 px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
