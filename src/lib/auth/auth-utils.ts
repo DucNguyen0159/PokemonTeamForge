@@ -60,3 +60,10 @@ export function currentAuthRedirectTarget(fallback = DEFAULT_AUTH_REDIRECT): str
   const params = new URLSearchParams(window.location.search);
   return resolveAuthRedirectTarget(params.get("redirect"), fallback);
 }
+
+export function authErrorTitle(message: string | null | undefined, fallback: string): string {
+  const normalized = (message ?? "").toLowerCase();
+  return normalized.includes("too many attempts") || normalized.includes("too many requests")
+    ? "Too many attempts"
+    : fallback;
+}

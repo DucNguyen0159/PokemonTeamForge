@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  authErrorTitle,
   resolveAuthRedirectTarget,
   sanitizeUsername,
 } from "@/lib/auth/auth-utils";
@@ -26,5 +27,12 @@ describe("auth utils", () => {
     expect(resolveAuthRedirectTarget("/login")).toBe("/profile");
     expect(resolveAuthRedirectTarget("/register")).toBe("/profile");
     expect(resolveAuthRedirectTarget("/admin")).toBe("/profile");
+  });
+
+  it("uses a specific title for rate-limited auth attempts", () => {
+    expect(authErrorTitle("Too many attempts. Please wait a moment and try again.", "Registration failed")).toBe(
+      "Too many attempts",
+    );
+    expect(authErrorTitle("Email or password is incorrect.", "Sign in failed")).toBe("Sign in failed");
   });
 });

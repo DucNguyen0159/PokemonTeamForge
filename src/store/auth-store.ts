@@ -114,6 +114,17 @@ async function ensureProfileRecord(
   }
 }
 
+async function ensureAndFetchUserProfile(
+  user: User,
+  fallbackUsername: string | null | undefined,
+): Promise<UserProfile | null> {
+  await ensureProfileRecord(
+    user.id,
+    (user.user_metadata?.username as string | undefined) ?? fallbackUsername,
+  );
+  return await fetchUserProfile(user.id);
+}
+
 export const useAuthStore = create<AuthStoreState>((set, get) => ({
   session: null,
   user: null,
@@ -141,7 +152,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       }
 
       if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id);
+        const profile = await ensureAndFetchUserProfile(session.user, session.user.email);
         set({
           session,
           user: session.user,
@@ -188,7 +199,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       }
 
       try {
-        const profile = await fetchUserProfile(nextSession.user.id);
+        const profile = await ensureAndFetchUserProfile(nextSession.user, nextSession.user.email);
         set({
           session: nextSession,
           user: nextSession.user,
@@ -228,7 +239,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         throw error;
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
         await ensureProfileRecord(data.user.id, username ?? data.user.email);
       }
 

@@ -28,12 +28,12 @@ describe("toFriendlySupabaseMessage", () => {
     expect(toFriendlySupabaseMessage("not an error", "fallback")).toBe("fallback");
   });
 
-  it("normalizes saved-team access and network failures", () => {
+  it("normalizes account access and network failures", () => {
     expect(toFriendlySupabaseMessage(new Error("Failed to fetch"), "fallback")).toBe(
       "Unable to connect to Supabase right now. Please try again.",
     );
     expect(toFriendlySupabaseMessage(new Error("new row violates row-level security policy"), "fallback")).toBe(
-      "Your session does not have access to this saved team data. Try refreshing or signing in again.",
+      "Your session does not have access to this account data. Try refreshing or signing in again.",
     );
   });
 

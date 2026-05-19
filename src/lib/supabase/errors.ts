@@ -152,7 +152,7 @@ export function toFriendlySupabaseMessage(
     typedError.code === "42501" ||
     typedError.status === 403
   ) {
-    return "Your session does not have access to this saved team data. Try refreshing or signing in again.";
+    return "Your session does not have access to this account data. Try refreshing or signing in again.";
   }
 
   if (typedError.code === "PGRST301" || typedError.status === 401) {

@@ -7,7 +7,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AuthLayout, PasswordInput } from "@/components/auth/auth-layout";
 import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
-import { currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
+import { authErrorTitle, currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginPage() {
@@ -52,6 +52,8 @@ export default function LoginPage() {
     }
   }
 
+  const errorMessage = formError ?? authError;
+
   return (
     <AuthLayout
       eyebrow="Account"
@@ -81,10 +83,10 @@ export default function LoginPage() {
           placeholder="Your password"
         />
 
-        {(formError || authError) && (
+        {errorMessage && (
           <ErrorMessage
-            title="Sign in failed"
-            message={formError ?? authError ?? "Unable to sign in right now."}
+            title={authErrorTitle(errorMessage, "Sign in failed")}
+            message={errorMessage}
           />
         )}
 

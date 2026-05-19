@@ -7,7 +7,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AuthLayout, PasswordInput } from "@/components/auth/auth-layout";
 import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
-import { currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
+import { authErrorTitle, currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
 import { useAuthStore } from "@/store/auth-store";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -65,6 +65,8 @@ export default function RegisterPage() {
     }
   }
 
+  const errorMessage = formError ?? authError;
+
   return (
     <AuthLayout
       eyebrow="Account"
@@ -108,10 +110,10 @@ export default function RegisterPage() {
           helperText="Use at least 8 characters. Avoid reusing passwords from other sites."
         />
 
-        {(formError || authError) && (
+        {errorMessage && (
           <ErrorMessage
-            title="Registration failed"
-            message={formError ?? authError ?? "Unable to register right now."}
+            title={authErrorTitle(errorMessage, "Registration failed")}
+            message={errorMessage}
           />
         )}
 
