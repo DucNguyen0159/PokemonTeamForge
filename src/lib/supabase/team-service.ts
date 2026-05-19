@@ -114,6 +114,17 @@ async function ensureAuthenticatedUserId(): Promise<string> {
   return user.id;
 }
 
+export async function resolveAuthenticatedUserId(
+  trustedUserId?: string | null,
+): Promise<string> {
+  const normalized = trustedUserId?.trim();
+  if (normalized) {
+    return normalized;
+  }
+
+  return ensureAuthenticatedUserId();
+}
+
 function mapTeamRowToSummary(
   row: TeamSummaryRow,
   pokemonById = new Map<number, PokemonPreviewRow>(),
@@ -248,10 +259,10 @@ async function hydrateTeam(row: TeamWithPokemonRows): Promise<Team> {
   };
 }
 
-export async function listUserTeams(): Promise<SavedTeamSummary[]> {
+export async function listUserTeams(trustedUserId?: string | null): Promise<SavedTeamSummary[]> {
   try {
     const supabase = getSupabaseBrowserClient();
-    await ensureAuthenticatedUserId();
+    await resolveAuthenticatedUserId(trustedUserId);
     const { data, error } = await supabase
       .from("teams")
       .select(

@@ -27,7 +27,7 @@ import {
   type SavedTeamFormatFilter,
   type SavedTeamSortOption,
 } from "@/lib/team/saved-team-filters";
-import { useAuthStore } from "@/store/auth-store";
+import { selectIsSessionReady, useAuthStore } from "@/store/auth-store";
 import { useTeamStore } from "@/store/team-store";
 
 function formatUpdatedAt(value: string): string {
@@ -54,6 +54,7 @@ function formatFilledSlots(count: number): string {
 export default function ProfilePage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isSessionReady = useAuthStore(selectIsSessionReady);
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
   const { isLoggingOut, logoutButtonLabel, logoutMessage, runLogout } = useResilientLogout();
@@ -74,6 +75,7 @@ export default function ProfilePage() {
   const renameTeamMutation = useRenameTeamMutation();
 
   const teams = useMemo(() => teamsQuery.data ?? [], [teamsQuery.data]);
+  const showTeamsLoading = isAuthenticated && (!isSessionReady || teamsQuery.isLoading);
   const visibleTeams = useMemo(
     () =>
       filterAndSortSavedTeams(teams, {
@@ -320,7 +322,7 @@ export default function ProfilePage() {
             ) : null}
             {error ? <ErrorMessage title="Action unavailable" message={error} /> : null}
 
-            {teamsQuery.isLoading ? (
+            {showTeamsLoading ? (
               <div className="space-y-3">
                 {[0, 1].map((index) => (
                   <div

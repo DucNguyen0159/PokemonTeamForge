@@ -6,7 +6,10 @@ import {
   createAuthOperationQueue,
   createLogoutInFlightTracker,
 } from "@/lib/auth/auth-operations";
+import { selectIsSessionReady } from "@/lib/auth/session-ready";
 import { sanitizeUsername } from "@/lib/auth/auth-utils";
+
+export { selectIsSessionReady };
 import { runLogoutCleanupWithTimeout } from "@/lib/auth/logout-utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toFriendlySupabaseMessage } from "@/lib/supabase/errors";

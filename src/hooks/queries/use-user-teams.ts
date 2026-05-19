@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { selectIsSessionReady } from "@/lib/auth/session-ready";
 import {
   deleteSavedTeam,
   listUserTeams,
@@ -17,13 +18,13 @@ import type { Team } from "@/types/team";
 export const USER_TEAMS_QUERY_KEY = ["user-teams"] as const;
 
 export function useUserTeams() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const isSessionReady = useAuthStore(selectIsSessionReady);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
 
   return useQuery({
-    queryKey: USER_TEAMS_QUERY_KEY,
-    queryFn: listUserTeams,
-    enabled: isInitialized && isAuthenticated,
+    queryKey: [...USER_TEAMS_QUERY_KEY, userId],
+    queryFn: () => listUserTeams(userId),
+    enabled: isSessionReady && Boolean(userId),
     retry: (failureCount, error) =>
       failureCount < 1 && isRetryableSupabaseError(error),
   });
