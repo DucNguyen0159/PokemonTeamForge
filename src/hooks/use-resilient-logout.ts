@@ -5,8 +5,17 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { getLogoutButtonLabel } from "@/lib/auth/auth-utils";
-import { USER_TEAMS_QUERY_KEY } from "@/hooks/queries/use-user-teams";
+import { USER_TEAMS_QUERY_KEY } from "@/hooks/queries/user-teams-query";
 import { useAuthStore } from "@/store/auth-store";
+
+function clearSavedTeamsCache(queryClient: ReturnType<typeof useQueryClient>) {
+  // Query keys include userId, so accounts stay isolated. Invalidate without refetch
+  // because the teams query is disabled once the session is cleared.
+  void queryClient.invalidateQueries({
+    queryKey: USER_TEAMS_QUERY_KEY,
+    refetchType: "none",
+  });
+}
 
 export function useResilientLogout() {
   const router = useRouter();
@@ -29,7 +38,7 @@ export function useResilientLogout() {
       await queryClient.cancelQueries({ queryKey: USER_TEAMS_QUERY_KEY });
       const result = await logout();
 
-      queryClient.removeQueries({ queryKey: USER_TEAMS_QUERY_KEY });
+      clearSavedTeamsCache(queryClient);
 
       if (result.message) {
         setMessage(result.message);
@@ -39,7 +48,7 @@ export function useResilientLogout() {
       router.refresh();
     } catch {
       setMessage("Signed out locally. Refresh the page if the header does not update.");
-      queryClient.removeQueries({ queryKey: USER_TEAMS_QUERY_KEY });
+      clearSavedTeamsCache(queryClient);
       router.replace("/");
       router.refresh();
     } finally {

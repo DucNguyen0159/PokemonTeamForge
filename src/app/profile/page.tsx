@@ -10,6 +10,7 @@ import { ErrorMessage } from "@/components/error/error-message";
 import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { Button } from "@/components/ui/button";
+import { getSavedTeamsLoadingState } from "@/hooks/queries/user-teams-query";
 import {
   useDeleteTeamMutation,
   useLoadTeamMutation,
@@ -29,6 +30,7 @@ import {
 } from "@/lib/team/saved-team-filters";
 import { selectIsSessionReady, useAuthStore } from "@/store/auth-store";
 import { useTeamStore } from "@/store/team-store";
+import { cn } from "@/utils";
 
 function formatUpdatedAt(value: string): string {
   try {
@@ -75,7 +77,23 @@ export default function ProfilePage() {
   const renameTeamMutation = useRenameTeamMutation();
 
   const teams = useMemo(() => teamsQuery.data ?? [], [teamsQuery.data]);
-  const showTeamsLoading = isAuthenticated && (!isSessionReady || teamsQuery.isLoading);
+  const savedTeamsLoading = useMemo(
+    () =>
+      getSavedTeamsLoadingState({
+        isAuthenticated,
+        isSessionReady,
+        isPending: teamsQuery.isPending,
+        isFetching: teamsQuery.isFetching,
+        hasCachedTeams: teamsQuery.data !== undefined,
+      }),
+    [
+      isAuthenticated,
+      isSessionReady,
+      teamsQuery.data,
+      teamsQuery.isFetching,
+      teamsQuery.isPending,
+    ],
+  );
   const visibleTeams = useMemo(
     () =>
       filterAndSortSavedTeams(teams, {
@@ -293,11 +311,17 @@ export default function ProfilePage() {
               </p>
               <h2 className="mt-1 text-xl font-semibold text-foreground">Saved teams</h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                {teamsQuery.isSuccess
-                  ? hasTeamFilters
-                    ? `${visibleTeams.length} of ${formatTeamCount(teams.length)} shown`
-                    : formatTeamCount(teams.length)
-                  : "Cloud copies available after saved-team sync loads"}
+                {savedTeamsLoading.isPreparingCloudSync
+                  ? "Preparing cloud sync..."
+                  : savedTeamsLoading.showInitialSkeleton
+                    ? "Loading saved team summaries..."
+                    : savedTeamsLoading.isRefreshingTeams
+                      ? "Updating saved teams..."
+                      : teamsQuery.isSuccess
+                        ? hasTeamFilters
+                          ? `${visibleTeams.length} of ${formatTeamCount(teams.length)} shown`
+                          : formatTeamCount(teams.length)
+                        : "Cloud copies available after saved-team sync loads"}
               </p>
             </div>
             <Button
@@ -307,9 +331,16 @@ export default function ProfilePage() {
               onClick={() => {
                 void teamsQuery.refetch();
               }}
-              disabled={teamsQuery.isRefetching}
+              disabled={teamsQuery.isRefetching || savedTeamsLoading.isPreparingCloudSync}
             >
-              <RefreshCw className={teamsQuery.isRefetching ? "size-3.5 animate-spin" : "size-3.5"} aria-hidden />
+              <RefreshCw
+                className={
+                  teamsQuery.isRefetching || savedTeamsLoading.isRefreshingTeams
+                    ? "size-3.5 animate-spin"
+                    : "size-3.5"
+                }
+                aria-hidden
+              />
               Refresh
             </Button>
           </div>
@@ -322,7 +353,7 @@ export default function ProfilePage() {
             ) : null}
             {error ? <ErrorMessage title="Action unavailable" message={error} /> : null}
 
-            {showTeamsLoading ? (
+            {savedTeamsLoading.showInitialSkeleton || savedTeamsLoading.isPreparingCloudSync ? (
               <div className="space-y-3">
                 {[0, 1].map((index) => (
                   <div
@@ -348,7 +379,9 @@ export default function ProfilePage() {
                 ))}
                 <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                  Loading saved team summaries...
+                  {savedTeamsLoading.isPreparingCloudSync
+                    ? "Preparing cloud sync..."
+                    : "Loading saved team summaries..."}
                 </p>
               </div>
             ) : teamsQuery.isError ? (
@@ -378,6 +411,12 @@ export default function ProfilePage() {
               </div>
             ) : (
               <>
+                {savedTeamsLoading.isRefreshingTeams ? (
+                  <p className="inline-flex items-center gap-2 rounded-xl border border-border/50 bg-background/35 px-3 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    Updating saved teams...
+                  </p>
+                ) : null}
                 <div className="grid gap-2 rounded-2xl border border-border/45 bg-background/25 p-3 md:grid-cols-[minmax(0,1fr)_10rem_10rem]">
                   <label className="block space-y-1.5">
                     <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -448,7 +487,9 @@ export default function ProfilePage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid gap-3">
+                  <div
+                    className={cn("grid gap-3", savedTeamsLoading.isRefreshingTeams && "opacity-80")}
+                  >
                     {visibleTeams.map((team) => {
                       const isEditing = editingTeamId === team.id;
                       const isConfirmingLoad = confirmingLoadTeamId === team.id;

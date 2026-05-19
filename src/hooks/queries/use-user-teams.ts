@@ -11,22 +11,27 @@ import {
   saveTeam,
   updateSavedTeam,
 } from "@/lib/supabase/team-service";
-import { isRetryableSupabaseError } from "@/lib/supabase/errors";
+import {
+  getUserTeamsQueryKey,
+  shouldRetryUserTeamsQuery,
+  USER_TEAMS_QUERY_KEY,
+  userTeamsRetryDelay,
+} from "@/hooks/queries/user-teams-query";
 import { useAuthStore } from "@/store/auth-store";
 import type { Team } from "@/types/team";
 
-export const USER_TEAMS_QUERY_KEY = ["user-teams"] as const;
+export { USER_TEAMS_QUERY_KEY, prefetchUserTeams } from "@/hooks/queries/user-teams-query";
 
 export function useUserTeams() {
   const isSessionReady = useAuthStore(selectIsSessionReady);
   const userId = useAuthStore((state) => state.user?.id ?? null);
 
   return useQuery({
-    queryKey: [...USER_TEAMS_QUERY_KEY, userId],
+    queryKey: getUserTeamsQueryKey(userId),
     queryFn: () => listUserTeams(userId),
     enabled: isSessionReady && Boolean(userId),
-    retry: (failureCount, error) =>
-      failureCount < 1 && isRetryableSupabaseError(error),
+    retry: shouldRetryUserTeamsQuery,
+    retryDelay: userTeamsRetryDelay,
   });
 }
 

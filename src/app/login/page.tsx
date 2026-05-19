@@ -3,17 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { AuthLayout, PasswordInput } from "@/components/auth/auth-layout";
 import { AuthPendingNotice } from "@/components/auth/auth-pending-notice";
 import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
+import { prefetchUserTeams } from "@/hooks/queries/use-user-teams";
 import { useAuthFormAvailability } from "@/hooks/use-auth-form-availability";
+import { selectIsSessionReady } from "@/lib/auth/session-ready";
 import { authErrorTitle, currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const login = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const authError = useAuthStore((state) => state.error);
@@ -51,6 +55,11 @@ export default function LoginPage() {
       if (!result.success) {
         setFormError(result.message ?? "Unable to sign in. Please try again.");
         return;
+      }
+
+      const authState = useAuthStore.getState();
+      if (selectIsSessionReady(authState) && authState.user?.id) {
+        void prefetchUserTeams(queryClient, authState.user.id);
       }
 
       router.replace(currentAuthRedirectTarget());

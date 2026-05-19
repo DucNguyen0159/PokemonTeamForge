@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { AuthLayout, PasswordInput } from "@/components/auth/auth-layout";
 import { AuthPendingNotice } from "@/components/auth/auth-pending-notice";
 import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
+import { prefetchUserTeams } from "@/hooks/queries/use-user-teams";
 import { useAuthFormAvailability } from "@/hooks/use-auth-form-availability";
+import { selectIsSessionReady } from "@/lib/auth/session-ready";
 import { authErrorTitle, currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -16,6 +19,7 @@ const MIN_PASSWORD_LENGTH = 8;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const register = useAuthStore((state) => state.register);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const authError = useAuthStore((state) => state.error);
@@ -65,6 +69,11 @@ export default function RegisterPage() {
 
       setFeedback(result.message ?? "Registration successful.");
       if (!(result.message ?? "").toLowerCase().includes("check your email")) {
+        const authState = useAuthStore.getState();
+        if (selectIsSessionReady(authState) && authState.user?.id) {
+          void prefetchUserTeams(queryClient, authState.user.id);
+        }
+
         router.replace(currentAuthRedirectTarget());
         router.refresh();
       }
