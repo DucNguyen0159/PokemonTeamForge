@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   authErrorTitle,
+  getLogoutButtonLabel,
   resolveAuthRedirectTarget,
   sanitizeUsername,
 } from "@/lib/auth/auth-utils";
@@ -27,6 +28,18 @@ describe("auth utils", () => {
     expect(resolveAuthRedirectTarget("/login")).toBe("/profile");
     expect(resolveAuthRedirectTarget("/register")).toBe("/profile");
     expect(resolveAuthRedirectTarget("/admin")).toBe("/profile");
+  });
+
+  it("labels logout buttons based on in-flight cleanup state", () => {
+    expect(
+      getLogoutButtonLabel({ isLoggingOut: false, isLogoutInFlight: false }),
+    ).toBe("Log out");
+    expect(
+      getLogoutButtonLabel({ isLoggingOut: true, isLogoutInFlight: true }),
+    ).toBe("Signing out...");
+    expect(
+      getLogoutButtonLabel({ isLoggingOut: false, isLogoutInFlight: true }),
+    ).toBe("Finishing sign out...");
   });
 
   it("uses a specific title for rate-limited auth attempts", () => {

@@ -33,7 +33,7 @@ export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const profile = useAuthStore((state) => state.profile);
-  const { isLoggingOut, runLogout } = useResilientLogout();
+  const { isLoggingOut, logoutButtonLabel, runLogout } = useResilientLogout();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/88 backdrop-blur-xl">
@@ -85,7 +85,7 @@ export function SiteHeader() {
                   }}
                   disabled={isLoggingOut}
                 >
-                  {isLoggingOut ? "Signing out..." : "Log out"}
+                  {logoutButtonLabel}
                 </Button>
               </>
             ) : (
@@ -160,7 +160,7 @@ export function SiteHeader() {
                     }}
                     disabled={isLoggingOut}
                   >
-                    {isLoggingOut ? "Signing out..." : "Log out"}
+                    {logoutButtonLabel}
                   </Button>
                 </div>
               ) : (

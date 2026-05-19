@@ -6,6 +6,7 @@ import { Eye, EyeOff, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { PREVIEW_POKEMON_BY_SLUG } from "@/data/preview-pokemon";
 import type { PreviewPokemon } from "@/data/preview-pokemon";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
+import { cn } from "@/utils";
 
 type AuthLayoutProps = {
   eyebrow: string;
@@ -22,6 +23,7 @@ type PasswordInputProps = {
   autoComplete: string;
   placeholder: string;
   helperText?: string;
+  disabled?: boolean;
 };
 
 const PREVIEW_TEAM = [
@@ -59,26 +61,34 @@ export function PasswordInput({
   autoComplete,
   placeholder,
   helperText,
+  disabled = false,
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <label htmlFor={id} className="block space-y-1.5">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <div className="flex items-center rounded-xl border border-border/60 bg-background/55 transition-colors focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-ring">
+      <div
+        className={cn(
+          "flex items-center rounded-xl border border-border/60 bg-background/55 transition-colors focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-ring",
+          disabled && "cursor-not-allowed opacity-60",
+        )}
+      >
         <input
           id={id}
           type={showPassword ? "text" : "password"}
           autoComplete={autoComplete}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+          disabled={disabled}
+          className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none disabled:cursor-not-allowed"
           placeholder={placeholder}
         />
         <button
           type="button"
           onClick={() => setShowPassword((current) => !current)}
-          className="mr-1.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          disabled={disabled}
+          className="mr-1.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
           aria-label={showPassword ? "Hide password" : "Show password"}
         >
           {showPassword ? (

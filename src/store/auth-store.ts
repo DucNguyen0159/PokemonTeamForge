@@ -1,9 +1,14 @@
 import { create } from "zustand";
 import type { Session, User } from "@supabase/supabase-js";
 
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  createAuthGenerationGuard,
+  createAuthOperationQueue,
+  createLogoutInFlightTracker,
+} from "@/lib/auth/auth-operations";
 import { sanitizeUsername } from "@/lib/auth/auth-utils";
 import { runLogoutCleanupWithTimeout } from "@/lib/auth/logout-utils";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toFriendlySupabaseMessage } from "@/lib/supabase/errors";
 import type { UserProfile } from "@/types/user";
 
@@ -29,6 +34,7 @@ type AuthStoreState = {
   profile: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isLogoutInFlight: boolean;
   isInitialized: boolean;
   error: string | null;
   initializeAuth: () => Promise<void>;
@@ -40,6 +46,10 @@ type AuthStoreState = {
 
 let authListenerInitialized = false;
 
+const authOperationQueue = createAuthOperationQueue();
+const authGeneration = createAuthGenerationGuard();
+const logoutInFlightTracker = createLogoutInFlightTracker();
+
 function signedOutState() {
   return {
     session: null,
@@ -47,7 +57,24 @@ function signedOutState() {
     profile: null,
     isAuthenticated: false,
     isLoading: false,
+    isLogoutInFlight: logoutInFlightTracker.isInFlight(),
     isInitialized: true,
+    error: null,
+  };
+}
+
+function applyAuthenticatedState(
+  session: Session,
+  user: User,
+  profile: UserProfile | null,
+) {
+  return {
+    session,
+    user,
+    profile,
+    isAuthenticated: true,
+    isLoading: false,
+    isLogoutInFlight: false,
     error: null,
   };
 }
@@ -125,12 +152,52 @@ async function ensureAndFetchUserProfile(
   return await fetchUserProfile(user.id);
 }
 
+async function applyAuthStateChange(
+  set: (partial: Partial<AuthStoreState>) => void,
+  getState: () => AuthStoreState,
+  nextSession: Session | null,
+  eventGeneration: number,
+) {
+  if (authGeneration.isStale(eventGeneration)) {
+    return;
+  }
+
+  if (!nextSession?.user) {
+    const shouldSignOut =
+      logoutInFlightTracker.isInFlight() || !getState().isAuthenticated;
+
+    if (!authGeneration.isStale(eventGeneration) && shouldSignOut) {
+      set(signedOutState());
+    }
+    return;
+  }
+
+  try {
+    const profile = await ensureAndFetchUserProfile(nextSession.user, nextSession.user.email);
+    if (authGeneration.isStale(eventGeneration)) {
+      return;
+    }
+
+    set(applyAuthenticatedState(nextSession, nextSession.user, profile));
+  } catch {
+    if (authGeneration.isStale(eventGeneration)) {
+      return;
+    }
+
+    set({
+      ...applyAuthenticatedState(nextSession, nextSession.user, null),
+      profile: null,
+    });
+  }
+}
+
 export const useAuthStore = create<AuthStoreState>((set, get) => ({
   session: null,
   user: null,
   profile: null,
   isAuthenticated: false,
   isLoading: true,
+  isLogoutInFlight: false,
   isInitialized: false,
   error: null,
 
@@ -154,12 +221,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       if (session?.user) {
         const profile = await ensureAndFetchUserProfile(session.user, session.user.email);
         set({
-          session,
-          user: session.user,
-          profile,
-          isAuthenticated: true,
+          ...applyAuthenticatedState(session, session.user, profile),
           isInitialized: true,
-          isLoading: false,
         });
       } else {
         set({
@@ -169,6 +232,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
           isAuthenticated: false,
           isInitialized: true,
           isLoading: false,
+          isLogoutInFlight: false,
         });
       }
     } catch (error) {
@@ -183,6 +247,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         isAuthenticated: false,
         isInitialized: true,
         isLoading: false,
+        isLogoutInFlight: false,
       });
     }
 
@@ -193,133 +258,159 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     authListenerInitialized = true;
     const supabase = getSupabaseBrowserClient();
     supabase.auth.onAuthStateChange(async (_event, nextSession) => {
-      if (!nextSession?.user) {
-        set(signedOutState());
-        return;
-      }
-
-      try {
-        const profile = await ensureAndFetchUserProfile(nextSession.user, nextSession.user.email);
-        set({
-          session: nextSession,
-          user: nextSession.user,
-          profile,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
-      } catch {
-        set({
-          session: nextSession,
-          user: nextSession.user,
-          profile: null,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      }
+      const eventGeneration = authGeneration.get();
+      await applyAuthStateChange(set, get, nextSession, eventGeneration);
     });
   },
 
   register: async ({ email, password, username }) => {
-    set({ isLoading: true, error: null });
+    return authOperationQueue.enqueue(async () => {
+      await logoutInFlightTracker.waitUntilSettled();
+      const operationGeneration = authGeneration.bump();
 
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            username: username?.trim() || null,
+      set({ isLoading: true, error: null });
+
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: {
+              username: username?.trim() || null,
+            },
           },
-        },
-      });
+        });
 
-      if (error) {
-        throw error;
+        if (error) {
+          throw error;
+        }
+
+        if (authGeneration.isStale(operationGeneration)) {
+          return { success: false, message: "Registration was interrupted. Please try again." };
+        }
+
+        if (data.user && data.session) {
+          await ensureProfileRecord(data.user.id, username ?? data.user.email);
+        }
+
+        if (data.session && data.user) {
+          const profile = await ensureAndFetchUserProfile(data.user, username ?? data.user.email);
+          if (authGeneration.isStale(operationGeneration)) {
+            return { success: false, message: "Registration was interrupted. Please try again." };
+          }
+
+          set({
+            ...applyAuthenticatedState(data.session, data.user, profile),
+            isInitialized: true,
+          });
+        } else {
+          set({ isLoading: false });
+        }
+
+        return {
+          success: true,
+          message:
+            data.session === null
+              ? "Registration successful. Check your email to confirm your account."
+              : "Registration successful. You are now signed in.",
+        };
+      } catch (error) {
+        const friendly = toFriendlySupabaseMessage(
+          error,
+          "Unable to register right now. Please try again.",
+        );
+        set({ isLoading: false, error: friendly });
+        return { success: false, message: friendly };
       }
-
-      if (data.user && data.session) {
-        await ensureProfileRecord(data.user.id, username ?? data.user.email);
-      }
-
-      set({ isLoading: false });
-      return {
-        success: true,
-        message:
-          data.session === null
-            ? "Registration successful. Check your email to confirm your account."
-            : "Registration successful. You are now signed in.",
-      };
-    } catch (error) {
-      const friendly = toFriendlySupabaseMessage(
-        error,
-        "Unable to register right now. Please try again.",
-      );
-      set({ isLoading: false, error: friendly });
-      return { success: false, message: friendly };
-    }
+    });
   },
 
   login: async ({ email, password }) => {
-    set({ isLoading: true, error: null });
+    return authOperationQueue.enqueue(async () => {
+      await logoutInFlightTracker.waitUntilSettled();
+      const operationGeneration = authGeneration.bump();
 
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      set({ isLoading: true, error: null });
 
-      if (error) {
-        throw error;
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (!data.session || !data.user) {
+          throw new Error("Unable to log in right now. Please try again.");
+        }
+
+        const profile = await ensureAndFetchUserProfile(
+          data.user,
+          data.user.user_metadata?.username,
+        );
+
+        if (authGeneration.isStale(operationGeneration)) {
+          return { success: false, message: "Sign in was interrupted. Please try again." };
+        }
+
+        set({
+          ...applyAuthenticatedState(data.session, data.user, profile),
+          isInitialized: true,
+        });
+
+        return { success: true };
+      } catch (error) {
+        const friendly = toFriendlySupabaseMessage(
+          error,
+          "Unable to log in right now. Please try again.",
+        );
+        set({ isLoading: false, error: friendly });
+        return { success: false, message: friendly };
       }
-
-      if (data.user) {
-        await ensureProfileRecord(data.user.id, data.user.user_metadata?.username);
-      }
-
-      set({
-        session: data.session,
-        user: data.user,
-        isAuthenticated: Boolean(data.session),
-        isLoading: false,
-      });
-
-      return { success: true };
-    } catch (error) {
-      const friendly = toFriendlySupabaseMessage(
-        error,
-        "Unable to log in right now. Please try again.",
-      );
-      set({ isLoading: false, error: friendly });
-      return { success: false, message: friendly };
-    }
+    });
   },
 
   logout: async () => {
-    set({ isLoading: true, error: null });
-    set(signedOutState());
+    return authOperationQueue.enqueue(async () => {
+      authGeneration.bump();
+      logoutInFlightTracker.begin();
+      set({
+        ...signedOutState(),
+        isLogoutInFlight: true,
+      });
 
-    const cleanupResult = await runLogoutCleanupWithTimeout(async () => {
-      const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.auth.signOut({ scope: "local" });
-      if (error) {
-        throw error;
+      const signOutPromise = (async () => {
+        const supabase = getSupabaseBrowserClient();
+        const { error } = await supabase.auth.signOut({ scope: "local" });
+        if (error) {
+          throw error;
+        }
+      })();
+
+      try {
+        const cleanupResult = await runLogoutCleanupWithTimeout(() => signOutPromise);
+        await signOutPromise;
+
+        if (cleanupResult === "completed") {
+          return { success: true };
+        }
+
+        return {
+          success: true,
+          message:
+            cleanupResult === "timed-out"
+              ? "Signed out locally. Supabase session cleanup timed out."
+              : "Signed out locally. Supabase session cleanup could not finish.",
+        };
+      } finally {
+        logoutInFlightTracker.settle();
+        set({ isLogoutInFlight: false });
       }
     });
-
-    if (cleanupResult === "completed") {
-      return { success: true };
-    }
-
-    return {
-      success: true,
-      message:
-        cleanupResult === "timed-out"
-          ? "Signed out locally. Supabase session cleanup timed out."
-          : "Signed out locally. Supabase session cleanup could not finish.",
-    };
   },
 
   clearError: () => set({ error: null }),

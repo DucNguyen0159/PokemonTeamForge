@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { AuthLayout, PasswordInput } from "@/components/auth/auth-layout";
+import { AuthPendingNotice } from "@/components/auth/auth-pending-notice";
 import { ErrorMessage } from "@/components/error/error-message";
 import { Button } from "@/components/ui/button";
+import { useAuthFormAvailability } from "@/hooks/use-auth-form-availability";
 import { authErrorTitle, currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -18,6 +20,7 @@ export default function RegisterPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const authError = useAuthStore((state) => state.error);
   const clearError = useAuthStore((state) => state.clearError);
+  const { isFormDisabled, isLogoutInFlight, statusMessage } = useAuthFormAvailability();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -37,6 +40,10 @@ export default function RegisterPage() {
     clearError();
     setFeedback(null);
     setFormError(null);
+
+    if (isFormDisabled) {
+      return;
+    }
 
     if (!email.trim() || !password) {
       setFormError("Email and password are required.");
@@ -58,7 +65,8 @@ export default function RegisterPage() {
 
       setFeedback(result.message ?? "Registration successful.");
       if (!(result.message ?? "").toLowerCase().includes("check your email")) {
-        router.push(currentAuthRedirectTarget());
+        router.replace(currentAuthRedirectTarget());
+        router.refresh();
       }
     } finally {
       setIsSubmitting(false);
@@ -66,6 +74,12 @@ export default function RegisterPage() {
   }
 
   const errorMessage = formError ?? authError;
+  const submitDisabled = isFormDisabled || isSubmitting;
+  const submitLabel = isLogoutInFlight
+    ? "Finishing sign out..."
+    : isSubmitting
+      ? "Creating account..."
+      : "Create account";
 
   return (
     <AuthLayout
@@ -74,6 +88,8 @@ export default function RegisterPage() {
       description="Save teams, sync edits, and keep your competitive builds organized. Guest builder tools stay available either way."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {statusMessage ? <AuthPendingNotice message={statusMessage} /> : null}
+
         <label htmlFor="username" className="block space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">Username (optional)</span>
           <input
@@ -82,7 +98,8 @@ export default function RegisterPage() {
             autoComplete="username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            className="w-full rounded-xl border border-border/60 bg-background/55 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            disabled={submitDisabled}
+            className="w-full rounded-xl border border-border/60 bg-background/55 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
             placeholder="Pokémon trainer name"
           />
         </label>
@@ -95,7 +112,8 @@ export default function RegisterPage() {
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-xl border border-border/60 bg-background/55 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            disabled={submitDisabled}
+            className="w-full rounded-xl border border-border/60 bg-background/55 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
             placeholder="you@example.com"
           />
         </label>
@@ -108,6 +126,7 @@ export default function RegisterPage() {
           autoComplete="new-password"
           placeholder="At least 8 characters"
           helperText="Use at least 8 characters. Avoid reusing passwords from other sites."
+          disabled={submitDisabled}
         />
 
         {errorMessage && (
@@ -124,8 +143,8 @@ export default function RegisterPage() {
         )}
 
         <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
-          <Button type="submit" className="h-10 rounded-xl px-5" disabled={isSubmitting}>
-            {isSubmitting ? "Creating account..." : "Create account"}
+          <Button type="submit" className="h-10 rounded-xl px-5" disabled={submitDisabled}>
+            {submitLabel}
           </Button>
           <Button asChild variant="ghost" size="sm" className="h-10 rounded-xl">
             <Link href="/login">Already have an account? Sign in</Link>

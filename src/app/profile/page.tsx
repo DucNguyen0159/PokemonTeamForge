@@ -56,7 +56,7 @@ export default function ProfilePage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
-  const { isLoggingOut, logoutMessage, runLogout } = useResilientLogout();
+  const { isLoggingOut, logoutButtonLabel, logoutMessage, runLogout } = useResilientLogout();
   const currentTeam = useTeamStore((state) => state.team);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -244,7 +244,7 @@ export default function ProfilePage() {
                 {isLoggingOut ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                    Signing out...
+                    {logoutButtonLabel}
                   </>
                 ) : (
                   <>

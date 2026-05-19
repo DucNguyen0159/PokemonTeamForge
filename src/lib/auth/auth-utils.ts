@@ -1,3 +1,6 @@
+export const FINISHING_SIGN_OUT_MESSAGE =
+  "Finishing sign out. You can sign in again in a moment.";
+
 const DEFAULT_AUTH_REDIRECT = "/profile";
 const SAFE_REDIRECT_PATHS = [
   "/builder",
@@ -59,6 +62,21 @@ export function currentAuthRedirectTarget(fallback = DEFAULT_AUTH_REDIRECT): str
 
   const params = new URLSearchParams(window.location.search);
   return resolveAuthRedirectTarget(params.get("redirect"), fallback);
+}
+
+export function getLogoutButtonLabel(options: {
+  isLoggingOut: boolean;
+  isLogoutInFlight: boolean;
+}): string {
+  if (!options.isLoggingOut && !options.isLogoutInFlight) {
+    return "Log out";
+  }
+
+  if (options.isLogoutInFlight && !options.isLoggingOut) {
+    return "Finishing sign out...";
+  }
+
+  return "Signing out...";
 }
 
 export function authErrorTitle(message: string | null | undefined, fallback: string): string {

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { getLogoutButtonLabel } from "@/lib/auth/auth-utils";
 import { USER_TEAMS_QUERY_KEY } from "@/hooks/queries/use-user-teams";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -12,11 +13,12 @@ export function useResilientLogout() {
   const queryClient = useQueryClient();
   const logout = useAuthStore((state) => state.logout);
   const isAuthLoading = useAuthStore((state) => state.isLoading);
+  const isLogoutInFlight = useAuthStore((state) => state.isLogoutInFlight);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const runLogout = useCallback(async () => {
-    if (isLoggingOut || isAuthLoading) {
+    if (isLoggingOut || isAuthLoading || isLogoutInFlight) {
       return;
     }
 
@@ -43,10 +45,18 @@ export function useResilientLogout() {
     } finally {
       setIsLoggingOut(false);
     }
-  }, [isAuthLoading, isLoggingOut, logout, queryClient, router]);
+  }, [isAuthLoading, isLoggingOut, isLogoutInFlight, logout, queryClient, router]);
+
+  const isBusy = isLoggingOut || isAuthLoading || isLogoutInFlight;
+  const logoutButtonLabel = getLogoutButtonLabel({
+    isLoggingOut: isLoggingOut || isAuthLoading,
+    isLogoutInFlight,
+  });
 
   return {
-    isLoggingOut: isLoggingOut || isAuthLoading,
+    isLoggingOut: isBusy,
+    isFinishingSignOut: isLogoutInFlight && !isLoggingOut && !isAuthLoading,
+    logoutButtonLabel,
     logoutMessage: message,
     runLogout,
   };
