@@ -1,6 +1,11 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
+
 import { ALL_POKEMON_TYPES } from "@/data/type-chart";
 import { isSuperEffectiveAgainst } from "@/lib/calculations/shared/type-effectiveness";
 import type { PokemonType } from "@/types/shared";
+import { Button } from "@/components/ui/button";
 import { TypeBadge } from "@/components/shared/type-badge";
 
 type PokemonStabOffenseSummaryProps = {
@@ -21,47 +26,73 @@ function superEffectiveTargets(stabType: PokemonType): PokemonType[] {
   return ALL_POKEMON_TYPES.filter((targetType) => isSuperEffectiveAgainst(stabType, targetType));
 }
 
+function StabRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 space-y-2 lg:flex-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
 export function PokemonStabOffenseSummary({
   primaryType,
   secondaryType,
 }: PokemonStabOffenseSummaryProps) {
   const stabTypes = uniqueStabTypes(primaryType, secondaryType);
+  const mergedTargets = Array.from(
+    new Set(stabTypes.flatMap((stabType) => superEffectiveTargets(stabType))),
+  );
 
   return (
     <section className="rounded-2xl border border-border/60 bg-card/50 p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-foreground">STAB offensive profile</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Types this Pokémon&apos;s typings hit super-effectively with STAB moves. Team Builder
-        coverage includes your selected moves; this is typing-only.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">STAB coverage (typing only)</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Types this Pokémon&apos;s typings hit super-effectively with STAB moves. Builder coverage
+            uses your selected moves.
+          </p>
+        </div>
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="shrink-0 rounded-xl transition-colors hover:border-primary/40 hover:bg-accent/60"
+        >
+          <Link href="/type-chart">
+            Open type chart
+            <ArrowUpRight className="size-3.5" aria-hidden />
+          </Link>
+        </Button>
+      </div>
 
-      <div className="mt-4 space-y-4">
-        {stabTypes.map((stabType) => {
-          const targets = superEffectiveTargets(stabType);
+      <div className="mt-4 rounded-xl border border-border/40 bg-background/25 p-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+          <StabRow label="Typing">
+            {stabTypes.map((stabType) => (
+              <TypeBadge key={stabType} type={stabType} size="sm" />
+            ))}
+          </StabRow>
 
-          return (
-            <article
-              key={stabType}
-              className="rounded-xl border border-border/45 bg-background/30 p-4"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <TypeBadge type={stabType} size="md" />
-                <h3 className="text-sm font-semibold capitalize text-foreground">{stabType} STAB</h3>
-              </div>
-              {targets.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {targets.map((targetType) => (
-                    <TypeBadge key={`${stabType}-${targetType}`} type={targetType} />
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  No super-effective STAB matchups against single typings.
-                </p>
-              )}
-            </article>
-          );
-        })}
+          <StabRow label="STAB threatens">
+            {mergedTargets.length > 0 ? (
+              mergedTargets.map((targetType) => (
+                <TypeBadge key={targetType} type={targetType} size="sm" />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No super-effective STAB matchups from this typing.
+              </p>
+            )}
+          </StabRow>
+        </div>
       </div>
     </section>
   );

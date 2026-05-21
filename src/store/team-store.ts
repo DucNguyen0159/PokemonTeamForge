@@ -6,6 +6,7 @@ import type { Item } from "@/types/item";
 import type { Move } from "@/types/move";
 import type { Pokemon } from "@/types/pokemon";
 import type { BattleFormat } from "@/types/shared";
+import { getDefaultAbility } from "@/lib/team/default-ability";
 import type { Team, TeamPokemon } from "@/types/team";
 
 const TEAM_STORAGE_KEY = "pokemon-team-forge-current-team";
@@ -31,9 +32,6 @@ const createEmptyTeam = (format: BattleFormat = "singles"): Team => ({
     createEmptyTeamSlot(index + 1),
   ),
 });
-
-const getDefaultAbility = (pokemon: Pokemon | null): Ability | null =>
-  pokemon?.abilities.length === 1 ? pokemon.abilities[0] : null;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 
 import { countEvolutionStages } from "@/lib/pokemon/evolution-chain";
 import { buildPokemonDetailHref } from "@/lib/pokemon/pokemon-detail-query";
@@ -26,6 +25,15 @@ type EvolutionStageCardProps = {
   detailQuery?: Record<string, string | string[] | null | undefined>;
 };
 
+function EvolutionConnector() {
+  return (
+    <div className="flex shrink-0 items-center px-1 sm:px-2" aria-hidden>
+      <div className="h-px w-6 bg-muted-foreground/40 sm:w-10" />
+      <div className="size-1.5 rotate-45 border-r border-t border-muted-foreground/50" />
+    </div>
+  );
+}
+
 function EvolutionStageCard({ stage, currentSlug, detailQuery }: EvolutionStageCardProps) {
   const current = isCurrentStage(stage, currentSlug);
   const href = buildPokemonDetailHref(stage.slug, detailQuery);
@@ -34,18 +42,25 @@ function EvolutionStageCard({ stage, currentSlug, detailQuery }: EvolutionStageC
     <Link
       href={href}
       className={cn(
-        "flex min-w-[7.5rem] flex-col items-center gap-2 rounded-2xl border px-3 py-3 transition-colors",
-        "hover:border-primary/35 hover:bg-background/55 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+        "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-2xl border px-3 py-3 transition-colors sm:w-[8.5rem]",
+        "hover:border-primary/40 hover:bg-background/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         current
-          ? "border-primary/50 bg-primary/10 shadow-sm shadow-primary/10"
+          ? "border-primary/60 bg-primary/10 shadow-md shadow-primary/10 ring-1 ring-primary/30"
           : "border-border/50 bg-background/35",
       )}
     >
-      <div className="relative h-16 w-16 overflow-hidden rounded-xl bg-muted/40">
+      <div className="flex min-h-[1.35rem] items-center justify-center">
+        {current ? (
+          <span className="rounded-full border border-primary/50 bg-primary/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+            Current
+          </span>
+        ) : null}
+      </div>
+      <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-muted/40 sm:h-24 sm:w-24">
         <PokemonSprite
           src={stage.spriteNormal}
           alt={stage.name}
-          size={64}
+          size={96}
           className="h-full w-full object-contain p-1"
         />
       </div>
@@ -80,21 +95,30 @@ function EvolutionBranch({ stage, currentSlug, detailQuery }: EvolutionBranchPro
 
   if (children.length === 1) {
     return (
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center">
         <EvolutionStageCard stage={stage} currentSlug={currentSlug} detailQuery={detailQuery} />
-        <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <EvolutionConnector />
         <EvolutionBranch stage={children[0]!} currentSlug={currentSlug} detailQuery={detailQuery} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-start gap-3">
+    <div className="flex flex-col items-center gap-4">
       <EvolutionStageCard stage={stage} currentSlug={currentSlug} detailQuery={detailQuery} />
-      <ArrowRight className="mt-8 size-4 shrink-0 text-muted-foreground" aria-hidden />
-      <div className="flex flex-col gap-4">
-        {children.map((child) => (
-          <EvolutionBranch key={child.slug} stage={child} currentSlug={currentSlug} detailQuery={detailQuery} />
+      <div className="h-6 w-px bg-border/70" aria-hidden />
+      <div className="flex flex-wrap items-start justify-center gap-4">
+        {children.map((child, index) => (
+          <div key={child.slug} className="flex flex-col items-center">
+            <div className="mb-2 flex w-full items-center justify-center gap-2" aria-hidden>
+              <div className="h-px flex-1 bg-border/60" />
+              {index === Math.floor((children.length - 1) / 2) ? (
+                <div className="h-3 w-px bg-border/70" />
+              ) : null}
+              <div className="h-px flex-1 bg-border/60" />
+            </div>
+            <EvolutionBranch stage={child} currentSlug={currentSlug} detailQuery={detailQuery} />
+          </div>
         ))}
       </div>
     </div>
@@ -131,8 +155,8 @@ export function PokemonEvolutionChart({
         Tap any stage to open its Pokémon detail page.
       </p>
 
-      <div className="mt-4 overflow-x-auto pb-1">
-        <div className="flex min-w-max flex-col gap-6">
+      <div className="mt-5 overflow-x-auto overflow-y-visible pb-2 [-ms-overflow-style:none] [scrollbar-width:thin]">
+        <div className="flex min-w-max justify-center px-2 pt-3">
           {evolutionChain?.map((root) => (
             <EvolutionBranch
               key={root.slug}

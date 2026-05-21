@@ -9,8 +9,10 @@ import {
 } from "@/lib/pokemon/pokedex-return-url";
 import { PokemonAbilitySection } from "@/components/pokemon/pokemon-ability-section";
 import { PokemonBaseStatsTable } from "@/components/pokemon/pokemon-base-stats-table";
+import { countEvolutionStages } from "@/lib/pokemon/evolution-chain";
 import { PokemonDetailActions } from "@/components/pokemon/pokemon-detail-actions";
-import { PokemonDetailNavActions } from "@/components/pokemon/pokemon-detail-nav-actions";
+import { PokemonDetailBackLink } from "@/components/pokemon/pokemon-detail-back-link";
+import { PokemonDetailRelatedLinks } from "@/components/pokemon/pokemon-detail-related-links";
 import { PokemonEvolutionChart } from "@/components/pokemon/pokemon-evolution-chart";
 import { PokemonStabOffenseSummary } from "@/components/pokemon/pokemon-stab-offense-summary";
 import { PokemonTypeDefenseGrid } from "@/components/pokemon/pokemon-type-defense-grid";
@@ -89,23 +91,50 @@ export default async function PokemonDetailPage({
   });
 
   const typeDefense = pokemon.typeDefense ?? [];
+  const showEvolutionFirst =
+    (pokemon.evolutionChain?.length ?? 0) > 0 &&
+    countEvolutionStages(pokemon.evolutionChain ?? []) > 1;
+
+  const evolutionSection = (
+    <PokemonEvolutionChart
+      pokemonName={pokemon.name}
+      currentSlug={pokemon.slug}
+      evolutionChain={pokemon.evolutionChain}
+      detailQuery={resolvedQuery}
+    />
+  );
+
+  const typeDefenseSection = (
+    <PokemonTypeDefenseGrid pokemonName={pokemon.name} typeDefense={typeDefense} />
+  );
+
+  const stabSection = (
+    <PokemonStabOffenseSummary
+      primaryType={pokemon.primaryType}
+      secondaryType={pokemon.secondaryType}
+    />
+  );
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Pokémon
-          </p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-            {pokemon.name}
-          </h1>
-        </div>
-        <div className="flex flex-col items-end gap-3">
-          <PokemonDetailNavActions navigation={navigation} />
+      <header className="space-y-3">
+        <PokemonDetailBackLink navigation={navigation} />
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Pokémon
+            </p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+              {pokemon.name}
+            </h1>
+            <PokemonDetailRelatedLinks
+              secondaryHref={navigation.secondaryHref}
+              secondaryLabel={navigation.secondaryLabel}
+            />
+          </div>
           <PokemonDetailActions slug={pokemon.slug} />
         </div>
-      </div>
+      </header>
 
       <section className="grid gap-6 rounded-[2rem] border border-border/60 bg-card/50 p-5 shadow-sm lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:p-6">
         <div className="flex items-center justify-center rounded-3xl border border-border/50 bg-background/35 p-6">
@@ -152,19 +181,19 @@ export default async function PokemonDetailPage({
         </div>
       </section>
 
-      <PokemonTypeDefenseGrid pokemonName={pokemon.name} typeDefense={typeDefense} />
-
-      <PokemonStabOffenseSummary
-        primaryType={pokemon.primaryType}
-        secondaryType={pokemon.secondaryType}
-      />
-
-      <PokemonEvolutionChart
-        pokemonName={pokemon.name}
-        currentSlug={pokemon.slug}
-        evolutionChain={pokemon.evolutionChain}
-        detailQuery={resolvedQuery}
-      />
+      {showEvolutionFirst ? (
+        <>
+          {evolutionSection}
+          {typeDefenseSection}
+          {stabSection}
+        </>
+      ) : (
+        <>
+          {typeDefenseSection}
+          {stabSection}
+          {evolutionSection}
+        </>
+      )}
 
       <PokemonAbilitySection abilities={pokemon.abilities} />
 

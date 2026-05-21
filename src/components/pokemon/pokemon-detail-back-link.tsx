@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 
 import type { PokemonDetailNavigation } from "@/lib/pokemon/detail-navigation";
 import { readStoredPokedexReturnHref } from "@/lib/pokemon/pokedex-return-url";
-import { Button } from "@/components/ui/button";
 
-type PokemonDetailNavActionsProps = {
+type PokemonDetailBackLinkProps = {
   navigation: PokemonDetailNavigation;
 };
 
@@ -19,17 +19,16 @@ function resolvePrimaryHref(navigation: PokemonDetailNavigation): string {
   return readStoredPokedexReturnHref() ?? navigation.primaryHref;
 }
 
-export function PokemonDetailNavActions({ navigation }: PokemonDetailNavActionsProps) {
+export function PokemonDetailBackLink({ navigation }: PokemonDetailBackLinkProps) {
   const [primaryHref] = useState(() => resolvePrimaryHref(navigation));
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button asChild variant="ghost" size="sm" className="rounded-xl">
-        <Link href={primaryHref}>{navigation.primaryLabel}</Link>
-      </Button>
-      <Button asChild variant="secondary" size="sm" className="rounded-xl">
-        <Link href={navigation.secondaryHref}>{navigation.secondaryLabel}</Link>
-      </Button>
-    </div>
+    <Link
+      href={primaryHref}
+      className="inline-flex w-fit items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <ChevronLeft className="size-4 shrink-0" aria-hidden />
+      {navigation.primaryLabel}
+    </Link>
   );
 }

@@ -7,7 +7,6 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowRight, ArrowUp, LayoutGrid, List, Loader2, Plus, Search, X } from "lucide-react";
 
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
-import { ROUTES } from "@/constants/routes";
 import { ALL_POKEMON_TYPES } from "@/data/type-chart";
 import { HIDDEN_ABILITY_LABEL } from "@/types/ability";
 import type { PokemonListItem } from "@/types/pokemon";
@@ -26,6 +25,7 @@ import { fetchAbilitiesFromApi } from "@/lib/abilities/data-access";
 import { cn } from "@/utils";
 import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
+import { useAppToast } from "@/providers/toast-provider";
 import { ErrorMessage } from "@/components/error/error-message";
 import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { Button } from "@/components/ui/button";
@@ -184,11 +184,11 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
   const [view, setView] = useState<ViewMode>(initialReturnState.view ?? "cards");
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
   const [abilityDialogPokemon, setAbilityDialogPokemon] = useState<PokemonListItem | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   const addPokemon = useTeamStore((s) => s.addPokemon);
+  const { showToast } = useAppToast();
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -368,19 +368,18 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
       useTeamStore.getState().team.pokemon.find((entry) => !entry.pokemon)?.slot ?? null;
 
     if (!slot) {
-      setStatus("Your team is full. Open the builder to swap a Pokémon.");
+      showToast("Your team is full. Open the builder to swap a Pokémon.", "error");
       return;
     }
 
     setAddingSlug(slug);
-    setStatus(null);
 
     try {
       const detail = await fetchPokemonDetailFromApi(slug);
       addPokemon(slot, detail);
-      setStatus(`Added ${detail.name} to slot ${slot}.`);
+      showToast(`Added ${detail.name} to slot ${slot}.`, "success");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not add Pokémon.");
+      showToast(error instanceof Error ? error.message : "Could not add Pokémon.", "error");
     } finally {
       setAddingSlug(null);
     }
@@ -611,25 +610,6 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
           </p>
         </div>
       </div>
-
-      {status ? (
-        <p
-          className={cn(
-            "rounded-xl border px-4 py-3 text-sm",
-            status.startsWith("Added")
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
-              : "border-border/60 bg-muted/40 text-muted-foreground",
-          )}
-          role="status"
-        >
-          {status}{" "}
-          {status.startsWith("Added") ? (
-            <Link href={ROUTES.builder} className="font-medium text-primary underline-offset-4 hover:underline">
-              Open team builder
-            </Link>
-          ) : null}
-        </p>
-      ) : null}
 
       {listQuery.isPending ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">

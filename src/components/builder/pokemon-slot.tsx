@@ -258,7 +258,9 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-background/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                     <CheckCircle2 className="size-3 text-[var(--slot-accent)]" aria-hidden />
-                    {completedFieldCount}/6 set
+                    <span title="Configured build fields: ability, item, and four moves">
+                      {completedFieldCount}/6 fields
+                    </span>
                   </span>
                 </div>
                 <Link
@@ -317,30 +319,12 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
                   </span>
                 ) : null
               }
-              renderOption={(opt) => {
-                const ability = pokemon.abilities.find((entry) => entry.id === opt.id);
-                return (
-                  <span className="flex min-w-0 flex-col gap-0.5 pr-2">
-                    <span className="truncate">{opt.name}</span>
-                    {ability?.description ? (
-                      <span className="line-clamp-2 text-[11px] font-normal leading-snug text-muted-foreground">
-                        {ability.description}
-                      </span>
-                    ) : null}
-                  </span>
-                );
-              }}
               onSelect={(opt) => {
                 const ability = pokemon.abilities.find((a) => a.id === opt.id) ?? null;
                 setAbility(slot, ability);
                 setOpenPanel(null);
               }}
             />
-            {selectedAbility?.description ? (
-              <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-                {selectedAbility.description}
-              </p>
-            ) : null}
 
             <SlotSelector
               label="Item"
