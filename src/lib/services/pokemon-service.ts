@@ -7,6 +7,7 @@ import { RECOMMENDATION_ALLOWED_PRE_EVOLUTION_SET } from "@/data/recommendation-
 import type { PokemonListPayload } from "@/types/api";
 import type { MoveCategory, PokemonType, TeamRole } from "@/types/shared";
 import {
+  buildListFormFields,
   comparePokemonListByNationalDex,
   groupAlternateFormsByKind,
   isPokemonFormKind,
@@ -1076,6 +1077,9 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
     loadAlternateFormsForPokemon(supabase, row),
   ]);
 
+  const formKind = resolveFormKindFromRow(row);
+  const pokedexDisplayNo = row.pokedex_display_no ?? row.id;
+
   return {
     id: row.id,
     name: row.name,
@@ -1084,6 +1088,9 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
     region: row.region,
     primaryType: row.primary_type,
     secondaryType: row.secondary_type,
+    formKind,
+    baseSlug: row.base_slug ?? null,
+    pokedexDisplayNo,
     stats: {
       hp: row.hp,
       attack: row.attack,
@@ -1345,8 +1352,12 @@ export async function getPokemonByName(pokemonName: string): Promise<PokemonDeta
   });
 
   const evolutionChain = await fetchEvolutionChainFromPokeApi(rawSpecies);
+  const formFields = buildListFormFields(slug, normalized.id);
   const detail: PokemonDetail = {
     ...normalized,
+    formKind: formFields.formKind,
+    baseSlug: formFields.baseSlug,
+    pokedexDisplayNo: formFields.pokedexDisplayNo,
     evolutionChain,
     typeDefense:
       normalized.typeDefense ??

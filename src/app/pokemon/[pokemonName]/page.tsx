@@ -13,9 +13,15 @@ import { countEvolutionStages } from "@/lib/pokemon/evolution-chain";
 import { PokemonDetailActions } from "@/components/pokemon/pokemon-detail-actions";
 import { PokemonDetailBackLink } from "@/components/pokemon/pokemon-detail-back-link";
 import { PokemonDetailRelatedLinks } from "@/components/pokemon/pokemon-detail-related-links";
+import {
+  hasAlternateFormsSection,
+  PokemonAlternateForms,
+} from "@/components/pokemon/pokemon-alternate-forms";
 import { PokemonEvolutionChart } from "@/components/pokemon/pokemon-evolution-chart";
+import { PokemonFormKindPill } from "@/components/pokemon/pokemon-form-kind-pill";
 import { PokemonStabOffenseSummary } from "@/components/pokemon/pokemon-stab-offense-summary";
 import { PokemonTypeDefenseGrid } from "@/components/pokemon/pokemon-type-defense-grid";
+import { classifyPokemonFormFromSlug } from "@/lib/pokemon/pokemon-forms";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { TypeBadge } from "@/components/shared/type-badge";
 
@@ -91,18 +97,43 @@ export default async function PokemonDetailPage({
   });
 
   const typeDefense = pokemon.typeDefense ?? [];
-  const showEvolutionFirst =
+  const formKind =
+    pokemon.formKind ?? classifyPokemonFormFromSlug(pokemon.slug).formKind;
+  const baseSlug = pokemon.baseSlug ?? classifyPokemonFormFromSlug(pokemon.slug).baseSlug;
+  const nationalDexNumber = pokemon.pokedexDisplayNo ?? pokemon.id;
+  const showEvolutionSection =
     (pokemon.evolutionChain?.length ?? 0) > 0 &&
     countEvolutionStages(pokemon.evolutionChain ?? []) > 1;
+  const showAlternateFormsSection = hasAlternateFormsSection(
+    pokemon.alternateForms,
+    pokemon.alternateFormsByKind,
+  );
 
   const evolutionSection = (
     <PokemonEvolutionChart
       pokemonName={pokemon.name}
       currentSlug={pokemon.slug}
+      formKind={formKind}
+      baseSlug={baseSlug}
       evolutionChain={pokemon.evolutionChain}
       detailQuery={resolvedQuery}
     />
   );
+
+  const alternateFormsSection = showAlternateFormsSection ? (
+    <PokemonAlternateForms
+      currentSlug={pokemon.slug}
+      currentName={pokemon.name}
+      currentFormKind={formKind}
+      currentPrimaryType={pokemon.primaryType}
+      currentSecondaryType={pokemon.secondaryType}
+      currentSprite={pokemon.spriteNormal}
+      currentTotal={pokemon.stats.total}
+      alternateForms={pokemon.alternateForms}
+      alternateFormsByKind={pokemon.alternateFormsByKind}
+      detailQuery={resolvedQuery}
+    />
+  ) : null;
 
   const typeDefenseSection = (
     <PokemonTypeDefenseGrid pokemonName={pokemon.name} typeDefense={typeDefense} />
@@ -149,12 +180,13 @@ export default async function PokemonDetailPage({
         <div className="space-y-5">
           <div>
             <p className="text-sm text-muted-foreground">
-              National #{String(pokemon.id).padStart(4, "0")} · Generation {pokemon.generation} ·{" "}
-              {pokemon.region}
+              National #{String(nationalDexNumber).padStart(4, "0")} · Generation {pokemon.generation}{" "}
+              · {pokemon.region}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <TypeBadge type={pokemon.primaryType} size="md" />
               {pokemon.secondaryType ? <TypeBadge type={pokemon.secondaryType} size="md" /> : null}
+              <PokemonFormKindPill formKind={formKind} />
               {pokemon.isLegendaryOrMythical ? (
                 <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-sm font-medium text-amber-200">
                   Legendary/Mythical
@@ -181,19 +213,10 @@ export default async function PokemonDetailPage({
         </div>
       </section>
 
-      {showEvolutionFirst ? (
-        <>
-          {evolutionSection}
-          {typeDefenseSection}
-          {stabSection}
-        </>
-      ) : (
-        <>
-          {typeDefenseSection}
-          {stabSection}
-          {evolutionSection}
-        </>
-      )}
+      {showEvolutionSection ? evolutionSection : null}
+      {alternateFormsSection}
+      {typeDefenseSection}
+      {stabSection}
 
       <PokemonAbilitySection abilities={pokemon.abilities} />
 

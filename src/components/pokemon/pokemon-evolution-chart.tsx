@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { countEvolutionStages } from "@/lib/pokemon/evolution-chain";
 import { buildPokemonDetailHref } from "@/lib/pokemon/pokemon-detail-query";
+import { resolveEvolutionHighlightSlug, type PokemonFormKind } from "@/lib/pokemon/pokemon-forms";
 import type { EvolutionStage } from "@/types/pokemon";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { TypeBadge } from "@/components/shared/type-badge";
@@ -10,18 +11,23 @@ import { cn } from "@/utils";
 type PokemonEvolutionChartProps = {
   pokemonName: string;
   currentSlug: string;
+  formKind?: PokemonFormKind;
+  baseSlug?: string | null;
   evolutionChain?: EvolutionStage[];
   detailQuery?: Record<string, string | string[] | null | undefined>;
 };
 
-function isCurrentStage(stage: EvolutionStage, currentSlug: string): boolean {
-  const normalized = currentSlug.trim().toLowerCase();
+function isHighlightedEvolutionStage(
+  stage: EvolutionStage,
+  highlightSlug: string,
+): boolean {
+  const normalized = highlightSlug.trim().toLowerCase();
   return stage.slug === normalized || stage.speciesSlug === normalized;
 }
 
 type EvolutionStageCardProps = {
   stage: EvolutionStage;
-  currentSlug: string;
+  highlightSlug: string;
   detailQuery?: Record<string, string | string[] | null | undefined>;
 };
 
@@ -34,8 +40,8 @@ function EvolutionConnector() {
   );
 }
 
-function EvolutionStageCard({ stage, currentSlug, detailQuery }: EvolutionStageCardProps) {
-  const current = isCurrentStage(stage, currentSlug);
+function EvolutionStageCard({ stage, highlightSlug, detailQuery }: EvolutionStageCardProps) {
+  const current = isHighlightedEvolutionStage(stage, highlightSlug);
   const href = buildPokemonDetailHref(stage.slug, detailQuery);
 
   return (
@@ -82,30 +88,30 @@ function EvolutionStageCard({ stage, currentSlug, detailQuery }: EvolutionStageC
 
 type EvolutionBranchProps = {
   stage: EvolutionStage;
-  currentSlug: string;
+  highlightSlug: string;
   detailQuery?: Record<string, string | string[] | null | undefined>;
 };
 
-function EvolutionBranch({ stage, currentSlug, detailQuery }: EvolutionBranchProps) {
+function EvolutionBranch({ stage, highlightSlug, detailQuery }: EvolutionBranchProps) {
   const children = stage.evolvesTo ?? [];
 
   if (children.length === 0) {
-    return <EvolutionStageCard stage={stage} currentSlug={currentSlug} detailQuery={detailQuery} />;
+    return <EvolutionStageCard stage={stage} highlightSlug={highlightSlug} detailQuery={detailQuery} />;
   }
 
   if (children.length === 1) {
     return (
       <div className="flex items-center">
-        <EvolutionStageCard stage={stage} currentSlug={currentSlug} detailQuery={detailQuery} />
+        <EvolutionStageCard stage={stage} highlightSlug={highlightSlug} detailQuery={detailQuery} />
         <EvolutionConnector />
-        <EvolutionBranch stage={children[0]!} currentSlug={currentSlug} detailQuery={detailQuery} />
+        <EvolutionBranch stage={children[0]!} highlightSlug={highlightSlug} detailQuery={detailQuery} />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <EvolutionStageCard stage={stage} currentSlug={currentSlug} detailQuery={detailQuery} />
+      <EvolutionStageCard stage={stage} highlightSlug={highlightSlug} detailQuery={detailQuery} />
       <div className="h-6 w-px bg-border/70" aria-hidden />
       <div className="flex flex-wrap items-start justify-center gap-4">
         {children.map((child, index) => (
@@ -117,7 +123,7 @@ function EvolutionBranch({ stage, currentSlug, detailQuery }: EvolutionBranchPro
               ) : null}
               <div className="h-px flex-1 bg-border/60" />
             </div>
-            <EvolutionBranch stage={child} currentSlug={currentSlug} detailQuery={detailQuery} />
+            <EvolutionBranch stage={child} highlightSlug={highlightSlug} detailQuery={detailQuery} />
           </div>
         ))}
       </div>
@@ -136,9 +142,13 @@ function hasEvolutionTree(chain?: EvolutionStage[]): boolean {
 export function PokemonEvolutionChart({
   pokemonName,
   currentSlug,
+  formKind,
+  baseSlug,
   evolutionChain,
   detailQuery,
 }: PokemonEvolutionChartProps) {
+  const highlightSlug = resolveEvolutionHighlightSlug(currentSlug, formKind, baseSlug);
+
   if (!hasEvolutionTree(evolutionChain)) {
     return (
       <section className="rounded-2xl border border-border/60 bg-card/50 p-5 shadow-sm">
@@ -161,7 +171,7 @@ export function PokemonEvolutionChart({
             <EvolutionBranch
               key={root.slug}
               stage={root}
-              currentSlug={currentSlug}
+              highlightSlug={highlightSlug}
               detailQuery={detailQuery}
             />
           ))}

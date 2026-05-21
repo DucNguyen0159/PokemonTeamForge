@@ -44,6 +44,42 @@ export type AlternateForm = {
 
 export type AlternateFormsByKind = Partial<Record<Exclude<PokemonFormKind, "default">, AlternateForm[]>>;
 
+export const FORM_KIND_PILL_LABELS: Record<Exclude<PokemonFormKind, "default">, string> = {
+  mega: "Mega",
+  gigantamax: "G-Max",
+  regional: "Regional",
+  other: "Form",
+};
+
+export const ALTERNATE_FORM_GROUP_LABELS = {
+  mega: "Mega Evolution",
+  gigantamax: "Gigantamax",
+  regionalAndOther: "Regional & other",
+  base: "Standard form",
+} as const;
+
+export function resolveEvolutionHighlightSlug(
+  currentSlug: string,
+  formKind: PokemonFormKind | undefined,
+  baseSlug: string | null | undefined,
+): string {
+  const normalized = currentSlug.trim().toLowerCase();
+
+  if (formKind && formKind !== "default" && baseSlug) {
+    return baseSlug.trim().toLowerCase();
+  }
+
+  return normalized;
+}
+
+export function getFormKindPillLabel(formKind: PokemonFormKind): string | null {
+  if (formKind === "default") {
+    return null;
+  }
+
+  return FORM_KIND_PILL_LABELS[formKind];
+}
+
 export function isPokemonFormKind(value: string): value is PokemonFormKind {
   return (POKEMON_FORM_KINDS as readonly string[]).includes(value);
 }

@@ -70,6 +70,9 @@ export interface EvolutionStage {
 }
 
 export interface PokemonDetail extends Pokemon {
+  formKind?: PokemonFormKind;
+  baseSlug?: string | null;
+  pokedexDisplayNo?: number;
   evolutionChain?: EvolutionStage[];
   typeDefense?: TypeDefenseEntry[];
   alternateForms?: AlternateForm[];

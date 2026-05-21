@@ -6,6 +6,7 @@ import {
   classifyPokemonFormFromSlug,
   comparePokemonListByNationalDex,
   groupAlternateFormsByKind,
+  resolveEvolutionHighlightSlug,
 } from "@/lib/pokemon/pokemon-forms";
 
 describe("classifyPokemonFormFromSlug", () => {
@@ -74,6 +75,16 @@ describe("groupAlternateFormsByKind", () => {
 
     expect(grouped.mega?.map((entry) => entry.slug)).toEqual(["slowbro-mega"]);
     expect(grouped.regional?.map((entry) => entry.slug)).toEqual(["slowbro-galar"]);
+  });
+});
+
+describe("resolveEvolutionHighlightSlug", () => {
+  it("highlights base species when viewing a mega form", () => {
+    expect(resolveEvolutionHighlightSlug("venusaur-mega", "mega", "venusaur")).toBe("venusaur");
+  });
+
+  it("highlights current slug for default forms", () => {
+    expect(resolveEvolutionHighlightSlug("bulbasaur", "default", null)).toBe("bulbasaur");
   });
 });
 
