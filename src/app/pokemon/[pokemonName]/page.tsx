@@ -8,7 +8,11 @@ import {
   parsePokedexReturnState,
 } from "@/lib/pokemon/pokedex-return-url";
 import { PokemonAbilitySection } from "@/components/pokemon/pokemon-ability-section";
+import { PokemonBaseStatsTable } from "@/components/pokemon/pokemon-base-stats-table";
 import { PokemonDetailNavActions } from "@/components/pokemon/pokemon-detail-nav-actions";
+import { PokemonEvolutionChart } from "@/components/pokemon/pokemon-evolution-chart";
+import { PokemonStabOffenseSummary } from "@/components/pokemon/pokemon-stab-offense-summary";
+import { PokemonTypeDefenseGrid } from "@/components/pokemon/pokemon-type-defense-grid";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { TypeBadge } from "@/components/shared/type-badge";
 
@@ -67,32 +71,27 @@ export default async function PokemonDetailPage({
     notFound();
   }
 
-  const stats = [
-    ["HP", pokemon.stats.hp],
-    ["Attack", pokemon.stats.attack],
-    ["Defense", pokemon.stats.defense],
-    ["Sp. Atk", pokemon.stats.specialAttack],
-    ["Sp. Def", pokemon.stats.specialDefense],
-    ["Speed", pokemon.stats.speed],
-  ] as const;
-  const abilitySlug = Array.isArray(query?.ability)
-    ? query?.ability[0]
-    : query?.ability;
+  const resolvedQuery = query ?? {};
+  const abilitySlug = Array.isArray(resolvedQuery.ability)
+    ? resolvedQuery.ability[0]
+    : resolvedQuery.ability;
   const navigationAbility = abilitySlug
     ? pokemon.abilities.find((ability) => ability.slug === abilitySlug)
     : null;
-  const pokedexReturn = parsePokedexReturnState(query ?? {});
+  const pokedexReturn = parsePokedexReturnState(resolvedQuery);
   const navigation = pokemonDetailNavigation({
-    from: query?.from,
-    ability: query?.ability,
+    from: resolvedQuery.from,
+    ability: resolvedQuery.ability,
     abilityName: navigationAbility?.name,
     pokedexReturn,
-    pokedexReturnStored: isPokedexReturnStored(query ?? {}),
+    pokedexReturnStored: isPokedexReturnStored(resolvedQuery),
   });
+
+  const typeDefense = pokemon.typeDefense ?? [];
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Pokémon
@@ -104,20 +103,21 @@ export default async function PokemonDetailPage({
         <PokemonDetailNavActions navigation={navigation} />
       </div>
 
-      <section className="grid gap-4 rounded-[2rem] border border-border/60 bg-card/50 p-5 shadow-sm md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:p-6">
+      <section className="grid gap-6 rounded-[2rem] border border-border/60 bg-card/50 p-5 shadow-sm lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:p-6">
         <div className="flex items-center justify-center rounded-3xl border border-border/50 bg-background/35 p-6">
           <PokemonSprite
             src={pokemon.spriteNormal}
             alt={pokemon.name}
             size={220}
-            className="h-56 w-full object-contain"
+            className="h-56 w-full max-w-xs object-contain"
           />
         </div>
 
         <div className="space-y-5">
           <div>
             <p className="text-sm text-muted-foreground">
-              National #{pokemon.id} · Generation {pokemon.generation} · {pokemon.region}
+              National #{String(pokemon.id).padStart(4, "0")} · Generation {pokemon.generation} ·{" "}
+              {pokemon.region}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <TypeBadge type={pokemon.primaryType} size="md" />
@@ -127,28 +127,40 @@ export default async function PokemonDetailPage({
                   Legendary/Mythical
                 </span>
               ) : null}
+              {!pokemon.isFullyEvolved ? (
+                <span className="rounded-full border border-sky-400/25 bg-sky-400/10 px-2.5 py-1 text-sm font-medium text-sky-200">
+                  Can evolve
+                </span>
+              ) : null}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {stats.map(([label, value]) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-border/45 bg-background/35 px-3 py-2"
-              >
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  {label}
-                </p>
-                <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
-              </div>
-            ))}
-            <div className="rounded-2xl border border-primary/30 bg-primary/10 px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-primary/80">Total</p>
-              <p className="mt-1 text-lg font-semibold text-primary">{pokemon.stats.total}</p>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Base stats</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Level 100 ranges assume 0 IV / 0 EV minimum and 31 IV / 252 EV with a beneficial nature
+              maximum.
+            </p>
+            <div className="mt-3">
+              <PokemonBaseStatsTable stats={pokemon.stats} />
             </div>
           </div>
         </div>
       </section>
+
+      <PokemonTypeDefenseGrid pokemonName={pokemon.name} typeDefense={typeDefense} />
+
+      <PokemonStabOffenseSummary
+        primaryType={pokemon.primaryType}
+        secondaryType={pokemon.secondaryType}
+      />
+
+      <PokemonEvolutionChart
+        pokemonName={pokemon.name}
+        currentSlug={pokemon.slug}
+        evolutionChain={pokemon.evolutionChain}
+        detailQuery={resolvedQuery}
+      />
 
       <PokemonAbilitySection abilities={pokemon.abilities} />
 
