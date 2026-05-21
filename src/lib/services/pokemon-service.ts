@@ -6,6 +6,13 @@ import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/p
 import { RECOMMENDATION_ALLOWED_PRE_EVOLUTION_SET } from "@/data/recommendation-candidates";
 import type { PokemonListPayload } from "@/types/api";
 import type { MoveCategory, PokemonType, TeamRole } from "@/types/shared";
+import {
+  comparePokemonListByNationalDex,
+  groupAlternateFormsByKind,
+  isPokemonFormKind,
+  type AlternateForm,
+  type PokemonFormKind,
+} from "@/lib/pokemon/pokemon-forms";
 import type { EvolutionStage, Pokemon, PokemonDetail, PokemonListItem } from "@/types/pokemon";
 import {
   buildEvolutionRootsFromPokeApiChain,
@@ -72,6 +79,22 @@ type PokemonRow = {
   roles: TeamRole[] | null;
   evolution_chain_id?: number | null;
   species_slug?: string;
+  form_kind?: PokemonFormKind | string;
+  base_slug?: string | null;
+  pokedex_display_no?: number;
+  list_sort_rank?: number;
+};
+
+type AlternateFormRow = {
+  slug: string;
+  name: string;
+  form_kind: PokemonFormKind | string;
+  primary_type: PokemonType;
+  secondary_type: PokemonType | null;
+  total: number;
+  sprite_normal_url: string | null;
+  pokedex_display_no: number;
+  list_sort_rank: number;
 };
 
 type AbilityRow = {
@@ -187,7 +210,19 @@ function sortColumnForKey(sortKey: PokemonListSortKey): keyof PokemonRow {
   }
 }
 
+function resolveFormKindFromRow(row: PokemonRow): PokemonFormKind {
+  if (row.form_kind && isPokemonFormKind(row.form_kind)) {
+    return row.form_kind;
+  }
+
+  return "default";
+}
+
 function toPokemonListItemFromRow(row: PokemonRow): PokemonListItem {
+  const formKind = resolveFormKindFromRow(row);
+  const pokedexDisplayNo = row.pokedex_display_no ?? row.id;
+  const listSortRank = row.list_sort_rank ?? pokedexDisplayNo * 10;
+
   return {
     id: row.id,
     name: row.name,
@@ -206,7 +241,48 @@ function toPokemonListItemFromRow(row: PokemonRow): PokemonListItem {
     spriteNormal: row.sprite_normal_url ?? "",
     isLegendaryOrMythical: row.is_legendary || row.is_mythical,
     isFullyEvolved: row.is_fully_evolved,
+    formKind,
+    baseSlug: row.base_slug ?? null,
+    pokedexDisplayNo,
+    listSortRank,
   };
+}
+
+function toAlternateFormFromRow(row: AlternateFormRow): AlternateForm {
+  return {
+    formKind: resolveFormKindFromRow(row as PokemonRow),
+    slug: row.slug,
+    name: row.name,
+    primaryType: row.primary_type,
+    secondaryType: row.secondary_type,
+    total: row.total,
+    spriteNormal: row.sprite_normal_url ?? "",
+    pokedexDisplayNo: row.pokedex_display_no,
+    listSortRank: row.list_sort_rank,
+  };
+}
+
+async function loadAlternateFormsForPokemon(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  row: PokemonRow,
+): Promise<AlternateForm[]> {
+  const displayNo = row.pokedex_display_no ?? row.id;
+
+  const { data, error } = await supabase
+    .from("pokemon")
+    .select(
+      "slug, name, form_kind, primary_type, secondary_type, total, sprite_normal_url, pokedex_display_no, list_sort_rank",
+    )
+    .eq("pokedex_display_no", displayNo)
+    .neq("slug", row.slug)
+    .order("list_sort_rank", { ascending: true });
+
+  if (error) {
+    console.error("[Pokemon Supabase Alternate Forms]", error);
+    return [];
+  }
+
+  return ((data as AlternateFormRow[] | null) ?? []).map(toAlternateFormFromRow);
 }
 
 function getEnglishAbilityEffects(ability: PokeApiAbilityResponse): AbilityEffectText {
@@ -353,6 +429,7 @@ export interface PokemonListQuery {
   limit?: number;
   sortBy?: PokemonListSortKey;
   sortDirection?: PokemonListSortDirection;
+  hideAlternateForms?: boolean;
 }
 
 async function pokeApiFetch<T>(pathOrUrl: string): Promise<T> {
@@ -571,7 +648,7 @@ function comparePokemonListItems(
 
   switch (sortKey) {
     case "id":
-      cmp = a.id - b.id;
+      cmp = comparePokemonListByNationalDex(a, b);
       break;
     case "name":
       cmp = a.name.localeCompare(b.name);
@@ -674,9 +751,13 @@ async function getPokemonListFromSupabase(
   let request = supabase
     .from("pokemon")
     .select(
-      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles",
+      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles, form_kind, base_slug, pokedex_display_no, list_sort_rank",
       { count: "exact" },
     );
+
+  if (query.hideAlternateForms) {
+    request = request.eq("form_kind", "default");
+  }
 
   if (typeof query.generation === "number") {
     request = request.eq("generation", query.generation);
@@ -705,10 +786,18 @@ async function getPokemonListFromSupabase(
     request = request.or(`name.ilike.%${displaySearch}%,slug.ilike.%${normalized}%`);
   }
 
-  const { data, error, count } = await request
-    .order(sortColumn, { ascending: sortDirection === "asc" })
-    .order("id", { ascending: true })
-    .range(start, end);
+  if (sortBy === "id") {
+    request = request
+      .order("pokedex_display_no", { ascending: sortDirection === "asc" })
+      .order("list_sort_rank", { ascending: sortDirection === "asc" })
+      .order("id", { ascending: true });
+  } else {
+    request = request
+      .order(sortColumn, { ascending: sortDirection === "asc" })
+      .order("id", { ascending: true });
+  }
+
+  const { data, error, count } = await request.range(start, end);
 
   if (error || !data) {
     console.error("[Pokemon Supabase List]", error);
@@ -749,7 +838,7 @@ export async function getPokemonListItemsBySlugs(slugs: string[]): Promise<Pokem
     const { data, error } = await supabase
       .from("pokemon")
       .select(
-        "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles",
+        "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles, form_kind, base_slug, pokedex_display_no, list_sort_rank",
       )
       .in("slug", missingSlugs);
 
@@ -924,7 +1013,7 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
   let pokemonRequest = supabase
     .from("pokemon")
     .select(
-      "id, slug, name, species_slug, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles, evolution_chain_id",
+      "id, slug, name, species_slug, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles, evolution_chain_id, form_kind, base_slug, pokedex_display_no, list_sort_rank",
     )
     .limit(1);
 
@@ -982,9 +1071,10 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
     .map(toMove)
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const evolutionChain = row.evolution_chain_id
-    ? await loadEvolutionChainFromSupabase(row.evolution_chain_id)
-    : undefined;
+  const [evolutionChain, alternateForms] = await Promise.all([
+    row.evolution_chain_id ? loadEvolutionChainFromSupabase(row.evolution_chain_id) : Promise.resolve(undefined),
+    loadAlternateFormsForPokemon(supabase, row),
+  ]);
 
   return {
     id: row.id,
@@ -1012,6 +1102,9 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
     roles: row.roles ?? [],
     typeDefense: buildTypeDefenseEntries(row.primary_type, row.secondary_type),
     evolutionChain,
+    alternateForms: alternateForms.length > 0 ? alternateForms : undefined,
+    alternateFormsByKind:
+      alternateForms.length > 0 ? groupAlternateFormsByKind(alternateForms) : undefined,
   };
 }
 
@@ -1152,10 +1245,13 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
   const start = (page - 1) * limit;
 
   if (sortKeyNeedsStatHydration(sortBy)) {
-    const hydratedAll = await hydratePokemonListItemsWithConcurrency(
+    let hydratedAll = await hydratePokemonListItemsWithConcurrency(
       matchingRefs.map((ref) => ref.name),
       12,
     );
+    if (query.hideAlternateForms) {
+      hydratedAll = hydratedAll.filter((entry) => entry.formKind === "default");
+    }
     hydratedAll.sort((a, b) => comparePokemonListItems(a, b, sortBy, sortDirection));
 
     return {
@@ -1170,8 +1266,11 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
   const pageSlugs = orderedRefs.slice(start, start + limit).map((ref) => ref.name);
 
   const hydrated = await Promise.all(pageSlugs.map((slug) => hydratePokemonListItem(slug)));
+  let pokemon = hydrated.filter((entry): entry is PokemonListItem => Boolean(entry));
 
-  const pokemon = hydrated.filter((entry): entry is PokemonListItem => Boolean(entry));
+  if (query.hideAlternateForms) {
+    pokemon = pokemon.filter((entry) => entry.formKind === "default");
+  }
 
   return {
     pokemon,

@@ -1,7 +1,10 @@
 import type { Ability } from "./ability";
 import type { TypeDefenseEntry } from "./coverage";
 import type { Move } from "./move";
+import type { AlternateForm, AlternateFormsByKind, PokemonFormKind } from "@/lib/pokemon/pokemon-forms";
 import type { PokemonType, TeamRole } from "./shared";
+
+export type { AlternateForm, AlternateFormsByKind, PokemonFormKind };
 
 export interface PokemonBaseStats {
   hp: number;
@@ -49,6 +52,10 @@ export interface PokemonListItem {
   spriteNormal: string;
   isLegendaryOrMythical: boolean;
   isFullyEvolved: boolean;
+  formKind: PokemonFormKind;
+  baseSlug?: string | null;
+  pokedexDisplayNo: number;
+  listSortRank: number;
 }
 
 export interface EvolutionStage {
@@ -65,4 +72,6 @@ export interface EvolutionStage {
 export interface PokemonDetail extends Pokemon {
   evolutionChain?: EvolutionStage[];
   typeDefense?: TypeDefenseEntry[];
+  alternateForms?: AlternateForm[];
+  alternateFormsByKind?: AlternateFormsByKind;
 }

@@ -3,6 +3,7 @@ import { ALL_POKEMON_TYPES } from "@/data/type-chart";
 import { calculateTypeEffectiveness } from "@/lib/calculations/shared/type-effectiveness";
 import type { Ability } from "@/types/ability";
 import type { Move, MoveTag } from "@/types/move";
+import { buildListFormFields } from "@/lib/pokemon/pokemon-forms";
 import type { Pokemon, PokemonDetail, PokemonListItem } from "@/types/pokemon";
 import type { PokemonType, TeamRole } from "@/types/shared";
 
@@ -256,6 +257,7 @@ export function normalizePokeApiToPokemonListItem(
   const total = hp + attack + defense + specialAttack + specialDefense + speed;
 
   const generation = getGenerationNumber(species.generation.name);
+  const formFields = buildListFormFields(pokemon.name, pokemon.id);
 
   return {
     id: pokemon.id,
@@ -275,6 +277,7 @@ export function normalizePokeApiToPokemonListItem(
     spriteNormal: pickPokeApiSprite(pokemon, "normal"),
     isLegendaryOrMythical: Boolean(species.is_legendary || species.is_mythical),
     isFullyEvolved: true,
+    ...formFields,
   };
 }
 
@@ -348,6 +351,8 @@ export function normalizePokeApiPokemonDetail(input: {
 }
 
 export function toPokemonListItem(pokemon: Pokemon): PokemonListItem {
+  const formFields = buildListFormFields(pokemon.slug, pokemon.id);
+
   return {
     id: pokemon.id,
     name: pokemon.name,
@@ -366,5 +371,6 @@ export function toPokemonListItem(pokemon: Pokemon): PokemonListItem {
     spriteNormal: pokemon.spriteNormal,
     isLegendaryOrMythical: pokemon.isLegendaryOrMythical,
     isFullyEvolved: pokemon.isFullyEvolved,
+    ...formFields,
   };
 }
