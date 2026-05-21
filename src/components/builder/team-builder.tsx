@@ -11,6 +11,7 @@ import { ErrorBoundary } from "@/components/error/error-boundary";
 import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { consumePendingLoadedTeam } from "@/lib/team/pending-team";
 import { useTeamStore } from "@/store/team-store";
+import { TypeChartDialog } from "@/components/type-chart/type-chart-dialog";
 
 export function TeamBuilder() {
   const team = useTeamStore((state) => state.team);
@@ -65,6 +66,8 @@ export function TeamBuilder() {
           </ErrorBoundary>
         </aside>
       </div>
+
+      <TypeChartDialog />
     </div>
   );
 }

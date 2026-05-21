@@ -342,6 +342,15 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
           }
         />
 
+        <p className="text-sm text-muted-foreground">
+          <Link
+            href="/type-chart"
+            className="font-medium text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline"
+          >
+            Open full type chart →
+          </Link>
+        </p>
+
         <div className="flex w-full flex-col gap-4 rounded-2xl border border-border/60 bg-card/40 p-4 shadow-sm backdrop-blur-sm sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border/50 bg-background/50 px-3 py-2 focus-within:ring-1 focus-within:ring-ring">
