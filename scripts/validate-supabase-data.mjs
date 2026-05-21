@@ -10,6 +10,7 @@
 import process from "node:process";
 
 import { getSupabaseReadClient, pokeApiGet } from "./lib/import-utils.mjs";
+import { FORM_KIND_RANK } from "./lib/pokemon-form-metadata.mjs";
 
 const DEFAULT_POKEMON_SAMPLES = ["bulbasaur", "charizard", "pikachu", "amoonguss", "landorus-therian"];
 const DEFAULT_ABILITY_SAMPLES = ["intimidate", "levitate", "drizzle", "regenerator"];
@@ -261,6 +262,110 @@ function abilitySignature(entry) {
   return `${entry.slug}:${entry.is_hidden ? "hidden" : "standard"}`;
 }
 
+/**
+ * @param {import("@supabase/supabase-js").SupabaseClient} supabase
+ * @param {number} displayNo
+ * @param {{ required?: Array<{ slug: string, form_kind: string }>, optional?: Array<{ slug: string, form_kind: string }> }} spec
+ */
+async function validatePokemonFormGroup(supabase, displayNo, spec) {
+  const required = spec.required ?? spec;
+  const optional = Array.isArray(spec) ? [] : (spec.optional ?? []);
+  const label = String(displayNo).padStart(4, "0");
+  const { data, error } = await supabase
+    .from("pokemon")
+    .select("slug, form_kind, pokedex_display_no, list_sort_rank, base_slug")
+    .eq("pokedex_display_no", displayNo)
+    .order("list_sort_rank", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error) {
+    return [`forms #${label}: query failed: ${error.message}`];
+  }
+
+  const rows = data ?? [];
+  const issues = [];
+
+  function validateEntry(expected, isRequired) {
+    const match = rows.find((row) => row.slug === expected.slug);
+    if (!match) {
+      if (isRequired) {
+        issues.push(`forms #${label}: missing row for ${expected.slug}`);
+      }
+      return false;
+    }
+
+    if (match.form_kind !== expected.form_kind) {
+      issues.push(
+        `forms #${label}: ${expected.slug} expected form_kind ${expected.form_kind}, got ${match.form_kind}`,
+      );
+    }
+
+    if (match.pokedex_display_no !== displayNo) {
+      issues.push(
+        `forms #${label}: ${expected.slug} expected pokedex_display_no ${displayNo}, got ${match.pokedex_display_no}`,
+      );
+    }
+
+    const expectedRank = displayNo * 10 + (FORM_KIND_RANK[expected.form_kind] ?? 4);
+    if (match.list_sort_rank !== expectedRank) {
+      issues.push(
+        `forms #${label}: ${expected.slug} expected list_sort_rank ${expectedRank}, got ${match.list_sort_rank}`,
+      );
+    }
+
+    return true;
+  }
+
+  for (const expected of required) {
+    validateEntry(expected, true);
+  }
+
+  for (const expected of optional) {
+    validateEntry(expected, false);
+  }
+
+  const presentOptional = optional.filter((entry) => rows.some((row) => row.slug === entry.slug));
+  const canonicalOrder = [...required, ...presentOptional];
+  const knownSlugs = new Set(canonicalOrder.map((entry) => entry.slug));
+
+  for (const row of rows) {
+    if (!knownSlugs.has(row.slug) && ["mega", "gigantamax", "regional", "other"].includes(row.form_kind)) {
+      issues.push(
+        `forms #${label}: unexpected alternate form ${row.slug} (${row.form_kind}) in display group`,
+      );
+    }
+  }
+
+  const actualOrder = rows
+    .filter((row) => knownSlugs.has(row.slug))
+    .map((row) => row.slug)
+    .join(",");
+  const expectedOrder = canonicalOrder.map((entry) => entry.slug).join(",");
+  if (actualOrder !== expectedOrder) {
+    issues.push(`forms #${label}: expected order ${expectedOrder}, got ${actualOrder}`);
+  }
+
+  return issues;
+}
+
+async function validateDittoHasNoAlternateForms(supabase) {
+  const { data, error } = await supabase
+    .from("pokemon")
+    .select("slug, form_kind")
+    .eq("pokedex_display_no", 132)
+    .neq("form_kind", "default");
+
+  if (error) {
+    return [`forms ditto: query failed: ${error.message}`];
+  }
+
+  if ((data ?? []).length > 0) {
+    return [`forms ditto: expected only default form, got ${data.map((row) => row.slug).join(", ")}`];
+  }
+
+  return [];
+}
+
 async function countTable(supabase, table) {
   const { count, error } = await supabase
     .from(table)
@@ -493,6 +598,37 @@ async function main() {
       maxStages: 1,
     })),
   );
+
+  issues.push(
+    ...(await validatePokemonFormGroup(supabase, 3, {
+      required: [
+        { slug: "venusaur", form_kind: "default" },
+        { slug: "venusaur-mega", form_kind: "mega" },
+        { slug: "venusaur-gmax", form_kind: "gigantamax" },
+      ],
+    })),
+  );
+  issues.push(
+    ...(await validatePokemonFormGroup(supabase, 6, {
+      required: [
+        { slug: "charizard", form_kind: "default" },
+        { slug: "charizard-mega-x", form_kind: "mega" },
+        { slug: "charizard-mega-y", form_kind: "mega" },
+        { slug: "charizard-gmax", form_kind: "gigantamax" },
+      ],
+    })),
+  );
+  issues.push(
+    ...(await validatePokemonFormGroup(supabase, 80, {
+      required: [
+        { slug: "slowbro", form_kind: "default" },
+        { slug: "slowbro-mega", form_kind: "mega" },
+        { slug: "slowbro-galar", form_kind: "regional" },
+      ],
+      optional: [{ slug: "slowbro-gmax", form_kind: "gigantamax" }],
+    })),
+  );
+  issues.push(...(await validateDittoHasNoAlternateForms(supabase)));
 
   for (const slug of args.abilities) {
     issues.push(...await validateAbility(supabase, slug));

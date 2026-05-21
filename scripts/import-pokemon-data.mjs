@@ -1,8 +1,14 @@
 /**
  * Imports PokéAPI Pokemon, ability, move, and join data into Supabase.
  *
+ * Prerequisites:
+ *   Run supabase/pokemon-forms.sql in Supabase, then:
+ *   notify pgrst, 'reload schema';
+ *
  * Usage:
  *   node scripts/import-pokemon-data.mjs --dry-run --limit 20
+ *   npm run import:pokemon-data
+ *   npm run validate:supabase-data
  */
 
 import fs from "node:fs/promises";
@@ -10,6 +16,7 @@ import path from "node:path";
 import process from "node:process";
 
 import { parseCommonArgs, pokeApiGet, runImport } from "./lib/import-utils.mjs";
+import { applyPokemonFormMetadata } from "./lib/pokemon-form-metadata.mjs";
 
 const MAX_MOVES_PER_POKEMON = 200;
 const UPSERT_BATCH_SIZE = 500;
@@ -484,6 +491,7 @@ async function main() {
       aggregate.pokemonMoveRows,
       (row) => `${row.pokemon_id}:${row.move_id}`,
     );
+    applyPokemonFormMetadata(aggregate.pokemonRows);
     const pokemonIds = aggregate.pokemonRows.map((row) => row.id);
 
     const evolutionChainRows = await buildEvolutionChainRows(aggregate.pokemonRows, caches);
