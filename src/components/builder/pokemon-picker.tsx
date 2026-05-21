@@ -10,6 +10,8 @@ import {
   fetchPokemonDetailFromApi,
   fetchPokemonListFromApi,
 } from "@/lib/pokemon/data-access";
+import { formatPokedexDisplayNumber, getPokemonListNameMeta } from "@/lib/pokemon/pokemon-list-display";
+import { PokemonFormKindPill } from "@/components/pokemon/pokemon-form-kind-pill";
 import { TypeBadge } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { ErrorMessage } from "@/components/error/error-message";
@@ -36,6 +38,8 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
         search: normalizedSearch || undefined,
         page: pageParam,
         limit: PICKER_PAGE_SIZE,
+        sortBy: "id",
+        sortDirection: "asc",
       }),
     getNextPageParam: (lastPage) => {
       const loaded = lastPage.page * lastPage.limit;
@@ -149,9 +153,12 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
           style={{ maxHeight: "280px" }}
           onScroll={handleListScroll}
         >
-          {filtered.map((pokemon) => (
+          {filtered.map((pokemon) => {
+            const { showPill } = getPokemonListNameMeta(pokemon);
+
+            return (
             <button
-              key={pokemon.id}
+              key={pokemon.slug}
               type="button"
               onClick={() => {
                 void handleSelect(pokemon.slug);
@@ -173,8 +180,17 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold capitalize text-foreground">
-                  {pokemon.name}
+                <div className="flex flex-wrap items-center gap-1">
+                  <p className="truncate text-xs font-semibold text-foreground">{pokemon.name}</p>
+                  {showPill ? (
+                    <PokemonFormKindPill
+                      formKind={pokemon.formKind}
+                      className="px-1.5 py-0 text-[9px]"
+                    />
+                  ) : null}
+                </div>
+                <p className="text-[10px] tabular-nums text-muted-foreground">
+                  #{formatPokedexDisplayNumber(pokemon.pokedexDisplayNo)}
                 </p>
                 <div className="mt-0.5 flex gap-1">
                   <TypeBadge type={pokemon.primaryType} />
@@ -182,7 +198,8 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
                 </div>
               </div>
             </button>
-          ))}
+          );
+          })}
           {isFetchingNextPage ? (
             <div className="flex items-center justify-center py-2 text-xs text-muted-foreground">
               <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden />

@@ -25,6 +25,7 @@ describe("buildPokedexHref", () => {
       }),
     ).toBe("/pokedex?view=table&q=eevee&sort=total&dir=desc&gen=1&type=fire&ability=adaptability");
   });
+
 });
 
 describe("parsePokedexReturnState", () => {

@@ -57,7 +57,6 @@ export async function GET(request: Request) {
     limit: parseNumberQuery(searchParams.get("limit")),
     sortBy,
     sortDirection: parseSortDirection(searchParams.get("sortDirection")),
-    hideAlternateForms: parseBooleanQuery(searchParams.get("hideAlternateForms")) ?? undefined,
   };
 
   try {

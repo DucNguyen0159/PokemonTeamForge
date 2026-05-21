@@ -27,11 +27,6 @@ describe("pokemon data access", () => {
     expect(params.get("sortDirection")).toBe("desc");
   });
 
-  it("passes hideAlternateForms when enabled", () => {
-    const params = buildPokemonListSearchParams({ hideAlternateForms: true });
-    expect(params.get("hideAlternateForms")).toBe("true");
-  });
-
   it("returns API list payload without mock-size limits", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

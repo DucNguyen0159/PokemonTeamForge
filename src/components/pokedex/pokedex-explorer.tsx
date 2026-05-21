@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowRight, ArrowUp, LayoutGrid, List, Loader2, Plus, Search, X } from "lucide-react";
 
@@ -16,11 +24,13 @@ import {
   fetchPokemonListFromApi,
 } from "@/lib/pokemon/data-access";
 import {
+  buildPokedexHref,
   buildPokemonDetailHref,
   parsePokedexReturnState,
   storePokedexReturnHref,
   type PokedexExplorerReturnState,
 } from "@/lib/pokemon/pokedex-return-url";
+import { formatPokedexDisplayNumber } from "@/lib/pokemon/pokemon-list-display";
 import { fetchAbilitiesFromApi } from "@/lib/abilities/data-access";
 import { cn } from "@/utils";
 import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
@@ -53,8 +63,10 @@ const SORT_CARD_PRIMARY_LABEL = Object.fromEntries(
 ) as Record<PokemonListSortKey, string>;
 
 function formatPokemonCardSubtitle(pokemon: PokemonListItem, sortBy: PokemonListSortKey): string {
+  const dexLabel = `#${formatPokedexDisplayNumber(pokemon.pokedexDisplayNo)}`;
+
   if (sortBy === "id" || sortBy === "name") {
-    return `National #${pokemon.id}`;
+    return dexLabel;
   }
 
   const primaryLabel = SORT_CARD_PRIMARY_LABEL[sortBy];
@@ -84,7 +96,7 @@ function formatPokemonCardSubtitle(pokemon: PokemonListItem, sortBy: PokemonList
       break;
   }
 
-  return `${primaryLabel} ${primaryValue} · #${pokemon.id}`;
+  return `${primaryLabel} ${primaryValue} · ${dexLabel}`;
 }
 
 function defaultSortDirection(sortBy: PokemonListSortKey): PokemonListSortDirection {
@@ -168,7 +180,38 @@ function applyReturnStateToExplorer(
   setters.setView(state.view ?? "cards");
 }
 
+type PokemonListNameDisplayProps = {
+  pokemon: PokemonListItem;
+  detailLink: ReturnType<typeof buildPokemonDetailHref>;
+  nameClassName?: string;
+  onDetailClick: () => void;
+};
+
+function PokemonListNameDisplay({
+  pokemon,
+  detailLink,
+  nameClassName,
+  onDetailClick,
+}: PokemonListNameDisplayProps) {
+  return (
+    <div className="min-w-0">
+      <Link
+        href={detailLink.href}
+        onClick={onDetailClick}
+        className={cn(
+          "font-medium leading-snug text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          nameClassName,
+        )}
+      >
+        {pokemon.name}
+      </Link>
+    </div>
+  );
+}
+
 export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(initialReturnState.q ?? "");
   const [debouncedSearch, setDebouncedSearch] = useState(initialReturnState.q ?? "");
@@ -212,7 +255,7 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
     });
   }, [searchParams]);
 
-  function buildCurrentReturnState(): PokedexExplorerReturnState {
+  const buildCurrentReturnState = useCallback((): PokedexExplorerReturnState => {
     return {
       view,
       q: debouncedSearch || undefined,
@@ -222,7 +265,19 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
       type: typeFilter || undefined,
       ability: abilityFilter || undefined,
     };
-  }
+  }, [abilityFilter, debouncedSearch, generationFilter, sortBy, sortDirection, typeFilter, view]);
+
+  useEffect(() => {
+    const nextHref = buildPokedexHref(buildCurrentReturnState());
+    const currentHref =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : pathname;
+
+    if (currentHref !== nextHref) {
+      router.replace(nextHref, { scroll: false });
+    }
+  }, [buildCurrentReturnState, pathname, router]);
 
   function getPokemonDetailLink(slug: string) {
     return buildPokemonDetailHref(slug, buildCurrentReturnState());
@@ -672,18 +727,17 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
                     />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
-                    <Link
-                      href={detailLink.href}
-                      onClick={() =>
+                    <PokemonListNameDisplay
+                      pokemon={pokemon}
+                      detailLink={detailLink}
+                      nameClassName="truncate text-sm font-semibold"
+                      onDetailClick={() =>
                         handleDetailLinkClick(
                           detailLink.storeReturnHrefInSession,
                           detailLink.returnHref,
                         )
                       }
-                      className="block truncate text-sm font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      {pokemon.name}
-                    </Link>
+                    />
                     <p className="text-xs text-muted-foreground">
                       {formatPokemonCardSubtitle(pokemon, sortBy)}
                     </p>
@@ -856,7 +910,7 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
                   className="group border-t border-border/40 bg-card/30 hover:bg-card/60"
                 >
                   <td className={cn("w-14 shrink-0 px-3 py-3 text-left tabular-nums text-muted-foreground", sortBy === "id" && "bg-primary/5 text-primary")}>
-                    {String(pokemon.id).padStart(4, "0")}
+                    {formatPokedexDisplayNumber(pokemon.pokedexDisplayNo)}
                   </td>
                   <td className={cn("max-w-[22rem] px-3 py-3 align-middle", sortBy === "name" && "bg-primary/5")}>
                     <div className="flex items-start gap-2 sm:items-center sm:gap-3">
@@ -868,23 +922,20 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
                           className="h-full w-full object-contain p-1"
                         />
                       </div>
-                      <div className="min-w-0 max-w-full">
-                        <Link
-                          href={detailLink.href}
-                          onClick={() =>
-                            handleDetailLinkClick(
-                              detailLink.storeReturnHrefInSession,
-                              detailLink.returnHref,
-                            )
-                          }
-                          className={cn(
-                            "break-words font-medium leading-snug text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                            sortBy === "name" && "text-primary",
-                          )}
-                        >
-                          {pokemon.name}
-                        </Link>
-                      </div>
+                      <PokemonListNameDisplay
+                        pokemon={pokemon}
+                        detailLink={detailLink}
+                        nameClassName={cn(
+                          "break-words text-sm",
+                          sortBy === "name" && "text-primary",
+                        )}
+                        onDetailClick={() =>
+                          handleDetailLinkClick(
+                            detailLink.storeReturnHrefInSession,
+                            detailLink.returnHref,
+                          )
+                        }
+                      />
                     </div>
                   </td>
                   <td className="min-w-0 max-w-[11rem] px-3 py-3 align-middle">

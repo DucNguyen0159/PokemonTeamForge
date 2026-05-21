@@ -430,7 +430,6 @@ export interface PokemonListQuery {
   limit?: number;
   sortBy?: PokemonListSortKey;
   sortDirection?: PokemonListSortDirection;
-  hideAlternateForms?: boolean;
 }
 
 async function pokeApiFetch<T>(pathOrUrl: string): Promise<T> {
@@ -755,10 +754,6 @@ async function getPokemonListFromSupabase(
       "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles, form_kind, base_slug, pokedex_display_no, list_sort_rank",
       { count: "exact" },
     );
-
-  if (query.hideAlternateForms) {
-    request = request.eq("form_kind", "default");
-  }
 
   if (typeof query.generation === "number") {
     request = request.eq("generation", query.generation);
@@ -1252,14 +1247,12 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
   const start = (page - 1) * limit;
 
   if (sortKeyNeedsStatHydration(sortBy)) {
-    let hydratedAll = await hydratePokemonListItemsWithConcurrency(
-      matchingRefs.map((ref) => ref.name),
-      12,
-    );
-    if (query.hideAlternateForms) {
-      hydratedAll = hydratedAll.filter((entry) => entry.formKind === "default");
-    }
-    hydratedAll.sort((a, b) => comparePokemonListItems(a, b, sortBy, sortDirection));
+    const hydratedAll = (
+      await hydratePokemonListItemsWithConcurrency(
+        matchingRefs.map((ref) => ref.name),
+        12,
+      )
+    ).sort((a, b) => comparePokemonListItems(a, b, sortBy, sortDirection));
 
     return {
       pokemon: hydratedAll.slice(start, start + limit),
@@ -1273,11 +1266,7 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
   const pageSlugs = orderedRefs.slice(start, start + limit).map((ref) => ref.name);
 
   const hydrated = await Promise.all(pageSlugs.map((slug) => hydratePokemonListItem(slug)));
-  let pokemon = hydrated.filter((entry): entry is PokemonListItem => Boolean(entry));
-
-  if (query.hideAlternateForms) {
-    pokemon = pokemon.filter((entry) => entry.formKind === "default");
-  }
+  const pokemon = hydrated.filter((entry): entry is PokemonListItem => Boolean(entry));
 
   return {
     pokemon,
