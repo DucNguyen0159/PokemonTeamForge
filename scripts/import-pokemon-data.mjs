@@ -179,6 +179,15 @@ async function listPokemonRefs(limit) {
   return Number.isFinite(limit) ? refs.slice(0, limit) : refs;
 }
 
+function parseEvolutionChainId(chainUrl) {
+  if (!chainUrl) {
+    return null;
+  }
+
+  const match = String(chainUrl).match(/evolution-chain\/(\d+)\/?$/);
+  return match ? Number(match[1]) : null;
+}
+
 function evolutionChainNodeForSpecies(chainNode, speciesSlug) {
   if (!chainNode) {
     return null;
@@ -196,6 +205,58 @@ function evolutionChainNodeForSpecies(chainNode, speciesSlug) {
   }
 
   return null;
+}
+
+function normalizeEvolutionChainNode(node, speciesMetaBySlug) {
+  const speciesSlug = node.species.name;
+  const meta = speciesMetaBySlug.get(speciesSlug);
+
+  return {
+    speciesSlug,
+    pokemonId: meta?.id ?? 0,
+    name: meta?.name ?? toTitleCase(speciesSlug),
+    slug: meta?.slug ?? speciesSlug,
+    spriteNormal: meta?.sprite_normal_url ?? "",
+    primaryType: meta?.primary_type ?? "normal",
+    secondaryType: meta?.secondary_type ?? null,
+    evolvesTo: (node.evolves_to ?? []).map((child) =>
+      normalizeEvolutionChainNode(child, speciesMetaBySlug),
+    ),
+  };
+}
+
+async function buildEvolutionChainRows(pokemonRows, caches) {
+  const speciesMetaBySlug = new Map();
+  for (const row of pokemonRows) {
+    speciesMetaBySlug.set(row.species_slug, row);
+    speciesMetaBySlug.set(row.slug, row);
+  }
+
+  const chainIds = new Set();
+  for (const row of pokemonRows) {
+    if (row.evolution_chain_id) {
+      chainIds.add(row.evolution_chain_id);
+    }
+  }
+
+  const evolutionChainRows = [];
+
+  for (const chainId of chainIds) {
+    const chainUrl = caches.evolutionChainUrls.get(chainId);
+    if (!chainUrl) {
+      continue;
+    }
+
+    const rawEvolutionChain = await fetchWithCache(caches.evolutionChains, chainUrl);
+    const chainJson = [normalizeEvolutionChainNode(rawEvolutionChain.chain, speciesMetaBySlug)];
+    evolutionChainRows.push({
+      id: chainId,
+      chain_json: chainJson,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  return evolutionChainRows;
 }
 
 async function isFullyEvolvedSpecies(rawSpecies, caches) {
@@ -308,6 +369,11 @@ async function buildPokemonImportRows(ref, caches, moveTags) {
     move_id: move.id,
   }));
   const pokemonRow = normalizePokemon(rawPokemon, rawSpecies, moveRows, isFullyEvolved);
+  const evolutionChainId = parseEvolutionChainId(rawSpecies.evolution_chain?.url);
+  if (evolutionChainId && rawSpecies.evolution_chain?.url) {
+    caches.evolutionChainUrls.set(evolutionChainId, rawSpecies.evolution_chain.url);
+  }
+  pokemonRow.evolution_chain_id = evolutionChainId;
 
   return {
     pokemonRows: [pokemonRow],
@@ -365,6 +431,7 @@ async function main() {
     const caches = {
       species: new Map(),
       evolutionChains: new Map(),
+      evolutionChainUrls: new Map(),
       abilities: new Map(),
       moves: new Map(),
     };
@@ -401,13 +468,16 @@ async function main() {
     );
     const pokemonIds = aggregate.pokemonRows.map((row) => row.id);
 
+    const evolutionChainRows = await buildEvolutionChainRows(aggregate.pokemonRows, caches);
+
     if (args.dryRun) {
       console.log(
-        `[dry-run] Prepared ${aggregate.pokemonRows.length} Pokemon, ${aggregate.abilityRows.length} abilities, ${aggregate.moveRows.length} moves, ${aggregate.pokemonAbilityRows.length} Pokemon abilities, and ${aggregate.pokemonMoveRows.length} Pokemon moves.`,
+        `[dry-run] Prepared ${aggregate.pokemonRows.length} Pokemon, ${aggregate.abilityRows.length} abilities, ${aggregate.moveRows.length} moves, ${aggregate.pokemonAbilityRows.length} Pokemon abilities, ${aggregate.pokemonMoveRows.length} Pokemon moves, and ${evolutionChainRows.length} evolution chains.`,
       );
     } else {
       await upsertInBatches(supabase, "abilities", aggregate.abilityRows, { onConflict: "id" });
       await upsertInBatches(supabase, "moves", aggregate.moveRows, { onConflict: "id" });
+      await upsertInBatches(supabase, "evolution_chains", evolutionChainRows, { onConflict: "id" });
       await upsertInBatches(supabase, "pokemon", aggregate.pokemonRows, { onConflict: "id" });
       await deleteJoinsForPokemon(supabase, "pokemon_abilities", pokemonIds);
       await deleteJoinsForPokemon(supabase, "pokemon_moves", pokemonIds);
@@ -415,7 +485,7 @@ async function main() {
       await insertInBatches(supabase, "pokemon_moves", aggregate.pokemonMoveRows);
 
       console.log(
-        `Imported ${aggregate.pokemonRows.length} Pokemon, ${aggregate.abilityRows.length} abilities, and ${aggregate.moveRows.length} moves.`,
+        `Imported ${aggregate.pokemonRows.length} Pokemon, ${aggregate.abilityRows.length} abilities, ${aggregate.moveRows.length} moves, and ${evolutionChainRows.length} evolution chains.`,
       );
     }
 
@@ -428,6 +498,7 @@ async function main() {
         moveCount: aggregate.moveRows.length,
         pokemonAbilityCount: aggregate.pokemonAbilityRows.length,
         pokemonMoveCount: aggregate.pokemonMoveRows.length,
+        evolutionChainCount: evolutionChainRows.length,
       },
     };
   });

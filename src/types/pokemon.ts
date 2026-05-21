@@ -52,10 +52,13 @@ export interface PokemonListItem {
 }
 
 export interface EvolutionStage {
+  speciesSlug: string;
   pokemonId: number;
   name: string;
   slug: string;
   spriteNormal: string;
+  primaryType: PokemonType;
+  secondaryType?: PokemonType | null;
   evolvesTo?: EvolutionStage[];
 }
 

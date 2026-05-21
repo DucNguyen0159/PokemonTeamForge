@@ -50,6 +50,7 @@ export interface PokeApiSpeciesResponse {
   generation: NamedApiResource;
   is_legendary: boolean;
   is_mythical: boolean;
+  evolution_chain?: NamedApiResource | null;
 }
 
 export interface PokeApiAbilityResponse {

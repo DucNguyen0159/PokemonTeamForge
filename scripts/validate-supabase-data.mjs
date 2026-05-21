@@ -126,6 +126,137 @@ function relatedOne(value) {
   return Array.isArray(value) ? value[0] ?? null : value;
 }
 
+function countEvolutionStages(stages) {
+  let count = 0;
+
+  function walk(stage) {
+    count += 1;
+    for (const child of stage.evolvesTo ?? []) {
+      walk(child);
+    }
+  }
+
+  for (const root of stages) {
+    walk(root);
+  }
+
+  return count;
+}
+
+function findStageBySlug(stages, slug) {
+  const normalized = slug.trim().toLowerCase();
+
+  function walk(stage) {
+    if (stage.slug === normalized || stage.speciesSlug === normalized) {
+      return stage;
+    }
+
+    for (const child of stage.evolvesTo ?? []) {
+      const match = walk(child);
+      if (match) {
+        return match;
+      }
+    }
+
+    return null;
+  }
+
+  for (const root of stages) {
+    const match = walk(root);
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+}
+
+async function validateEvolutionChain(supabase, slug, expectations) {
+  const { data: pokemon, error: pokemonError } = await supabase
+    .from("pokemon")
+    .select("id, slug, species_slug, evolution_chain_id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (pokemonError) {
+    return [`evolution ${slug}: Supabase query failed: ${pokemonError.message}`];
+  }
+  if (!pokemon) {
+    return [`evolution ${slug}: missing pokemon row`];
+  }
+
+  const issues = [];
+
+  if (!expectations.expectChain) {
+    if (pokemon.evolution_chain_id) {
+      issues.push(`evolution ${slug}: expected no evolution_chain_id, got ${pokemon.evolution_chain_id}`);
+    }
+    return issues;
+  }
+
+  if (!pokemon.evolution_chain_id) {
+    issues.push(`evolution ${slug}: missing evolution_chain_id`);
+    return issues;
+  }
+
+  const { data: chainRow, error: chainError } = await supabase
+    .from("evolution_chains")
+    .select("id, chain_json")
+    .eq("id", pokemon.evolution_chain_id)
+    .maybeSingle();
+
+  if (chainError) {
+    issues.push(`evolution ${slug}: chain query failed: ${chainError.message}`);
+    return issues;
+  }
+  if (!chainRow) {
+    issues.push(`evolution ${slug}: evolution_chains row ${pokemon.evolution_chain_id} missing`);
+    return issues;
+  }
+
+  const roots = Array.isArray(chainRow.chain_json) ? chainRow.chain_json : [];
+  if (roots.length === 0) {
+    issues.push(`evolution ${slug}: chain_json is empty`);
+    return issues;
+  }
+
+  const stageCount = countEvolutionStages(roots);
+  if (stageCount < expectations.minStages) {
+    issues.push(
+      `evolution ${slug}: expected at least ${expectations.minStages} stages, got ${stageCount}`,
+    );
+  }
+
+  if (expectations.maxStages && stageCount > expectations.maxStages) {
+    issues.push(
+      `evolution ${slug}: expected at most ${expectations.maxStages} stages, got ${stageCount}`,
+    );
+  }
+
+  const currentStage = findStageBySlug(roots, slug);
+  if (!currentStage) {
+    issues.push(`evolution ${slug}: current species not found in chain_json`);
+  }
+
+  if (expectations.rootSlug) {
+    const rootSlug = roots[0]?.slug ?? roots[0]?.speciesSlug;
+    if (rootSlug !== expectations.rootSlug) {
+      issues.push(`evolution ${slug}: expected root ${expectations.rootSlug}, got ${rootSlug}`);
+    }
+  }
+
+  if (expectations.minBranches && currentStage) {
+    const branchCount = currentStage.evolvesTo?.length ?? 0;
+    if (branchCount < expectations.minBranches) {
+      issues.push(
+        `evolution ${slug}: expected at least ${expectations.minBranches} branches, got ${branchCount}`,
+      );
+    }
+  }
+
+  return issues;
+}
+
 function abilitySignature(entry) {
   return `${entry.slug}:${entry.is_hidden ? "hidden" : "standard"}`;
 }
@@ -292,7 +423,15 @@ async function main() {
     return;
   }
 
-  const tables = ["pokemon", "abilities", "moves", "pokemon_abilities", "pokemon_moves", "items"];
+  const tables = [
+    "pokemon",
+    "abilities",
+    "moves",
+    "pokemon_abilities",
+    "pokemon_moves",
+    "items",
+    "evolution_chains",
+  ];
   const counts = {};
   const issues = [];
   let hasTableReadError = false;
@@ -330,6 +469,30 @@ async function main() {
   for (const slug of args.pokemon) {
     issues.push(...await validatePokemon(supabase, slug));
   }
+
+  issues.push(
+    ...(await validateEvolutionChain(supabase, "bulbasaur", {
+      expectChain: true,
+      rootSlug: "bulbasaur",
+      minStages: 3,
+    })),
+  );
+  issues.push(
+    ...(await validateEvolutionChain(supabase, "eevee", {
+      expectChain: true,
+      rootSlug: "eevee",
+      minStages: 4,
+      minBranches: 3,
+    })),
+  );
+  issues.push(
+    ...(await validateEvolutionChain(supabase, "ditto", {
+      expectChain: true,
+      rootSlug: "ditto",
+      minStages: 1,
+      maxStages: 1,
+    })),
+  );
 
   for (const slug of args.abilities) {
     issues.push(...await validateAbility(supabase, slug));

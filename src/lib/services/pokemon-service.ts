@@ -6,7 +6,17 @@ import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/p
 import { RECOMMENDATION_ALLOWED_PRE_EVOLUTION_SET } from "@/data/recommendation-candidates";
 import type { PokemonListPayload } from "@/types/api";
 import type { MoveCategory, PokemonType, TeamRole } from "@/types/shared";
-import type { Pokemon, PokemonDetail, PokemonListItem } from "@/types/pokemon";
+import type { EvolutionStage, Pokemon, PokemonDetail, PokemonListItem } from "@/types/pokemon";
+import {
+  buildEvolutionRootsFromPokeApiChain,
+  collectSpeciesSlugsFromPokeApiChain,
+  evolutionStageMetaFromPokemonRow,
+  getDisplayEvolutionChain,
+  parseEvolutionChainId,
+  parseStoredEvolutionChain,
+  type EvolutionStageMeta,
+  type PokeApiEvolutionChainNode,
+} from "@/lib/pokemon/evolution-chain";
 import type { Ability } from "@/types/ability";
 import type { Move, MoveTag } from "@/types/move";
 
@@ -60,6 +70,8 @@ type PokemonRow = {
   sprite_normal_url: string | null;
   sprite_shiny_url: string | null;
   roles: TeamRole[] | null;
+  evolution_chain_id?: number | null;
+  species_slug?: string;
 };
 
 type AbilityRow = {
@@ -103,6 +115,8 @@ type AbilityEffectText = {
 };
 
 const pokemonDetailCache = new Map<string, PokemonDetail>();
+const evolutionChainCache = new Map<number, EvolutionStage[]>();
+const pokeApiSpeciesMetaCache = new Map<string, EvolutionStageMeta>();
 const pokemonListItemCache = new Map<string, PokemonListItem>();
 const abilityEffectCache = new Map<string, AbilityEffectText>();
 
@@ -767,6 +781,137 @@ export async function getPokemonListItemsBySlugs(slugs: string[]): Promise<Pokem
     .filter((item): item is PokemonListItem => Boolean(item));
 }
 
+type PokeApiEvolutionChainResponse = {
+  id: number;
+  chain: PokeApiEvolutionChainNode;
+};
+
+function pickPokeApiSpriteUrl(pokemon: PokeApiPokemonResponse): string {
+  const officialArtwork = pokemon.sprites?.other?.["official-artwork"];
+  const home = pokemon.sprites?.other?.home;
+  return (
+    officialArtwork?.front_default ??
+    home?.front_default ??
+    pokemon.sprites?.front_default ??
+    ""
+  );
+}
+
+async function loadEvolutionChainFromSupabase(chainId: number): Promise<EvolutionStage[] | undefined> {
+  const cached = evolutionChainCache.get(chainId);
+  if (cached) {
+    return cached;
+  }
+
+  if (!hasSupabaseServerEnv()) {
+    return undefined;
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("evolution_chains")
+    .select("chain_json")
+    .eq("id", chainId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Pokemon Supabase Evolution Chain]", error);
+    return undefined;
+  }
+
+  if (!data) {
+    return undefined;
+  }
+
+  const stages = getDisplayEvolutionChain(parseStoredEvolutionChain(data.chain_json));
+  evolutionChainCache.set(chainId, stages);
+  return stages;
+}
+
+async function resolveEvolutionSpeciesMeta(speciesSlug: string): Promise<EvolutionStageMeta | null> {
+  const cached = pokeApiSpeciesMetaCache.get(speciesSlug);
+  if (cached) {
+    return cached;
+  }
+
+  if (hasSupabaseServerEnv()) {
+    const supabase = getSupabaseServerClient();
+    const { data } = await supabase
+      .from("pokemon")
+      .select(
+        "id, slug, name, species_slug, primary_type, secondary_type, sprite_normal_url",
+      )
+      .or(`species_slug.eq.${speciesSlug},slug.eq.${speciesSlug}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (data) {
+      const meta = evolutionStageMetaFromPokemonRow(data);
+      pokeApiSpeciesMetaCache.set(speciesSlug, meta);
+      return meta;
+    }
+  }
+
+  try {
+    const rawPokemon = await pokeApiFetchWithRetry<PokeApiPokemonResponse>(`/pokemon/${speciesSlug}`, 2);
+    const sortedTypes = [...rawPokemon.types].sort((a, b) => a.slot - b.slot);
+    const meta: EvolutionStageMeta = {
+      pokemonId: rawPokemon.id,
+      name: rawPokemon.name
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" "),
+      slug: rawPokemon.name,
+      spriteNormal: pickPokeApiSpriteUrl(rawPokemon),
+      primaryType: (sortedTypes[0]?.type.name ?? "normal") as PokemonType,
+      secondaryType: sortedTypes[1]?.type.name
+        ? (sortedTypes[1].type.name as PokemonType)
+        : null,
+    };
+    pokeApiSpeciesMetaCache.set(speciesSlug, meta);
+    return meta;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchEvolutionChainFromPokeApi(
+  rawSpecies: PokeApiSpeciesResponse,
+): Promise<EvolutionStage[] | undefined> {
+  const chainUrl = rawSpecies.evolution_chain?.url;
+  const chainId = parseEvolutionChainId(chainUrl);
+  if (!chainId || !chainUrl) {
+    return undefined;
+  }
+
+  const cached = evolutionChainCache.get(chainId);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const rawChain = await pokeApiFetchWithRetry<PokeApiEvolutionChainResponse>(chainUrl, 2);
+    const uniqueSlugs = [...new Set(collectSpeciesSlugsFromPokeApiChain(rawChain.chain))];
+    const metaBySpecies = new Map<string, EvolutionStageMeta>();
+
+    await Promise.all(
+      uniqueSlugs.map(async (speciesSlug) => {
+        const meta = await resolveEvolutionSpeciesMeta(speciesSlug);
+        if (meta) {
+          metaBySpecies.set(speciesSlug, meta);
+        }
+      }),
+    );
+
+    const roots = buildEvolutionRootsFromPokeApiChain(rawChain.chain, (slug) => metaBySpecies.get(slug) ?? null);
+    evolutionChainCache.set(chainId, roots);
+    return roots;
+  } catch (error) {
+    console.error("[Pokemon PokeAPI Evolution Chain]", error);
+    return undefined;
+  }
+}
+
 async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDetail | null> {
   if (!hasSupabaseServerEnv()) {
     return null;
@@ -779,7 +924,7 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
   let pokemonRequest = supabase
     .from("pokemon")
     .select(
-      "id, slug, name, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles",
+      "id, slug, name, species_slug, generation, region, primary_type, secondary_type, hp, attack, defense, special_attack, special_defense, speed, total, is_legendary, is_mythical, is_fully_evolved, sprite_normal_url, sprite_shiny_url, roles, evolution_chain_id",
     )
     .limit(1);
 
@@ -837,6 +982,10 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
     .map(toMove)
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const evolutionChain = row.evolution_chain_id
+    ? await loadEvolutionChainFromSupabase(row.evolution_chain_id)
+    : undefined;
+
   return {
     id: row.id,
     name: row.name,
@@ -862,6 +1011,7 @@ async function getPokemonDetailFromSupabase(slugOrId: string): Promise<PokemonDe
     moves,
     roles: row.roles ?? [],
     typeDefense: buildTypeDefenseEntries(row.primary_type, row.secondary_type),
+    evolutionChain,
   };
 }
 
@@ -1095,6 +1245,16 @@ export async function getPokemonByName(pokemonName: string): Promise<PokemonDeta
     moveDetails,
   });
 
-  pokemonDetailCache.set(slug, normalized);
-  return normalized;
+  const evolutionChain = await fetchEvolutionChainFromPokeApi(rawSpecies);
+  const detail: PokemonDetail = {
+    ...normalized,
+    evolutionChain,
+    typeDefense:
+      normalized.typeDefense ??
+      buildTypeDefenseEntries(normalized.primaryType, normalized.secondaryType),
+  };
+
+  pokemonDetailCache.set(slug, detail);
+  pokemonDetailCache.set(detail.slug, detail);
+  return detail;
 }
