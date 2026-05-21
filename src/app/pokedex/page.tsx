@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PokedexExplorer } from "@/components/pokedex/pokedex-explorer";
+import { parsePokedexReturnState } from "@/lib/pokemon/pokedex-return-url";
 
 export const metadata: Metadata = {
   title: "Pokédex — PokemonTeamForge",
@@ -10,10 +11,18 @@ export const metadata: Metadata = {
 type PokedexPageProps = {
   searchParams?: Promise<{
     ability?: string;
+    view?: string;
+    q?: string;
+    sort?: string;
+    dir?: string;
+    gen?: string;
+    type?: string;
   }>;
 };
 
 export default async function PokedexPage({ searchParams }: PokedexPageProps) {
   const params = await searchParams;
-  return <PokedexExplorer initialAbility={params?.ability ?? ""} />;
+  const initialReturnState = parsePokedexReturnState(params ?? {});
+
+  return <PokedexExplorer initialReturnState={initialReturnState} />;
 }

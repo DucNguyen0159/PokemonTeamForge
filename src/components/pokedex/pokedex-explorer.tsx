@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, LayoutGrid, List, Loader2, Plus, Search, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, LayoutGrid, List, Loader2, Plus, Search, X } from "lucide-react";
 
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
 import { ROUTES } from "@/constants/routes";
@@ -15,6 +16,12 @@ import {
   fetchPokemonDetailFromApi,
   fetchPokemonListFromApi,
 } from "@/lib/pokemon/data-access";
+import {
+  buildPokemonDetailHref,
+  parsePokedexReturnState,
+  storePokedexReturnHref,
+  type PokedexExplorerReturnState,
+} from "@/lib/pokemon/pokedex-return-url";
 import { fetchAbilitiesFromApi } from "@/lib/abilities/data-access";
 import { cn } from "@/utils";
 import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
@@ -135,18 +142,46 @@ function SortableColumnHeader({
 }
 
 type PokedexExplorerProps = {
-  initialAbility?: string;
+  initialReturnState?: PokedexExplorerReturnState;
 };
 
-export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<PokemonType | "">("");
-  const [abilityFilter, setAbilityFilter] = useState(initialAbility);
-  const [generationFilter, setGenerationFilter] = useState<number | "">("");
-  const [sortBy, setSortBy] = useState<PokemonListSortKey>("id");
-  const [sortDirection, setSortDirection] = useState<PokemonListSortDirection>("asc");
-  const [view, setView] = useState<ViewMode>("cards");
+function applyReturnStateToExplorer(
+  state: PokedexExplorerReturnState,
+  setters: {
+    setSearch: (value: string) => void;
+    setDebouncedSearch: (value: string) => void;
+    setTypeFilter: (value: PokemonType | "") => void;
+    setAbilityFilter: (value: string) => void;
+    setGenerationFilter: (value: number | "") => void;
+    setSortBy: (value: PokemonListSortKey) => void;
+    setSortDirection: (value: PokemonListSortDirection) => void;
+    setView: (value: ViewMode) => void;
+  },
+) {
+  setters.setSearch(state.q ?? "");
+  setters.setDebouncedSearch(state.q ?? "");
+  setters.setTypeFilter(state.type ?? "");
+  setters.setAbilityFilter(state.ability ?? "");
+  setters.setGenerationFilter(state.generation ?? "");
+  setters.setSortBy(state.sortBy ?? "id");
+  setters.setSortDirection(state.sortDirection ?? defaultSortDirection(state.sortBy ?? "id"));
+  setters.setView(state.view ?? "cards");
+}
+
+export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProps) {
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(initialReturnState.q ?? "");
+  const [debouncedSearch, setDebouncedSearch] = useState(initialReturnState.q ?? "");
+  const [typeFilter, setTypeFilter] = useState<PokemonType | "">(initialReturnState.type ?? "");
+  const [abilityFilter, setAbilityFilter] = useState(initialReturnState.ability ?? "");
+  const [generationFilter, setGenerationFilter] = useState<number | "">(
+    initialReturnState.generation ?? "",
+  );
+  const [sortBy, setSortBy] = useState<PokemonListSortKey>(initialReturnState.sortBy ?? "id");
+  const [sortDirection, setSortDirection] = useState<PokemonListSortDirection>(
+    initialReturnState.sortDirection ?? defaultSortDirection(initialReturnState.sortBy ?? "id"),
+  );
+  const [view, setView] = useState<ViewMode>(initialReturnState.view ?? "cards");
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
   const [abilityDialogPokemon, setAbilityDialogPokemon] = useState<PokemonListItem | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -159,6 +194,45 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
     const handle = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
     return () => window.clearTimeout(handle);
   }, [search]);
+
+  useEffect(() => {
+    if (searchParams.toString().length === 0) {
+      return;
+    }
+
+    applyReturnStateToExplorer(parsePokedexReturnState(searchParams), {
+      setSearch,
+      setDebouncedSearch,
+      setTypeFilter,
+      setAbilityFilter,
+      setGenerationFilter,
+      setSortBy,
+      setSortDirection,
+      setView,
+    });
+  }, [searchParams]);
+
+  function buildCurrentReturnState(): PokedexExplorerReturnState {
+    return {
+      view,
+      q: debouncedSearch || undefined,
+      sortBy,
+      sortDirection,
+      generation: generationFilter === "" ? undefined : generationFilter,
+      type: typeFilter || undefined,
+      ability: abilityFilter || undefined,
+    };
+  }
+
+  function getPokemonDetailLink(slug: string) {
+    return buildPokemonDetailHref(slug, buildCurrentReturnState());
+  }
+
+  function handleDetailLinkClick(storeReturnHrefInSession: boolean, returnHref: string) {
+    if (storeReturnHrefInSession) {
+      storePokedexReturnHref(returnHref);
+    }
+  }
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams({
@@ -584,6 +658,7 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {loadedPokemon.map((pokemon) => {
             const primaryTypeColor = TYPE_COLORS[pokemon.primaryType] ?? "#9ca3af";
+            const detailLink = getPokemonDetailLink(pokemon.slug);
             const cardStyle = {
               "--pokedex-card-accent": primaryTypeColor,
               borderColor: `${primaryTypeColor}33`,
@@ -617,7 +692,18 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
                     />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{pokemon.name}</p>
+                    <Link
+                      href={detailLink.href}
+                      onClick={() =>
+                        handleDetailLinkClick(
+                          detailLink.storeReturnHrefInSession,
+                          detailLink.returnHref,
+                        )
+                      }
+                      className="block truncate text-sm font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      {pokemon.name}
+                    </Link>
                     <p className="text-xs text-muted-foreground">
                       {formatPokemonCardSubtitle(pokemon, sortBy)}
                     </p>
@@ -635,22 +721,37 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
                     </button>
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="relative h-9 w-full"
-                  disabled={addingSlug === pokemon.slug}
-                  onClick={() => handleAddToTeam(pokemon.slug)}
-                >
-                  {addingSlug === pokemon.slug ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                  ) : (
-                    <>
-                      <Plus className="size-4" aria-hidden />
-                      Add to Team
-                    </>
-                  )}
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button asChild variant="outline" size="sm" className="h-9">
+                    <Link
+                      href={detailLink.href}
+                      onClick={() =>
+                        handleDetailLinkClick(
+                          detailLink.storeReturnHrefInSession,
+                          detailLink.returnHref,
+                        )
+                      }
+                    >
+                      View details
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="relative h-9"
+                    disabled={addingSlug === pokemon.slug}
+                    onClick={() => handleAddToTeam(pokemon.slug)}
+                  >
+                    {addingSlug === pokemon.slug ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                    ) : (
+                      <>
+                        <Plus className="size-4" aria-hidden />
+                        Add to Team
+                      </>
+                    )}
+                  </Button>
+                </div>
               </article>
             );
           })}
@@ -766,7 +867,10 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
               </tr>
             </thead>
             <tbody>
-              {loadedPokemon.map((pokemon) => (
+              {loadedPokemon.map((pokemon) => {
+                const detailLink = getPokemonDetailLink(pokemon.slug);
+
+                return (
                 <tr
                   key={pokemon.slug}
                   className="group border-t border-border/40 bg-card/30 hover:bg-card/60"
@@ -785,7 +889,21 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
                         />
                       </div>
                       <div className="min-w-0 max-w-full">
-                        <p className={cn("break-words font-medium leading-snug text-foreground", sortBy === "name" && "text-primary")}>{pokemon.name}</p>
+                        <Link
+                          href={detailLink.href}
+                          onClick={() =>
+                            handleDetailLinkClick(
+                              detailLink.storeReturnHrefInSession,
+                              detailLink.returnHref,
+                            )
+                          }
+                          className={cn(
+                            "break-words font-medium leading-snug text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                            sortBy === "name" && "text-primary",
+                          )}
+                        >
+                          {pokemon.name}
+                        </Link>
                       </div>
                     </div>
                   </td>
@@ -810,27 +928,44 @@ export function PokedexExplorer({ initialAbility = "" }: PokedexExplorerProps) {
                       "group-hover:bg-card/60",
                     )}
                   >
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="h-8 shrink-0 gap-1 whitespace-nowrap px-3 text-sm"
-                      aria-label={addingSlug === pokemon.slug ? undefined : `Add ${pokemon.name} to team`}
-                      disabled={addingSlug === pokemon.slug}
-                      onClick={() => handleAddToTeam(pokemon.slug)}
-                    >
-                      {addingSlug === pokemon.slug ? (
-                        <Loader2 className="size-4 animate-spin" aria-hidden />
-                      ) : (
-                        <>
-                          <Plus className="size-3.5 shrink-0" aria-hidden />
-                          Add to Team
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button asChild variant="outline" size="sm" className="h-8 gap-1 px-3 text-sm">
+                        <Link
+                          href={detailLink.href}
+                          onClick={() =>
+                            handleDetailLinkClick(
+                              detailLink.storeReturnHrefInSession,
+                              detailLink.returnHref,
+                            )
+                          }
+                        >
+                          Details
+                          <ArrowRight className="size-3.5 shrink-0" aria-hidden />
+                        </Link>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 shrink-0 gap-1 whitespace-nowrap px-3 text-sm"
+                        aria-label={addingSlug === pokemon.slug ? undefined : `Add ${pokemon.name} to team`}
+                        disabled={addingSlug === pokemon.slug}
+                        onClick={() => handleAddToTeam(pokemon.slug)}
+                      >
+                        {addingSlug === pokemon.slug ? (
+                          <Loader2 className="size-4 animate-spin" aria-hidden />
+                        ) : (
+                          <>
+                            <Plus className="size-3.5 shrink-0" aria-hidden />
+                            Add to Team
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
           <div ref={loadMoreRef} className="flex min-h-12 items-center justify-center py-2 text-xs text-muted-foreground">

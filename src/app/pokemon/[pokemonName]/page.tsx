@@ -1,19 +1,29 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getPokemonByName } from "@/lib/services/pokemon-service";
 import { pokemonDetailNavigation } from "@/lib/pokemon/detail-navigation";
+import {
+  isPokedexReturnStored,
+  parsePokedexReturnState,
+} from "@/lib/pokemon/pokedex-return-url";
 import { PokemonAbilitySection } from "@/components/pokemon/pokemon-ability-section";
+import { PokemonDetailNavActions } from "@/components/pokemon/pokemon-detail-nav-actions";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { TypeBadge } from "@/components/shared/type-badge";
-import { Button } from "@/components/ui/button";
 
 type PokemonDetailPageProps = {
   params: Promise<{ pokemonName: string }>;
   searchParams?: Promise<{
     from?: string | string[];
     ability?: string | string[];
+    pokedexReturn?: string | string[];
+    view?: string | string[];
+    q?: string | string[];
+    sort?: string | string[];
+    dir?: string | string[];
+    gen?: string | string[];
+    type?: string | string[];
   }>;
 };
 
@@ -71,10 +81,13 @@ export default async function PokemonDetailPage({
   const navigationAbility = abilitySlug
     ? pokemon.abilities.find((ability) => ability.slug === abilitySlug)
     : null;
+  const pokedexReturn = parsePokedexReturnState(query ?? {});
   const navigation = pokemonDetailNavigation({
     from: query?.from,
     ability: query?.ability,
     abilityName: navigationAbility?.name,
+    pokedexReturn,
+    pokedexReturnStored: isPokedexReturnStored(query ?? {}),
   });
 
   return (
@@ -88,14 +101,7 @@ export default async function PokemonDetailPage({
             {pokemon.name}
           </h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="ghost" size="sm" className="rounded-xl">
-            <Link href={navigation.primaryHref}>{navigation.primaryLabel}</Link>
-          </Button>
-          <Button asChild variant="secondary" size="sm" className="rounded-xl">
-            <Link href={navigation.secondaryHref}>{navigation.secondaryLabel}</Link>
-          </Button>
-        </div>
+        <PokemonDetailNavActions navigation={navigation} />
       </div>
 
       <section className="grid gap-4 rounded-[2rem] border border-border/60 bg-card/50 p-5 shadow-sm md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:p-6">
