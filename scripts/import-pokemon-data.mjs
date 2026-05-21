@@ -225,11 +225,29 @@ function normalizeEvolutionChainNode(node, speciesMetaBySlug) {
   };
 }
 
+function isCanonicalSpeciesRow(row) {
+  return row.slug === row.species_slug;
+}
+
+function registerSpeciesMeta(speciesMetaBySlug, row) {
+  speciesMetaBySlug.set(row.slug, row);
+
+  const speciesKey = row.species_slug;
+  const existing = speciesMetaBySlug.get(speciesKey);
+  if (!existing) {
+    speciesMetaBySlug.set(speciesKey, row);
+    return;
+  }
+
+  if (isCanonicalSpeciesRow(row) && !isCanonicalSpeciesRow(existing)) {
+    speciesMetaBySlug.set(speciesKey, row);
+  }
+}
+
 async function buildEvolutionChainRows(pokemonRows, caches) {
   const speciesMetaBySlug = new Map();
   for (const row of pokemonRows) {
-    speciesMetaBySlug.set(row.species_slug, row);
-    speciesMetaBySlug.set(row.slug, row);
+    registerSpeciesMeta(speciesMetaBySlug, row);
   }
 
   const chainIds = new Set();
