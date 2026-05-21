@@ -9,6 +9,7 @@ import {
 } from "@/lib/pokemon/pokedex-return-url";
 import { PokemonAbilitySection } from "@/components/pokemon/pokemon-ability-section";
 import { PokemonBaseStatsTable } from "@/components/pokemon/pokemon-base-stats-table";
+import { PokemonDetailActions } from "@/components/pokemon/pokemon-detail-actions";
 import { PokemonDetailNavActions } from "@/components/pokemon/pokemon-detail-nav-actions";
 import { PokemonEvolutionChart } from "@/components/pokemon/pokemon-evolution-chart";
 import { PokemonStabOffenseSummary } from "@/components/pokemon/pokemon-stab-offense-summary";
@@ -100,7 +101,10 @@ export default async function PokemonDetailPage({
             {pokemon.name}
           </h1>
         </div>
-        <PokemonDetailNavActions navigation={navigation} />
+        <div className="flex flex-col items-end gap-3">
+          <PokemonDetailNavActions navigation={navigation} />
+          <PokemonDetailActions slug={pokemon.slug} />
+        </div>
       </div>
 
       <section className="grid gap-6 rounded-[2rem] border border-border/60 bg-card/50 p-5 shadow-sm lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:p-6">

@@ -37,3 +37,7 @@ export function buildPokemonDetailHref(
   const queryString = buildPokemonDetailQueryString(query);
   return queryString ? `/pokemon/${encodedSlug}?${queryString}` : `/pokemon/${encodedSlug}`;
 }
+
+export function buildBuilderPokemonDetailHref(slug: string): string {
+  return `/pokemon/${encodeURIComponent(slug)}?from=builder`;
+}

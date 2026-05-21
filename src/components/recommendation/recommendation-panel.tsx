@@ -24,6 +24,9 @@ import type {
   RecommendationResult,
 } from "@/types/recommendation";
 import type { PokemonType, StatTier, TeamRole } from "@/types/shared";
+import Link from "next/link";
+
+import { buildBuilderPokemonDetailHref } from "@/lib/pokemon/pokemon-detail-query";
 import { cn } from "@/utils";
 import { TypeBadge } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
@@ -226,7 +229,12 @@ const RecommendationCard = memo(function RecommendationCard({
         {/* name + badges + meta */}
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center justify-between gap-1">
-            <p className="truncate text-xs font-semibold text-foreground">{pokemon.name}</p>
+            <Link
+              href={buildBuilderPokemonDetailHref(pokemon.slug)}
+              className="truncate text-xs font-semibold text-foreground underline-offset-2 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {pokemon.name}
+            </Link>
             <span className="flex-shrink-0 text-[10px] font-medium tabular-nums text-muted-foreground/60">
               {score}pt
             </span>

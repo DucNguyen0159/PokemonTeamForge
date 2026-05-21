@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import Link from "next/link";
 import { CheckCircle2, RefreshCw, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -15,6 +16,7 @@ import { TypeBadge, TYPE_COLORS } from "@/components/shared/type-badge";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { SlotSelector, type SelectorOption } from "./slot-selector";
 import { PokemonPicker } from "./pokemon-picker";
+import { buildBuilderPokemonDetailHref } from "@/lib/pokemon/pokemon-detail-query";
 import { EmptyPokemonSlot } from "./empty-pokemon-slot";
 
 type OpenPanel =
@@ -259,9 +261,12 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
                     {completedFieldCount}/6 set
                   </span>
                 </div>
-                <p className="mt-1 truncate text-base font-semibold capitalize leading-tight text-foreground">
+                <Link
+                  href={buildBuilderPokemonDetailHref(pokemon.slug)}
+                  className="mt-1 block truncate text-base font-semibold capitalize leading-tight text-foreground underline-offset-2 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
                   {pokemon.name}
-                </p>
+                </Link>
                 <div className="mt-1 flex flex-wrap gap-1">
                   <TypeBadge type={pokemon.primaryType} />
                   {pokemon.secondaryType && <TypeBadge type={pokemon.secondaryType} />}
