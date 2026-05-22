@@ -60,9 +60,9 @@ export default function ResetPasswordPage() {
 
     let cancelled = false;
 
-    async function exchangeRecoveryCode() {
+    async function exchangeRecoveryCode(recoveryCode: string) {
       const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { error } = await supabase.auth.exchangeCodeForSession(recoveryCode);
 
       if (cancelled) {
         return;
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
       window.history.replaceState({}, "", nextPath);
     }
 
-    void exchangeRecoveryCode();
+    void exchangeRecoveryCode(code);
 
     return () => {
       cancelled = true;
