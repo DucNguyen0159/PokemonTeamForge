@@ -61,3 +61,49 @@ export function getMatrixCell(
 
   return matrix.cells[rowIndex]?.[colIndex];
 }
+
+export interface TypeOffenseProfile {
+  attackingType: PokemonType;
+  superEffective: PokemonType[];
+  notVeryEffective: PokemonType[];
+  noEffect: PokemonType[];
+}
+
+/** List-view buckets derived from the same math as {@link buildTypeMatchupMatrix}. */
+export function buildTypeOffenseProfiles(): TypeOffenseProfile[] {
+  const types = [...ALL_POKEMON_TYPES];
+
+  return types.map((attackingType) => {
+    const superEffective: PokemonType[] = [];
+    const notVeryEffective: PokemonType[] = [];
+    const noEffect: PokemonType[] = [];
+
+    for (const defendingType of types) {
+      const multiplier = normalizeMultiplier(
+        calculateTypeEffectiveness(attackingType, [defendingType]),
+      );
+
+      if (multiplier === 2) {
+        superEffective.push(defendingType);
+      } else if (multiplier === 0.5) {
+        notVeryEffective.push(defendingType);
+      } else if (multiplier === 0) {
+        noEffect.push(defendingType);
+      }
+    }
+
+    return {
+      attackingType,
+      superEffective,
+      notVeryEffective,
+      noEffect,
+    };
+  });
+}
+
+export function getOffenseProfile(
+  profiles: TypeOffenseProfile[],
+  attackingType: PokemonType,
+): TypeOffenseProfile | undefined {
+  return profiles.find((profile) => profile.attackingType === attackingType);
+}

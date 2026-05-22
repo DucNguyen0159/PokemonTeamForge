@@ -1,3 +1,8 @@
+/**
+ * Static single-type matchup data (Generation VI onward: XY through current mainline games).
+ * Used by coverage/defense calculations and to build the type chart matrix/list UI.
+ * Each interaction describes one defending type vs one attacking type (not dual-type combos).
+ */
 import type { PokemonType } from "@/types/shared";
 
 export interface TypeInteraction {

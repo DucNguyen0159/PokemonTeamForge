@@ -11,7 +11,7 @@ import { ErrorBoundary } from "@/components/error/error-boundary";
 import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
 import { consumePendingLoadedTeam } from "@/lib/team/pending-team";
 import { useTeamStore } from "@/store/team-store";
-import { TypeChartDialog } from "@/components/type-chart/type-chart-dialog";
+import { TypeChartFab, TypeChartProvider } from "@/components/type-chart/type-chart-reference";
 
 export function TeamBuilder() {
   const team = useTeamStore((state) => state.team);
@@ -26,6 +26,7 @@ export function TeamBuilder() {
   }, [loadTeam]);
 
   return (
+    <TypeChartProvider context="builder">
     <div className="mx-auto w-full max-w-[1400px] space-y-5 px-4 py-6">
       <PageIntro
         eyebrow="Builder"
@@ -67,7 +68,8 @@ export function TeamBuilder() {
         </aside>
       </div>
 
-      <TypeChartDialog />
+      <TypeChartFab />
     </div>
+    </TypeChartProvider>
   );
 }

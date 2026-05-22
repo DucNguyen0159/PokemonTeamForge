@@ -1,11 +1,11 @@
+"use client";
+
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 
 import { ALL_POKEMON_TYPES } from "@/data/type-chart";
 import { isSuperEffectiveAgainst } from "@/lib/calculations/shared/type-effectiveness";
 import type { PokemonType } from "@/types/shared";
-import { Button } from "@/components/ui/button";
+import { TypeChartOpenButton } from "@/components/type-chart/type-chart-reference";
 import { TypeBadge } from "@/components/shared/type-badge";
 
 type PokemonStabOffenseSummaryProps = {
@@ -60,17 +60,7 @@ export function PokemonStabOffenseSummary({
             uses your selected moves.
           </p>
         </div>
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="shrink-0 rounded-xl transition-colors hover:border-primary/40 hover:bg-accent/60"
-        >
-          <Link href="/type-chart">
-            Open type chart
-            <ArrowUpRight className="size-3.5" aria-hidden />
-          </Link>
-        </Button>
+        <TypeChartOpenButton />
       </div>
 
       <div className="mt-4 rounded-xl border border-border/40 bg-background/25 p-3">

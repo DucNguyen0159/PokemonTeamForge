@@ -7,6 +7,7 @@ import {
   isPokedexReturnStored,
   parsePokedexReturnState,
 } from "@/lib/pokemon/pokedex-return-url";
+import { PokemonDetailBody } from "@/components/pokemon/pokemon-detail-body";
 import { PokemonAbilitySection } from "@/components/pokemon/pokemon-ability-section";
 import { PokemonBaseStatsTable } from "@/components/pokemon/pokemon-base-stats-table";
 import { countEvolutionStages } from "@/lib/pokemon/evolution-chain";
@@ -147,6 +148,7 @@ export default async function PokemonDetailPage({
   );
 
   return (
+    <PokemonDetailBody>
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
       <header className="space-y-3">
         <PokemonDetailBackLink navigation={navigation} />
@@ -213,12 +215,12 @@ export default async function PokemonDetailPage({
         </div>
       </section>
 
+      <PokemonAbilitySection abilities={pokemon.abilities} />
+
       {showEvolutionSection ? evolutionSection : null}
       {alternateFormsSection}
       {typeDefenseSection}
       {stabSection}
-
-      <PokemonAbilitySection abilities={pokemon.abilities} />
 
       <section className="rounded-2xl border border-border/60 bg-card/50 p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-foreground">Battle Moves</h2>
@@ -238,5 +240,6 @@ export default async function PokemonDetailPage({
         </div>
       </section>
     </main>
+    </PokemonDetailBody>
   );
 }

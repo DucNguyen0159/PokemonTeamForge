@@ -12,7 +12,16 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowRight, ArrowUp, LayoutGrid, List, Loader2, Plus, Search, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  LayoutGrid,
+  List,
+  Loader2,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
 import { ALL_POKEMON_TYPES } from "@/data/type-chart";
@@ -38,6 +47,7 @@ import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { useAppToast } from "@/providers/toast-provider";
 import { ErrorMessage } from "@/components/error/error-message";
 import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
+import { TypeChartFab, TypeChartProvider } from "@/components/type-chart/type-chart-reference";
 import { Button } from "@/components/ui/button";
 import { useTeamStore } from "@/store/team-store";
 
@@ -454,6 +464,7 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
   }
 
   return (
+    <TypeChartProvider context="pokedex">
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
       <div className={cn(view === "table" && "flex flex-col items-center")}>
         <div className={cn("space-y-6", view === "table" ? "w-max max-w-full" : "w-full")}>
@@ -469,15 +480,6 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
             </>
           }
         />
-
-        <p className="text-sm text-muted-foreground">
-          <Link
-            href="/type-chart"
-            className="font-medium text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline"
-          >
-            Open full type chart →
-          </Link>
-        </p>
 
         <div className="flex w-full flex-col gap-4 rounded-2xl border border-border/60 bg-card/40 p-4 shadow-sm backdrop-blur-sm sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -745,18 +747,10 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
                       <TypeBadge type={pokemon.primaryType} />
                       {pokemon.secondaryType ? <TypeBadge type={pokemon.secondaryType} /> : null}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => openAbilityDialog(pokemon)}
-                      className="text-xs font-medium text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      aria-label={`Show ${pokemon.name} abilities`}
-                    >
-                      Abilities
-                    </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button asChild variant="outline" size="sm" className="h-9">
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" size="sm" className="h-9 min-w-0 flex-1">
                     <Link
                       href={detailLink.href}
                       onClick={() =>
@@ -771,18 +765,25 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
                   </Button>
                   <Button
                     type="button"
+                    variant="outline"
                     size="sm"
-                    className="relative h-9"
+                    className="h-9 w-9 shrink-0 px-0"
+                    aria-label={`Show ${pokemon.name} abilities`}
+                    onClick={() => openAbilityDialog(pokemon)}
+                  >
+                    <Sparkles className="size-4" aria-hidden />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="relative h-9 min-w-0 flex-1"
                     disabled={addingSlug === pokemon.slug}
                     onClick={() => handleAddToTeam(pokemon.slug)}
                   >
                     {addingSlug === pokemon.slug ? (
                       <Loader2 className="size-4 animate-spin" aria-hidden />
                     ) : (
-                      <>
-                        <Plus className="size-4" aria-hidden />
-                        Add to Team
-                      </>
+                      "Add to Team"
                     )}
                   </Button>
                 </div>
@@ -960,7 +961,7 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
                     )}
                   >
                     <div className="flex justify-end gap-2">
-                      <Button asChild variant="outline" size="sm" className="h-8 gap-1 px-3 text-sm">
+                      <Button asChild variant="outline" size="sm" className="h-8 px-3 text-sm">
                         <Link
                           href={detailLink.href}
                           onClick={() =>
@@ -971,8 +972,17 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
                           }
                         >
                           Details
-                          <ArrowRight className="size-3.5 shrink-0" aria-hidden />
                         </Link>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 shrink-0 px-0"
+                        aria-label={`Show ${pokemon.name} abilities`}
+                        onClick={() => openAbilityDialog(pokemon)}
+                      >
+                        <Sparkles className="size-3.5" aria-hidden />
                       </Button>
                       <Button
                         type="button"
@@ -986,10 +996,7 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
                         {addingSlug === pokemon.slug ? (
                           <Loader2 className="size-4 animate-spin" aria-hidden />
                         ) : (
-                          <>
-                            <Plus className="size-3.5 shrink-0" aria-hidden />
-                            Add to Team
-                          </>
+                          "Add to Team"
                         )}
                       </Button>
                     </div>
@@ -1088,6 +1095,8 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
       ) : null}
         </div>
       </div>
+      <TypeChartFab />
     </div>
+    </TypeChartProvider>
   );
 }
