@@ -47,7 +47,6 @@ export default function LoginPage() {
       return;
     }
 
-    setIsSubmitting(false);
     router.replace(currentAuthRedirectTarget());
   }, [isAuthenticated, router]);
 
