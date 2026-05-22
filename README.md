@@ -165,7 +165,8 @@ src/store/               Zustand stores
 src/types/               Shared TypeScript types
 scripts/                 Import, validation, and asset scripts
 supabase/                Supabase schema and storage SQL
-public/                 Static assets
+public/                  Static assets
+Project Design/          Frozen architecture reference (see README there)
 ```
 
 ## Data Sources and Credits
