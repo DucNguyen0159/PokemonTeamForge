@@ -45,12 +45,10 @@ export function useResilientLogout() {
       }
 
       router.replace("/");
-      router.refresh();
     } catch {
       setMessage("Signed out locally. Refresh the page if the header does not update.");
       clearSavedTeamsCache(queryClient);
       router.replace("/");
-      router.refresh();
     } finally {
       setIsLoggingOut(false);
     }
@@ -58,7 +56,7 @@ export function useResilientLogout() {
 
   const isBusy = isLoggingOut || isAuthLoading || isLogoutInFlight;
   const logoutButtonLabel = getLogoutButtonLabel({
-    isLoggingOut: isLoggingOut || isAuthLoading,
+    isLoggingOut,
     isLogoutInFlight,
   });
 

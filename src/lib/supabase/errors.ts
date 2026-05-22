@@ -119,11 +119,44 @@ export function toFriendlySupabaseMessage(
   }
 
   if (
+    message.includes("same password") ||
+    message.includes("should be different") ||
+    message.includes("different from the old")
+  ) {
+    return "Choose a new password that is different from your current one.";
+  }
+
+  if (
     message.includes("weak password") ||
-    message.includes("password should be") ||
+    message.includes("password should be at") ||
+    message.includes("password must be at") ||
     message.includes("password must")
   ) {
     return "Password is too weak. Use at least 8 characters and avoid common passwords.";
+  }
+
+  if (
+    message.includes("otp expired") ||
+    message.includes("otp_expired") ||
+    message.includes("invalid otp") ||
+    message.includes("token has expired") ||
+    message.includes("link is invalid") ||
+    message.includes("link has expired") ||
+    message.includes("recovery token") ||
+    message.includes("invalid recovery") ||
+    (message.includes("expired") && (message.includes("link") || message.includes("token"))) ||
+    typedError.code === "otp_expired"
+  ) {
+    return "This reset link is invalid or has expired. Request a new one from the forgot password page.";
+  }
+
+  if (
+    message.includes("session not found") ||
+    message.includes("auth session missing") ||
+    message.includes("not authenticated") ||
+    (message.includes("session") && message.includes("missing"))
+  ) {
+    return "Your reset session expired. Request a new password reset link.";
   }
 
   if (message.includes("rate limit") || message.includes("too many requests")) {

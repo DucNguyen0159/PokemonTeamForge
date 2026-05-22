@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { Cloud, Loader2, LogOut, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Cloud, KeyRound, Loader2, LogOut, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 
+import { ProfileChangePasswordPanel } from "@/components/profile/profile-change-password-panel";
 import { PlaceholderPage } from "@/components/layout/placeholder-page";
 import { ErrorMessage } from "@/components/error/error-message";
 import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
@@ -53,6 +54,8 @@ function formatFilledSlots(count: number): string {
   return `${count}/6 ${count === 1 ? "slot" : "slots"} filled`;
 }
 
+const PROFILE_FEEDBACK_DISMISS_MS = 5000;
+
 export default function ProfilePage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -70,6 +73,7 @@ export default function ProfilePage() {
   const [teamSearch, setTeamSearch] = useState("");
   const [formatFilter, setFormatFilter] = useState<SavedTeamFormatFilter>("all");
   const [sortOption, setSortOption] = useState<SavedTeamSortOption>("recent");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const teamsQuery = useUserTeams();
   const loadTeamMutation = useLoadTeamMutation();
@@ -109,10 +113,31 @@ export default function ProfilePage() {
     [currentTeam],
   );
 
+  useEffect(() => {
+    if (!feedback) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setFeedback(null);
+    }, PROFILE_FEEDBACK_DISMISS_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [feedback]);
+
   async function handleLogout() {
     setFeedback(null);
     setError(null);
+    setIsChangingPassword(false);
     await runLogout();
+  }
+
+  function handlePasswordChangeSuccess(message: string) {
+    setError(null);
+    setFeedback(message);
+    setIsChangingPassword(false);
   }
 
   async function handleLoadTeam(teamId: string) {
@@ -257,6 +282,31 @@ export default function ProfilePage() {
                 size="sm"
                 className="w-full rounded-xl"
                 onClick={() => {
+                  setIsChangingPassword((current) => !current);
+                }}
+                disabled={isLoggingOut}
+                aria-expanded={isChangingPassword}
+                aria-controls="profile-change-password-panel"
+              >
+                <KeyRound className="size-3.5" aria-hidden />
+                Change password
+              </Button>
+
+              {isChangingPassword ? (
+                <div id="profile-change-password-panel">
+                  <ProfileChangePasswordPanel
+                    disabled={isLoggingOut}
+                    onCancel={() => setIsChangingPassword(false)}
+                    onSuccess={handlePasswordChangeSuccess}
+                  />
+                </div>
+              ) : null}
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full rounded-xl"
+                onClick={() => {
                   void handleLogout();
                 }}
                 disabled={isLoggingOut}
@@ -347,7 +397,11 @@ export default function ProfilePage() {
 
           <div className="mt-4 space-y-3">
             {feedback ? (
-              <p className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+              <p
+                role="status"
+                aria-live="polite"
+                className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200"
+              >
                 {feedback}
               </p>
             ) : null}

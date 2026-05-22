@@ -21,6 +21,21 @@ describe("toFriendlySupabaseMessage", () => {
     );
   });
 
+  it("normalizes password reset and recovery failures", () => {
+    expect(
+      toFriendlySupabaseMessage(new Error("Email link is invalid or has expired"), "fallback"),
+    ).toBe("This reset link is invalid or has expired. Request a new one from the forgot password page.");
+    expect(toFriendlySupabaseMessage({ code: "otp_expired", message: "OTP expired" }, "fallback")).toBe(
+      "This reset link is invalid or has expired. Request a new one from the forgot password page.",
+    );
+    expect(toFriendlySupabaseMessage(new Error("Auth session missing"), "fallback")).toBe(
+      "Your reset session expired. Request a new password reset link.",
+    );
+    expect(toFriendlySupabaseMessage(new Error("New password should be different"), "fallback")).toBe(
+      "Choose a new password that is different from your current one.",
+    );
+  });
+
   it("uses fallback when the error is unknown", () => {
     expect(toFriendlySupabaseMessage(new Error("Unexpected auth issue"), "fallback")).toBe(
       "fallback",

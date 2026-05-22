@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -12,11 +12,16 @@ import { Button } from "@/components/ui/button";
 import { prefetchUserTeams } from "@/hooks/queries/use-user-teams";
 import { useAuthFormAvailability } from "@/hooks/use-auth-form-availability";
 import { selectIsSessionReady } from "@/lib/auth/session-ready";
-import { authErrorTitle, currentAuthRedirectTarget } from "@/lib/auth/auth-utils";
+import {
+  appendAuthRedirectQuery,
+  authErrorTitle,
+  currentAuthRedirectTarget,
+} from "@/lib/auth/auth-utils";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const login = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -29,10 +34,21 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const redirectParam = searchParams.get("redirect");
+  const forgotPasswordHref = appendAuthRedirectQuery("/forgot-password", redirectParam);
+  const successMessage = searchParams.get("message");
+
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace(currentAuthRedirectTarget());
+    clearError();
+  }, [clearError]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
     }
+
+    setIsSubmitting(false);
+    router.replace(currentAuthRedirectTarget());
   }, [isAuthenticated, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -63,7 +79,6 @@ export default function LoginPage() {
       }
 
       router.replace(currentAuthRedirectTarget());
-      router.refresh();
     } finally {
       setIsSubmitting(false);
     }
@@ -100,15 +115,31 @@ export default function LoginPage() {
           />
         </label>
 
-        <PasswordInput
-          id="password"
-          label="Password"
-          value={password}
-          onChange={setPassword}
-          autoComplete="current-password"
-          placeholder="Your password"
-          disabled={submitDisabled}
-        />
+        <div className="space-y-1.5">
+          <PasswordInput
+            id="password"
+            label="Password"
+            value={password}
+            onChange={setPassword}
+            autoComplete="current-password"
+            placeholder="Your password"
+            disabled={submitDisabled}
+          />
+          <div className="flex justify-end">
+            <Link
+              href={forgotPasswordHref}
+              className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Forgot password?
+            </Link>
+          </div>
+        </div>
+
+        {successMessage ? (
+          <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+            {successMessage}
+          </p>
+        ) : null}
 
         {errorMessage && (
           <ErrorMessage
