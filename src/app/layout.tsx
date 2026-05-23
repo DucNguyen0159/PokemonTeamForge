@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import "./globals.css";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AppProviders } from "@/providers/app-providers";
 
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <div className="flex min-h-screen flex-col">
             <SiteHeader />
             <main className="w-full flex-1">{children}</main>
+            <SiteFooter />
           </div>
         </AppProviders>
       </body>
