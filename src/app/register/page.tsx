@@ -153,6 +153,21 @@ export default function RegisterPage() {
           </p>
         )}
 
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          By creating an account, you agree to the{" "}
+          <Link href="/terms" className="font-medium text-foreground underline underline-offset-2">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="font-medium text-foreground underline underline-offset-2"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+
         <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
           <Button type="submit" className="h-10 rounded-xl px-5" disabled={submitDisabled}>
             {submitLabel}
