@@ -10,7 +10,11 @@ import {
   createAuthOperationQueue,
   createLogoutInFlightTracker,
 } from "@/lib/auth/auth-operations";
-import { getPasswordResetRedirectUrl, sanitizeUsername } from "@/lib/auth/auth-utils";
+import {
+  getAuthCallbackUrl,
+  getPasswordResetRedirectUrl,
+  sanitizeUsername,
+} from "@/lib/auth/auth-utils";
 import { selectIsSessionReady } from "@/lib/auth/session-ready";
 
 export { selectIsSessionReady };
@@ -360,6 +364,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
           email: email.trim(),
           password,
           options: {
+            emailRedirectTo: getAuthCallbackUrl(),
             data: {
               username: username?.trim() || null,
             },
