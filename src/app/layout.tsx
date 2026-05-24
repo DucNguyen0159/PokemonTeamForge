@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   description:
     "Create Pokémon teams, analyze type coverage, browse battle-ready data, explore strategy presets, and export shareable team cards.",
   applicationName: "PokemonTeamForge",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
   openGraph: {
     title: "PokemonTeamForge | Build Smarter Pokémon Teams",
     description:
