@@ -3,6 +3,7 @@ import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 
 import {
   CHANGE_PASSWORD_SUCCESS_MESSAGE,
+  DELETE_ACCOUNT_SUCCESS_MESSAGE,
   PASSWORD_RESET_EMAIL_SENT_MESSAGE,
 } from "@/lib/auth/auth-constants";
 import {
@@ -54,6 +55,7 @@ type AuthStoreState = {
   requestPasswordReset: (email: string) => Promise<AuthActionResult>;
   updatePassword: (password: string) => Promise<AuthActionResult>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthActionResult>;
+  deleteAccount: () => Promise<AuthActionResult>;
   logout: () => Promise<AuthActionResult>;
   clearError: () => void;
 };
@@ -623,6 +625,72 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
             "Unable to change your password right now. Please try again.",
           ),
         };
+      }
+    });
+  },
+
+  deleteAccount: async () => {
+    return authOperationQueue.enqueue(async () => {
+      await logoutInFlightTracker.waitUntilSettled();
+
+      const state = get();
+      if (!state.isAuthenticated || !state.user) {
+        return {
+          success: false,
+          message: "Sign in to delete your account.",
+        };
+      }
+
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { error: rpcError } = await supabase.rpc("delete_own_account");
+        if (rpcError) {
+          throw rpcError;
+        }
+      } catch (error) {
+        const friendly = toFriendlySupabaseMessage(
+          error,
+          "Unable to delete your account right now. Please try again.",
+        );
+        set({ error: friendly });
+        return { success: false, message: friendly };
+      }
+
+      authGeneration.bump();
+      logoutInFlightTracker.begin();
+      set({
+        ...signedOutState(),
+        isLogoutInFlight: true,
+      });
+
+      const signOutPromise = (async () => {
+        const supabase = getSupabaseBrowserClient();
+        const { error } = await supabase.auth.signOut({ scope: "local" });
+        if (error) {
+          throw error;
+        }
+      })();
+
+      try {
+        const cleanupResult = await runLogoutCleanupWithTimeout(() => signOutPromise);
+
+        if (cleanupResult === "completed") {
+          return {
+            success: true,
+            message: DELETE_ACCOUNT_SUCCESS_MESSAGE,
+          };
+        }
+
+        return {
+          success: true,
+          message:
+            cleanupResult === "timed-out"
+              ? "Account deleted. Local sign-out cleanup timed out."
+              : "Account deleted. Local sign-out cleanup could not finish.",
+        };
+      } finally {
+        logoutInFlightTracker.settle();
+        set({ isLogoutInFlight: false });
       }
     });
   },

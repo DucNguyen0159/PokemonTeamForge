@@ -8,7 +8,7 @@ PokemonTeamForge is in active development. The current app focuses on practical 
 
 ## Live Demo
 
-No public deployment is listed yet. Run the app locally with the setup steps below.
+https://poketeamforge.com
 
 ## Core Workflow
 
@@ -80,7 +80,10 @@ Run the SQL files in Supabase SQL Editor in this order:
 supabase/auth-saved-teams.sql
 supabase/app-data.sql
 supabase/app-storage.sql
+supabase/delete-own-account.sql
 ```
+
+Before using **Profile → Delete account** in production, run `supabase/delete-own-account.sql` once in the Supabase SQL Editor (creates the `delete_own_account` RPC). The app calls that RPC with the anon key only; do not expose `SUPABASE_SERVICE_ROLE_KEY` to the client.
 
 Then reload the Supabase REST schema cache:
 
@@ -164,7 +167,7 @@ src/lib/                 Services, calculations, normalizers, and data access
 src/store/               Zustand stores
 src/types/               Shared TypeScript types
 scripts/                 Import, validation, and asset scripts
-supabase/                Supabase schema and storage SQL
+supabase/                Supabase schema, storage, and delete-own-account SQL
 public/                  Static assets
 Project Design/          Frozen architecture reference (see README there)
 ```

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Cloud, KeyRound, Loader2, LogOut, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import { Cloud, KeyRound, Loader2, LogOut, RefreshCw, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
 
 import { ProfileChangePasswordPanel } from "@/components/profile/profile-change-password-panel";
+import { ProfileDeleteAccountPanel } from "@/components/profile/profile-delete-account-panel";
 import { PlaceholderPage } from "@/components/layout/placeholder-page";
 import { ErrorMessage } from "@/components/error/error-message";
 import { PageIntro, PageIntroChip } from "@/components/layout/page-intro";
@@ -74,6 +75,7 @@ export default function ProfilePage() {
   const [formatFilter, setFormatFilter] = useState<SavedTeamFormatFilter>("all");
   const [sortOption, setSortOption] = useState<SavedTeamSortOption>("recent");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const teamsQuery = useUserTeams();
   const loadTeamMutation = useLoadTeamMutation();
@@ -328,6 +330,42 @@ export default function ProfilePage() {
                   {logoutMessage}
                 </p>
               ) : null}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-destructive/30 bg-card/45 p-5">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+                <TriangleAlert className="size-4" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-semibold text-foreground">Danger zone</h2>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Permanently delete your account and all saved cloud teams. This cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              {isDeletingAccount ? (
+                <ProfileDeleteAccountPanel
+                  disabled={isLoggingOut}
+                  onCancel={() => setIsDeletingAccount(false)}
+                />
+              ) : (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-full rounded-xl"
+                  onClick={() => {
+                    setIsDeletingAccount(true);
+                    setIsChangingPassword(false);
+                  }}
+                  disabled={isLoggingOut}
+                >
+                  Delete account
+                </Button>
+              )}
             </div>
           </section>
 

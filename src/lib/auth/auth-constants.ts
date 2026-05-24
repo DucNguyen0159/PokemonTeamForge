@@ -8,3 +8,9 @@ export const PASSWORD_RESET_EMAIL_SENT_MESSAGE =
 /** Shown after in-profile password change succeeds. */
 export const CHANGE_PASSWORD_SUCCESS_MESSAGE =
   "Password updated. You are still signed in on this device.";
+
+/** Type this phrase in the profile delete-account confirm dialog. */
+export const DELETE_ACCOUNT_CONFIRMATION_PHRASE = "DELETE";
+
+/** Shown after account deletion succeeds. */
+export const DELETE_ACCOUNT_SUCCESS_MESSAGE = "Your account has been deleted.";
