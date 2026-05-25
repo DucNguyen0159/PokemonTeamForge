@@ -56,11 +56,17 @@ Create a local environment file:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
-# Required for local import scripts. Never expose this in client-side code.
+# Required for local import scripts. Never expose in client code or Vercel.
 SUPABASE_SERVICE_ROLE_KEY=
+
+# Optional — footer, legal pages, sitemap (defaults exist if omitted)
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_CONTACT_EMAIL=
+NEXT_PUBLIC_GITHUB_PROFILE_URL=
+NEXT_PUBLIC_GITHUB_REPO_URL=
 ```
 
-Do not commit `.env.local`. The `SUPABASE_SERVICE_ROLE_KEY` value has elevated permissions and should only be used by trusted server-side scripts.
+Do not commit `.env.local`. The `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS and must only be used by trusted local import/validation scripts.
 
 Run the development server:
 
@@ -72,48 +78,81 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Supabase Data Setup
 
-PokemonTeamForge uses Supabase for static catalog data and saved team data.
+PokemonTeamForge uses Supabase for catalog data (Pokédex, abilities, moves, items), user auth, and saved teams.
 
-Run the SQL files in Supabase SQL Editor in this order:
+### SQL files (run in Supabase SQL Editor, in this order)
+
+| Order | File | Purpose |
+|------:|------|---------|
+| 1 | `supabase/auth-saved-teams.sql` | Profiles, teams, team slots, RLS for per-user cloud sync |
+| 2 | `supabase/app-data.sql` | Public catalog tables (`pokemon`, `abilities`, `moves`, `items`, …) |
+| 3 | `supabase/app-storage.sql` | Storage bucket `item-icons` (public read for item sprites) |
+| 4 | `supabase/pokemon-forms.sql` | Form columns on `pokemon` (Mega, G-Max, regional grouping, Pokédex sort) |
+| 5 | `supabase/evolution-chains.sql` | `evolution_chains` table + `pokemon.evolution_chain_id` for detail pages |
 
 ```text
 supabase/auth-saved-teams.sql
 supabase/app-data.sql
 supabase/app-storage.sql
-supabase/delete-own-account.sql
+supabase/pokemon-forms.sql
+supabase/evolution-chains.sql
 ```
 
-Before using **Profile → Delete account** in production, run `supabase/delete-own-account.sql` once in the Supabase SQL Editor (creates the `delete_own_account` RPC). The app calls that RPC with the anon key only; do not expose `SUPABASE_SERVICE_ROLE_KEY` to the client.
+**Existing project that only ran steps 1–3?** Run files 4 and 5, then `notify pgrst`, then re-run import + validate so form metadata and evolution data populate.
 
-Then reload the Supabase REST schema cache:
+### Reload schema (after any SQL change)
 
 ```sql
 notify pgrst, 'reload schema';
 ```
 
-Import catalog data:
+### Import and validate catalog data
 
 ```bash
 npm run import:all-data
-```
-
-Validate imported data:
-
-```bash
 npm run validate:supabase-data
 ```
 
-The auth/saved-team SQL creates `profiles`, `teams`, `team_pokemon`, `team_cards`, and related RLS policies for account cloud sync. The catalog import covers Pokemon, abilities, Pokemon-ability relationships, moves, Pokemon-move relationships, and items.
+`import:all-data` runs items, then Pokémon/abilities/moves. `import:pokemon-data` expects `pokemon-forms.sql` to be applied first (see comment at top of `scripts/import-pokemon-data.mjs`).
 
-First-run Supabase checklist:
+### Auth redirect URLs (local dev)
+
+In Supabase → **Authentication → URL Configuration**, add at least:
+
+- **Site URL:** `http://localhost:3000` (or your production domain when deployed)
+- **Redirect URLs:** `http://localhost:3000/**`, `http://localhost:3000/auth/callback`, `http://localhost:3000/reset-password`
+
+Without these, sign-up confirmation and password-reset links may fail or land on the wrong host.
+
+### Delete account RPC (production / Profile feature)
+
+Run once **after** `auth-saved-teams.sql`:
+
+| File | Purpose |
+|------|---------|
+| `supabase/delete-own-account.sql` | `delete_own_account()` RPC so users can delete their own auth row from Profile |
+
+The app calls this RPC with the anon key only. Do not put `SUPABASE_SERVICE_ROLE_KEY` in the browser or Vercel client env.
+
+### First-run checklist
 
 1. Create a Supabase project.
 2. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to `.env.local`.
-3. Run the three SQL files above in order.
+3. Run SQL files **1–5** in order.
 4. Run `notify pgrst, 'reload schema';`.
-5. Run `npm run import:all-data`.
-6. Run `npm run validate:supabase-data`.
-7. Register or log in locally, then confirm Profile can show an empty saved-teams state and Builder can save a cloud team.
+5. Run `npm run import:all-data` then `npm run validate:supabase-data`.
+6. Configure Auth Site URL + redirect URLs (above).
+7. Run `delete-own-account.sql` before enabling Profile → Delete account in production.
+8. Register locally, confirm Profile saved-teams state, and save a cloud team from Builder.
+
+### Troubleshooting (data)
+
+| Symptom | Fix |
+|---------|-----|
+| Missing megas / regional forms in Pokédex | Run `pokemon-forms.sql`, `notify pgrst`, re-run `npm run import:all-data` |
+| Empty evolution tree on Pokémon detail | Run `evolution-chains.sql`, `notify pgrst`, re-run `npm run import:pokemon-data` (or `import:all-data`) |
+| Delete account fails in Profile | Run `delete-own-account.sql` in Supabase |
+| API “table not found” / schema cache errors | Run `notify pgrst, 'reload schema';` after SQL changes |
 
 ## Available Scripts
 
@@ -167,7 +206,7 @@ src/lib/                 Services, calculations, normalizers, and data access
 src/store/               Zustand stores
 src/types/               Shared TypeScript types
 scripts/                 Import, validation, and asset scripts
-supabase/                Supabase schema, storage, and delete-own-account SQL
+supabase/                SQL schema (auth, catalog, storage, forms, evolution, delete RPC)
 public/                  Static assets
 Project Design/          Frozen architecture reference (see README there)
 ```
@@ -191,13 +230,18 @@ Review each upstream source's terms before using this project commercially or re
 - Some visual preview assets are curated local examples rather than live database queries.
 - Battle formats are simplified around app-supported singles, doubles, and triples workflows.
 
+## Deployment
+
+Production hosting uses [Vercel](https://vercel.com) with env vars matching `.env.local` (use the publishable Supabase anon key for `NEXT_PUBLIC_SUPABASE_ANON_KEY`). Set Supabase **Site URL** and redirect URLs to your production domain. Do not deploy `SUPABASE_SERVICE_ROLE_KEY` to Vercel unless you add a dedicated server-only admin route.
+
+Public site: https://poketeamforge.com
+
 ## Roadmap
 
 - Continue tuning recommendation scoring and explanations.
 - Expand ability, strategy, move, and item metadata.
 - Improve team sharing, import, and export flows.
 - Add more polished mobile interactions across complex builder screens.
-- Add screenshots or demo media once the public presentation is finalized.
 
 ## Disclaimer
 
