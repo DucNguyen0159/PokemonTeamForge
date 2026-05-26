@@ -254,3 +254,39 @@ a {
     opacity: 0;
   }
 }
+
+/* Ability browser mobile sheet entrance animation. */
+@keyframes ptf-ability-sheet-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ptf-ability-sheet-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ptf-ability-sheet-backdrop {
+  animation: ptf-ability-sheet-backdrop-in 220ms ease-out forwards;
+}
+
+.ptf-ability-sheet-panel {
+  animation: ptf-ability-sheet-panel-in 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ptf-ability-sheet-backdrop,
+  .ptf-ability-sheet-panel {
+    animation: none !important;
+  }
+}
