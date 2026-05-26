@@ -25,13 +25,13 @@ export function PokemonAbilitySection({ abilities }: PokemonAbilitySectionProps)
   }
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-card/50 p-5 shadow-sm">
+    <section className="rounded-2xl border border-border/60 bg-card/50 p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-1">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Battle Data
         </p>
         <h2 className="text-lg font-semibold text-foreground">Abilities</h2>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        <p className="hidden max-w-2xl text-sm leading-relaxed text-muted-foreground sm:block">
           Review this Pokémon&apos;s ability effects, open the ability browser for more context, or
           filter the Pokédex to compare Pokémon that share the same ability.
         </p>
@@ -62,15 +62,15 @@ export function PokemonAbilitySection({ abilities }: PokemonAbilitySectionProps)
                     {ability.description}
                   </p>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-                  <Button asChild variant="outline" size="sm" className="rounded-xl">
+                <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+                  <Button asChild variant="outline" size="sm" className="min-h-10 flex-1 rounded-xl sm:flex-none">
                     <Link href={`/abilities?ability=${encodeURIComponent(ability.slug)}`}>
-                      View Ability Detail
+                      Ability Detail
                     </Link>
                   </Button>
-                  <Button asChild variant="secondary" size="sm" className="rounded-xl">
+                  <Button asChild variant="secondary" size="sm" className="min-h-10 flex-1 rounded-xl sm:flex-none">
                     <Link href={`/pokedex?ability=${encodeURIComponent(ability.slug)}`}>
-                      View Pokémon With This Ability
+                      Pokémon With Ability
                     </Link>
                   </Button>
                 </div>

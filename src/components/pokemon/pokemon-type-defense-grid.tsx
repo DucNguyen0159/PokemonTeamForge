@@ -118,19 +118,19 @@ export function PokemonTypeDefenseGrid({ pokemonName, typeDefense }: PokemonType
   const neutralTypes = entries.filter((entry) => entry.group === "neutral").map((entry) => entry.type);
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-card/50 p-5 shadow-sm">
+    <section className="rounded-2xl border border-border/60 bg-card/50 p-4 shadow-sm sm:p-5">
       <h2 className="text-lg font-semibold text-foreground">Type defenses</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Damage multipliers when {pokemonName} is hit by each type.
       </p>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3 sm:gap-4">
         <SummaryRow label="Weak to (2×+)" types={weakTypes} emptyText="No major weaknesses." />
         <SummaryRow label="Resists (½×)" types={resistTypes} emptyText="No resistances." />
         <SummaryRow label="Immune (0×)" types={immuneTypes} emptyText="No immunities." />
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+      <div className="mt-4 hidden flex-wrap gap-3 text-[11px] text-muted-foreground sm:flex">
         <span className="inline-flex items-center gap-1.5">
           <span
             className="size-2.5 rounded-sm border border-rose-400/60 bg-rose-600/90"
@@ -177,7 +177,7 @@ export function PokemonTypeDefenseGrid({ pokemonName, typeDefense }: PokemonType
       </div>
 
       {showNeutral ? (
-        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6 md:grid-cols-9">
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-6 md:grid-cols-9">
           {entries.map(({ type, multiplier }) => (
             <div key={type} className="flex flex-col items-center gap-1">
               <TypeBadge type={type} size="sm" />

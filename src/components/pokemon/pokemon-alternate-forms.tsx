@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { PokemonFormKindPill } from "@/components/pokemon/pokemon-form-kind-pill";
 import {
-  ALTERNATE_FORM_GROUP_LABELS,
   classifyPokemonFormFromSlug,
   type AlternateForm,
   type AlternateFormsByKind,
@@ -29,12 +28,6 @@ type PokemonAlternateFormsProps = {
   alternateForms?: AlternateForm[];
   alternateFormsByKind?: AlternateFormsByKind;
   detailQuery?: Record<string, string | string[] | null | undefined>;
-};
-
-type AlternateFormGroup = {
-  key: string;
-  title: string;
-  forms: AlternateFormCard[];
 };
 
 function toCurrentAlternateFormCard(
@@ -65,7 +58,7 @@ function toCurrentAlternateFormCard(
   };
 }
 
-function buildAlternateFormGroups(props: PokemonAlternateFormsProps): AlternateFormGroup[] {
+function buildAlternateForms(props: PokemonAlternateFormsProps): AlternateFormCard[] {
   const {
     currentSlug,
     currentFormKind,
@@ -105,43 +98,7 @@ function buildAlternateFormGroups(props: PokemonAlternateFormsProps): AlternateF
     (form, index, list) => list.findIndex((entry) => entry.slug === form.slug) === index,
   );
 
-  const baseForms = siblingForms.filter((form) => form.formKind === "default");
-
-  const groups: AlternateFormGroup[] = [];
-
-  if (baseForms.length > 0) {
-    groups.push({
-      key: "base",
-      title: ALTERNATE_FORM_GROUP_LABELS.base,
-      forms: baseForms,
-    });
-  }
-
-  if (megaForms.length > 0) {
-    groups.push({
-      key: "mega",
-      title: ALTERNATE_FORM_GROUP_LABELS.mega,
-      forms: megaForms,
-    });
-  }
-
-  if (gigantamaxForms.length > 0) {
-    groups.push({
-      key: "gigantamax",
-      title: ALTERNATE_FORM_GROUP_LABELS.gigantamax,
-      forms: gigantamaxForms,
-    });
-  }
-
-  if (regionalAndOtherForms.length > 0) {
-    groups.push({
-      key: "regional-other",
-      title: ALTERNATE_FORM_GROUP_LABELS.regionalAndOther,
-      forms: regionalAndOtherForms,
-    });
-  }
-
-  return groups;
+  return [...megaForms, ...gigantamaxForms, ...regionalAndOtherForms];
 }
 
 type AlternateFormCardProps = {
@@ -158,7 +115,7 @@ function AlternateFormCardLink({ form, currentSlug, detailQuery }: AlternateForm
     <Link
       href={href}
       className={cn(
-        "flex min-w-[9.5rem] max-w-[11rem] flex-col items-center gap-2 rounded-2xl border px-3 py-3 transition-colors",
+        "flex min-w-[8.5rem] max-w-[10rem] shrink-0 snap-start flex-col items-center gap-2 rounded-2xl border px-2.5 py-3 transition-colors sm:min-w-[9.5rem] sm:px-3",
         "hover:border-primary/40 hover:bg-background/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isCurrent
           ? "border-primary/60 bg-primary/10 ring-1 ring-primary/30"
@@ -196,36 +153,27 @@ function AlternateFormCardLink({ form, currentSlug, detailQuery }: AlternateForm
 }
 
 export function PokemonAlternateForms(props: PokemonAlternateFormsProps) {
-  const groups = buildAlternateFormGroups(props);
+  const forms = buildAlternateForms(props);
 
-  if (groups.length === 0) {
+  if (forms.length === 0) {
     return null;
   }
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-card/50 p-5 shadow-sm">
+    <section className="rounded-2xl border border-border/60 bg-card/50 p-4 shadow-sm sm:p-5">
       <h2 className="text-lg font-semibold text-foreground">Alternate forms</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Mega, Gigantamax, and regional variants for this species. Evolution stays in the chain above.
       </p>
 
-      <div className="mt-5 space-y-6">
-        {groups.map((group) => (
-          <div key={group.key}>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {group.title}
-            </h3>
-            <div className="mt-3 flex flex-wrap gap-3">
-              {group.forms.map((form) => (
-                <AlternateFormCardLink
-                  key={form.slug}
-                  form={form}
-                  currentSlug={props.currentSlug}
-                  detailQuery={props.detailQuery}
-                />
-              ))}
-            </div>
-          </div>
+      <div className="mt-5 flex snap-x gap-3 overflow-x-auto pb-1 [scroll-padding-inline:0.25rem] [-ms-overflow-style:none] [scrollbar-width:thin]">
+        {forms.map((form) => (
+          <AlternateFormCardLink
+            key={form.slug}
+            form={form}
+            currentSlug={props.currentSlug}
+            detailQuery={props.detailQuery}
+          />
         ))}
       </div>
     </section>

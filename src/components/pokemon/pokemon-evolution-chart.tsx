@@ -48,7 +48,7 @@ function EvolutionStageCard({ stage, highlightSlug, detailQuery }: EvolutionStag
     <Link
       href={href}
       className={cn(
-        "flex w-[7.5rem] shrink-0 flex-col items-center gap-2 rounded-2xl border px-3 py-3 transition-colors sm:w-[8.5rem]",
+        "flex w-[7rem] shrink-0 snap-start flex-col items-center gap-2 rounded-2xl border px-2.5 py-3 transition-colors sm:w-[8.5rem] sm:px-3",
         "hover:border-primary/40 hover:bg-background/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         current
           ? "border-primary/60 bg-primary/10 shadow-md shadow-primary/10 ring-1 ring-primary/30"
@@ -159,14 +159,14 @@ export function PokemonEvolutionChart({
   }
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-card/50 p-5 shadow-sm">
+    <section className="rounded-2xl border border-border/60 bg-card/50 p-4 shadow-sm sm:p-5">
       <h2 className="text-lg font-semibold text-foreground">Evolution</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Tap any stage to open its Pokémon detail page.
       </p>
 
       <div className="mt-5 overflow-x-auto overflow-y-visible pb-2 [-ms-overflow-style:none] [scrollbar-width:thin]">
-        <div className="flex min-w-max justify-center px-2 pt-3">
+        <div className="flex min-w-max snap-x justify-start px-1 pt-3 [scroll-padding-inline:0.25rem] sm:px-2 sm:[scroll-padding-inline:0.5rem] lg:justify-center">
           {evolutionChain?.map((root) => (
             <EvolutionBranch
               key={root.slug}
