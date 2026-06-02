@@ -171,12 +171,12 @@ export default async function PokemonDetailPage({
 
       <section className="grid gap-4 rounded-[1.5rem] border border-border/60 bg-card/50 p-4 shadow-sm sm:gap-6 sm:rounded-[2rem] sm:p-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:p-6">
         <div className="min-w-0">
-          <div className="flex items-center justify-center rounded-2xl border border-border/50 bg-background/35 p-4 sm:rounded-3xl sm:p-6">
+          <div className="flex items-center justify-center rounded-2xl border border-border/50 bg-background/35 p-4 sm:rounded-3xl sm:p-6 lg:bg-transparent">
           <PokemonSprite
             src={pokemon.spriteNormal}
             alt={pokemon.name}
-            size={220}
-            className="h-44 w-full max-w-xs object-contain sm:h-56"
+            size={420}
+            className="h-44 w-full max-w-xs object-contain sm:h-56 lg:h-80 lg:max-w-md xl:h-96 xl:max-w-lg"
           />
         </div>
         </div>
