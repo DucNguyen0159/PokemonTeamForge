@@ -1,6 +1,15 @@
 "use client";
 
-import { memo, useCallback, useDeferredValue, useMemo, useState, type ReactNode } from "react";
+import {
+  memo,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 
 import { cn } from "@/utils";
@@ -26,6 +35,7 @@ type SlotSelectorProps = {
   noOptionsText?: string;
   searchable?: boolean;
   hideOptionMeta?: boolean;
+  autoFocusSearch?: boolean;
 };
 
 function SlotSelectorComponent({
@@ -42,8 +52,11 @@ function SlotSelectorComponent({
   noOptionsText = "No options found",
   searchable = true,
   hideOptionMeta = false,
+  autoFocusSearch = false,
 }: SlotSelectorProps) {
   const [search, setSearch] = useState("");
+  const optionsListRef = useRef<HTMLUListElement | null>(null);
+  const selectedOptionRef = useRef<HTMLLIElement | null>(null);
 
   const handleToggle = useCallback(() => {
     if (!isOpen) {
@@ -61,6 +74,14 @@ function SlotSelectorComponent({
         : options,
     [normalizedSearch, options, searchable],
   );
+
+  useEffect(() => {
+    if (!isOpen || !selected || !selectedOptionRef.current) {
+      return;
+    }
+
+    selectedOptionRef.current.scrollIntoView({ block: "center" });
+  }, [filtered, isOpen, selected]);
 
   return (
     <div className="relative">
@@ -108,12 +129,12 @@ function SlotSelectorComponent({
             <div className="flex items-center gap-2 border-b border-border/40 px-2.5 py-2">
               <Search className="size-3.5 flex-shrink-0 text-muted-foreground" aria-hidden />
               <input
-                autoFocus
+                autoFocus={autoFocusSearch}
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={`Search ${label.toLowerCase()}…`}
-                className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+                className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
               />
               {search && (
                 <button
@@ -128,14 +149,19 @@ function SlotSelectorComponent({
             </div>
           ) : null}
 
-          <ul className="max-h-44 overflow-y-auto py-1" role="listbox">
+          <ul ref={optionsListRef} className="max-h-44 overflow-y-auto py-1" role="listbox">
             {filtered.length === 0 ? (
               <li className="px-3 py-2.5 text-center text-xs text-muted-foreground">
                 {noOptionsText}
               </li>
             ) : (
               filtered.map((opt) => (
-                <li key={opt.id} role="option" aria-selected={selected?.id === opt.id}>
+                <li
+                  key={opt.id}
+                  role="option"
+                  aria-selected={selected?.id === opt.id}
+                  ref={selected?.id === opt.id ? selectedOptionRef : null}
+                >
                   <button
                     type="button"
                     onClick={() => onSelect(opt)}

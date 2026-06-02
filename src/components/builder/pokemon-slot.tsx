@@ -199,6 +199,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
               setOpenPanel(null);
             }}
             onCancel={() => setOpenPanel(null)}
+            currentSelectedSlug={null}
           />
         ) : (
           <EmptyPokemonSlot slot={slot} onAdd={() => setOpenPanel("pokemon-search")} />
@@ -234,6 +235,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
             setOpenPanel(null);
           }}
           onCancel={() => setOpenPanel(null)}
+          currentSelectedSlug={pokemon.slug}
         />
       ) : (
         <>
@@ -335,6 +337,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
               options={itemOptions}
               isOpen={openPanel === "item"}
               onToggle={() => toggle("item")}
+              autoFocusSearch={false}
               onSelect={(opt) => {
                 const item = itemQuery.data?.find((i) => i.id === opt.id) ?? null;
                 setItem(slot, item);
@@ -380,6 +383,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
                   options={moveOptions}
                   isOpen={openPanel === panelKey}
                   onToggle={() => toggle(panelKey)}
+                  autoFocusSearch={false}
                   hideOptionMeta
                   onSelect={(opt) => {
                     const move = pokemon.moves.find((m) => m.id === opt.id) ?? null;

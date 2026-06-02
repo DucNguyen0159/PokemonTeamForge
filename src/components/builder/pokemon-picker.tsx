@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
 
@@ -19,16 +19,19 @@ import { ErrorMessage } from "@/components/error/error-message";
 type PokemonPickerProps = {
   onSelect: (pokemon: PokemonDetail) => void;
   onCancel: () => void;
+  currentSelectedSlug?: string | null;
 };
 
 const PICKER_PAGE_SIZE = 60;
 
-function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
+function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null }: PokemonPickerProps) {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const normalizedSearch = deferredSearch.trim().toLowerCase();
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
+  const selectedEntryRef = useRef<HTMLButtonElement | null>(null);
 
   const pokemonQuery = useInfiniteQuery({
     queryKey: ["builder-pokemon-picker", normalizedSearch],
@@ -61,6 +64,14 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
       pokemonQuery.data?.pages.flatMap((page) => page.pokemon) ?? [],
     [pokemonQuery.data],
   );
+
+  useEffect(() => {
+    if (!selectedEntryRef.current || !listContainerRef.current || normalizedSearch) {
+      return;
+    }
+
+    selectedEntryRef.current.scrollIntoView({ block: "center" });
+  }, [filtered, normalizedSearch]);
 
   const handleListScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
@@ -111,8 +122,7 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search name or type…"
-          autoFocus
-          className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+          className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
         />
         {search && (
           <button
@@ -149,16 +159,19 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
         </p>
       ) : (
         <div
+          ref={listContainerRef}
           className="grid grid-cols-1 gap-1.5 overflow-y-auto"
           style={{ maxHeight: "280px" }}
           onScroll={handleListScroll}
         >
           {filtered.map((pokemon) => {
             const { showPill } = getPokemonListNameMeta(pokemon);
+            const isCurrentSelected = currentSelectedSlug === pokemon.slug;
 
             return (
             <button
               key={pokemon.slug}
+              ref={isCurrentSelected ? selectedEntryRef : null}
               type="button"
               onClick={() => {
                 void handleSelect(pokemon.slug);
@@ -168,6 +181,7 @@ function PokemonPickerComponent({ onSelect, onCancel }: PokemonPickerProps) {
                 "flex items-center gap-2.5 rounded-xl border border-border/40 bg-background/30 px-2.5 py-2",
                 "text-left transition-colors",
                 "hover:border-primary/30 hover:bg-card focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                isCurrentSelected && "border-primary/50 bg-primary/10",
                 addingSlug === pokemon.slug && "opacity-70",
               )}
             >
