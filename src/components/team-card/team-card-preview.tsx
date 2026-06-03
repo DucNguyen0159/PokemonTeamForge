@@ -49,6 +49,7 @@ type TeamCardPreviewProps = {
   visualStyle: TeamCardVisualStyle;
   composition: TeamCardComposition;
   detailIconOptions: TeamCardIconOption[];
+  isMobileLayout?: boolean;
 };
 
 const CARD_INSET = "3%";
@@ -250,18 +251,27 @@ function getTrainerImageStyle(treatment: TeamCardVisualStyle["trainerTreatment"]
   };
 }
 
-function trainerColumnWidth(composition: TeamCardComposition): string {
-  if (composition.pokemonArrangement === "ace-showcase") {
+function trainerColumnWidth(
+  arrangement: TeamCardComposition["pokemonArrangement"],
+  isMobileLayout: boolean,
+): string {
+  if (isMobileLayout) {
+    return "28%";
+  }
+  if (arrangement === "ace-showcase") {
     return "34%";
   }
-  if (composition.pokemonArrangement === "grid-2x3") {
+  if (arrangement === "grid-2x3") {
     return "27%";
   }
   return "31%";
 }
 
-function pokemonFormationStyle(composition: TeamCardComposition): CSSProperties {
-  if (composition.pokemonArrangement === "ace-showcase") {
+function pokemonFormationStyle(
+  arrangement: TeamCardComposition["pokemonArrangement"],
+  isMobileLayout: boolean,
+): CSSProperties {
+  if (!isMobileLayout && arrangement === "ace-showcase") {
     return {
       gridTemplateColumns: "1.15fr repeat(2, minmax(0, 1fr))",
       gridTemplateRows: "repeat(2, minmax(0, 1fr))",
@@ -288,6 +298,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
       visualStyle,
       composition,
       detailIconOptions,
+      isMobileLayout = false,
     },
     ref,
   ) {
@@ -315,6 +326,7 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
     const displayTeamName = teamName.trim() || "Team Card";
     const subtitleIcon =
       hasSubtitleLine && subtitleRow ? detailIconMap.get(subtitleRow.iconSlug) : undefined;
+    const effectivePokemonArrangement = isMobileLayout ? "grid-2x3" : composition.pokemonArrangement;
 
     return (
       <div
@@ -383,7 +395,10 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
               position: "absolute",
               inset: 0,
               display: "grid",
-              gridTemplateColumns: `minmax(0, 1fr) minmax(160px, ${trainerColumnWidth(composition)})`,
+              gridTemplateColumns: `minmax(0, 1fr) minmax(${isMobileLayout ? "116px" : "160px"}, ${trainerColumnWidth(
+                effectivePokemonArrangement,
+                isMobileLayout,
+              )})`,
               gridTemplateRows: showTrainerHeaderRow ? "auto minmax(0, 1fr)" : "minmax(0, 1fr)",
               columnGap: "3.2%",
               rowGap: "2.2%",
@@ -543,9 +558,11 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                 minWidth: 0,
                 alignSelf: "stretch",
                 display: "grid",
-                ...pokemonFormationStyle(composition),
-                gap: "clamp(5px, 1.35vw, 14px)",
-                padding: "clamp(3px, 0.6vw, 8px) clamp(3px, 0.7vw, 9px)",
+                ...pokemonFormationStyle(effectivePokemonArrangement, isMobileLayout),
+                gap: isMobileLayout ? "clamp(6px, 1.45vw, 10px)" : "clamp(5px, 1.35vw, 14px)",
+                padding: isMobileLayout
+                  ? "clamp(2px, 0.35vw, 4px) clamp(2px, 0.5vw, 5px)"
+                  : "clamp(3px, 0.6vw, 8px) clamp(3px, 0.7vw, 9px)",
                 borderRadius: "18px",
                 background:
                   "radial-gradient(ellipse at 48% 82%, rgba(0,0,0,0.16), transparent 64%)",
@@ -578,17 +595,20 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                       position: "relative",
                       minHeight: 0,
                       minWidth: 0,
-                      gridRow: composition.pokemonArrangement === "ace-showcase" && idx === 0 ? "1 / 3" : undefined,
-                      gridColumn: composition.pokemonArrangement === "ace-showcase" && idx === 0 ? "1" : undefined,
+                      gridRow: !isMobileLayout && effectivePokemonArrangement === "ace-showcase" && idx === 0 ? "1 / 3" : undefined,
+                      gridColumn: !isMobileLayout && effectivePokemonArrangement === "ace-showcase" && idx === 0 ? "1" : undefined,
                       transform:
-                        composition.pokemonArrangement === "diagonal-lines"
+                        !isMobileLayout && effectivePokemonArrangement === "diagonal-lines"
                           ? `translateY(${idx % 2 === 0 ? "-4%" : "4%"})`
                           : undefined,
                       display: "grid",
-                      gridTemplateRows: "minmax(0, 1fr) auto",
+                      gridTemplateRows: isMobileLayout
+                        ? "minmax(0, 1fr) minmax(16px, auto)"
+                        : "minmax(0, 1fr) auto",
                       alignItems: "center",
                       justifyItems: "center",
-                      padding: "clamp(3px, 0.7vw, 8px)",
+                      rowGap: isMobileLayout ? "2px" : undefined,
+                      padding: isMobileLayout ? "clamp(2px, 0.45vw, 5px)" : "clamp(3px, 0.7vw, 8px)",
                       overflow: "visible",
                     }}
                   >
@@ -609,7 +629,9 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                       style={{
                         position: "relative",
                         zIndex: 1,
-                        width: "min(100%, clamp(70px, 11vw, 124px))",
+                        width: isMobileLayout
+                          ? "min(100%, clamp(44px, 7.1vw, 64px))"
+                          : "min(100%, clamp(70px, 11vw, 124px))",
                         aspectRatio: "1",
                         display: "flex",
                         alignItems: "center",
@@ -644,8 +666,8 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                         style={{
                           position: "relative",
                           zIndex: 1,
-                          width: "112%",
-                          height: "112%",
+                          width: isMobileLayout ? "104%" : "112%",
+                          height: isMobileLayout ? "104%" : "112%",
                           objectFit: "contain",
                           filter: getSpriteFilter(visualStyle.spriteGlow, Boolean(pokemon)),
                         }}
@@ -657,13 +679,15 @@ const TeamCardPreviewComponent = forwardRef<HTMLDivElement, TeamCardPreviewProps
                         style={{
                           position: "relative",
                           zIndex: 2,
-                          marginTop: "-1px",
-                          fontSize: "clamp(8px, 0.96vw, 11px)",
+                          marginTop: isMobileLayout ? "3px" : "-1px",
+                          fontSize: isMobileLayout
+                            ? "clamp(6.5px, 0.78vw, 8px)"
+                            : "clamp(8px, 0.96vw, 11px)",
                           fontWeight: 800,
                           textTransform: "capitalize",
                           textAlign: "center",
-                          lineHeight: 1.1,
-                          maxWidth: "100%",
+                          lineHeight: isMobileLayout ? 1 : 1.1,
+                          maxWidth: isMobileLayout ? "90%" : "100%",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",

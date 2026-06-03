@@ -142,6 +142,7 @@ export function TeamCardGenerator() {
   const [trainerPickerInstance, setTrainerPickerInstance] = useState(0);
   const [activeTab, setActiveTab] = useState<StudioTab>("style");
   const [previewZoom, setPreviewZoom] = useState<PreviewZoom>("fit");
+  const [isMobileStudio, setIsMobileStudio] = useState(false);
 
   const selectedBackground =
     TEAM_CARD_BACKGROUND_ASSETS.find((entry) => entry.slug === config.backgroundSlug) ??
@@ -205,6 +206,30 @@ export function TeamCardGenerator() {
     }
     localStorage.setItem(TEAM_CARD_CONFIG_STORAGE_KEY, serializeTeamCardConfig(config));
   }, [config, isConfigHydrated]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncMobileStudio = () => {
+      setIsMobileStudio(mediaQuery.matches);
+    };
+
+    syncMobileStudio();
+    mediaQuery.addEventListener("change", syncMobileStudio);
+    return () => {
+      mediaQuery.removeEventListener("change", syncMobileStudio);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileStudio || previewZoom === "fit") {
+      return;
+    }
+    setPreviewZoom("fit");
+  }, [isMobileStudio, previewZoom]);
 
   useEffect(() => {
     if (!isConfigHydrated) {
@@ -325,21 +350,38 @@ export function TeamCardGenerator() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1300px] space-y-6 px-4 py-6">
-      <PageIntro
-        eyebrow="Team Card Studio"
-        title="Create a Shareable Team Card"
-        description="Customize your trainer, background, sprites, and card identity, then export a polished PNG for sharing."
-        chips={
-          <>
-            <PageIntroChip>{filledSlotCount}/6 Pokémon loaded</PageIntroChip>
-            <PageIntroChip>{selectedExportPreset.format.toUpperCase()} export</PageIntroChip>
-            <PageIntroChip className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
-              PNG ready
-            </PageIntroChip>
-          </>
-        }
-      />
+    <div className="mx-auto w-full max-w-[1300px] space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-6">
+      <div className="hidden md:block">
+        <PageIntro
+          eyebrow="Team Card Studio"
+          title="Create a Shareable Team Card"
+          description="Customize your trainer, background, sprites, and card identity, then export a polished PNG for sharing."
+          chips={
+            <>
+              <PageIntroChip>{filledSlotCount}/6 Pokémon loaded</PageIntroChip>
+              <PageIntroChip>{selectedExportPreset.format.toUpperCase()} export</PageIntroChip>
+              <PageIntroChip className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                PNG ready
+              </PageIntroChip>
+            </>
+          }
+        />
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card/60 p-4 md:hidden">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Team Card Studio</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">Create a Shareable Team Card</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Customize your trainer, background, sprites, and card identity, then export a polished PNG.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <PageIntroChip>{filledSlotCount}/6 Pokémon loaded</PageIntroChip>
+          <PageIntroChip>{selectedExportPreset.format.toUpperCase()} export</PageIntroChip>
+          <PageIntroChip className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+            PNG ready
+          </PageIntroChip>
+        </div>
+      </div>
 
       {/* Empty team notice */}
       {!hasTeam ? (
@@ -366,7 +408,7 @@ export function TeamCardGenerator() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px] xl:items-start">
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_390px] xl:items-start">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-xl shadow-black/10 transition-shadow duration-300 hover:shadow-black/20">
             <div className="flex flex-col gap-3 border-b border-border/50 bg-background/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -387,35 +429,47 @@ export function TeamCardGenerator() {
                 </div>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="flex justify-center rounded-xl border border-border/60 bg-background/45 p-1">
-                  {PREVIEW_ZOOM_OPTIONS.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => setPreviewZoom(option.id)}
-                      aria-pressed={previewZoom === option.id}
-                      className={cn(
-                      "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                        previewZoom === option.id
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+                {isMobileStudio ? (
+                  <span className="inline-flex items-center justify-center rounded-xl border border-border/60 bg-background/45 px-3 py-1 text-xs font-medium text-muted-foreground">
+                    Fit
+                  </span>
+                ) : (
+                  <div className="flex justify-center rounded-xl border border-border/60 bg-background/45 p-1">
+                    {PREVIEW_ZOOM_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setPreviewZoom(option.id)}
+                        aria-pressed={previewZoom === option.id}
+                        className={cn(
+                          "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                          previewZoom === option.id
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <ExportButton
                   cardRef={cardRef}
                   teamName={config.cardTitle}
                   pixelRatio={selectedExportPreset.pixelRatio}
                   exportWidth={selectedExportPreset.width}
                   exportHeight={selectedExportPreset.height}
+                  className={cn(isMobileStudio && "w-full [&_button]:w-full")}
                 />
               </div>
             </div>
 
-            <div className="relative overflow-auto bg-[radial-gradient(circle_at_top_left,rgba(148,163,184,0.10),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.72),rgba(3,7,18,0.56))] p-4 sm:p-6">
+            <div
+              className={cn(
+                "relative bg-[radial-gradient(circle_at_top_left,rgba(148,163,184,0.10),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.72),rgba(3,7,18,0.56))]",
+                isMobileStudio ? "overflow-hidden p-3" : "overflow-auto p-4 sm:p-6",
+              )}
+            >
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.055)_1px,transparent_1px)] bg-[size:32px_32px] opacity-40"
@@ -423,7 +477,7 @@ export function TeamCardGenerator() {
               <div
                 className={cn(
                   "relative mx-auto transition-[width,transform] duration-200",
-                  previewZoom === "fit" ? "w-full" : "w-[960px]",
+                  previewZoom === "fit" || isMobileStudio ? "w-full" : "w-[960px]",
                 )}
               >
                 <TeamCardPreview
@@ -439,6 +493,7 @@ export function TeamCardGenerator() {
                   visualStyle={config.visualStyle}
                   composition={selectedLayoutPreset.composition}
                   detailIconOptions={TEAM_CARD_DETAIL_ICON_OPTIONS}
+                  isMobileLayout={isMobileStudio}
                 />
               </div>
             </div>
