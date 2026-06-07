@@ -98,6 +98,20 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
     [],
   );
 
+  const focusNextMovePanel = useCallback(
+    (currentSlot: 1 | 2 | 3 | 4) => {
+      const movePanelKeys: OpenPanel[] = ["move-1", "move-2", "move-3", "move-4"];
+      const currentIndex = currentSlot - 1;
+      const nextIndex = movePanelKeys.findIndex((key, idx) => idx > currentIndex);
+      if (nextIndex === -1) {
+        setOpenPanel(null);
+        return;
+      }
+      setOpenPanel(movePanelKeys[nextIndex]);
+    },
+    [],
+  );
+
   const pokemonAbilities = pokemon?.abilities ?? EMPTY_ABILITIES;
   const pokemonMoves = pokemon?.moves ?? EMPTY_MOVES;
 
@@ -337,7 +351,6 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
               options={itemOptions}
               isOpen={openPanel === "item"}
               onToggle={() => toggle("item")}
-              autoFocusSearch={false}
               onSelect={(opt) => {
                 const item = itemQuery.data?.find((i) => i.id === opt.id) ?? null;
                 setItem(slot, item);
@@ -383,12 +396,11 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
                   options={moveOptions}
                   isOpen={openPanel === panelKey}
                   onToggle={() => toggle(panelKey)}
-                  autoFocusSearch={false}
                   hideOptionMeta
                   onSelect={(opt) => {
                     const move = pokemon.moves.find((m) => m.id === opt.id) ?? null;
                     setMove(slot, entry.slot as 1 | 2 | 3 | 4, move);
-                    setOpenPanel(null);
+                    focusNextMovePanel(entry.slot as 1 | 2 | 3 | 4);
                   }}
                   onClear={() => {
                     setMove(slot, entry.slot as 1 | 2 | 3 | 4, null);

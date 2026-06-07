@@ -30,8 +30,11 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
   const normalizedSearch = deferredSearch.trim().toLowerCase();
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const listContainerRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const selectedEntryRef = useRef<HTMLButtonElement | null>(null);
+  const activeEntryRef = useRef<HTMLButtonElement | null>(null);
 
   const pokemonQuery = useInfiniteQuery({
     queryKey: ["builder-pokemon-picker", normalizedSearch],
@@ -64,6 +67,16 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
       pokemonQuery.data?.pages.flatMap((page) => page.pokemon) ?? [],
     [pokemonQuery.data],
   );
+  const selectedIndex = useMemo(
+    () => filtered.findIndex((pokemon) => pokemon.slug === currentSelectedSlug),
+    [currentSelectedSlug, filtered],
+  );
+  const effectiveActiveIndex =
+    activeIndex >= 0 && activeIndex < filtered.length
+      ? activeIndex
+      : selectedIndex >= 0
+        ? selectedIndex
+        : 0;
 
   useEffect(() => {
     if (!selectedEntryRef.current || !listContainerRef.current || normalizedSearch) {
@@ -72,6 +85,17 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
 
     selectedEntryRef.current.scrollIntoView({ block: "center" });
   }, [filtered, normalizedSearch]);
+
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!activeEntryRef.current) {
+      return;
+    }
+    activeEntryRef.current.scrollIntoView({ block: "nearest" });
+  }, [effectiveActiveIndex]);
 
   const handleListScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
@@ -88,7 +112,7 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
     [fetchNextPage, hasNextPage, isFetchingNextPage, isPending],
   );
 
-  async function handleSelect(slug: string) {
+  const handleSelect = useCallback(async (slug: string) => {
     setAddingSlug(slug);
     setStatus(null);
     try {
@@ -99,7 +123,40 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
     } finally {
       setAddingSlug(null);
     }
-  }
+  }, [onSelect]);
+
+  const handleSearchKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveIndex((prev) =>
+          Math.min((prev >= 0 ? prev : effectiveActiveIndex) + 1, Math.max(filtered.length - 1, 0)),
+        );
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveIndex((prev) => Math.max((prev >= 0 ? prev : effectiveActiveIndex) - 1, 0));
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const current = filtered[effectiveActiveIndex];
+        if (current) {
+          void handleSelect(current.slug);
+        }
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancel();
+      }
+    },
+    [effectiveActiveIndex, filtered, handleSelect, onCancel],
+  );
 
   return (
     <div className="flex flex-col gap-2">
@@ -118,9 +175,14 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
       <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-background/50 px-2.5 py-1.5">
         <Search className="size-3.5 flex-shrink-0 text-muted-foreground" aria-hidden />
         <input
+          ref={searchInputRef}
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setActiveIndex(-1);
+          }}
+          onKeyDown={handleSearchKeyDown}
           placeholder="Search name or type…"
           className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
         />
@@ -164,17 +226,28 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
           style={{ maxHeight: "280px" }}
           onScroll={handleListScroll}
         >
-          {filtered.map((pokemon) => {
+          {filtered.map((pokemon, entryIndex) => {
             const { showPill } = getPokemonListNameMeta(pokemon);
             const isCurrentSelected = currentSelectedSlug === pokemon.slug;
+            const isActive = effectiveActiveIndex === entryIndex;
 
             return (
             <button
               key={pokemon.slug}
-              ref={isCurrentSelected ? selectedEntryRef : null}
+              ref={(node) => {
+                if (isCurrentSelected) {
+                  selectedEntryRef.current = node;
+                }
+                if (isActive) {
+                  activeEntryRef.current = node;
+                }
+              }}
               type="button"
               onClick={() => {
                 void handleSelect(pokemon.slug);
+              }}
+              onMouseEnter={() => {
+                setActiveIndex(entryIndex);
               }}
               disabled={addingSlug === pokemon.slug}
               className={cn(
@@ -182,6 +255,7 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
                 "text-left transition-colors",
                 "hover:border-primary/30 hover:bg-card focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 isCurrentSelected && "border-primary/50 bg-primary/10",
+                isActive && "border-primary/40 bg-accent/40",
                 addingSlug === pokemon.slug && "opacity-70",
               )}
             >

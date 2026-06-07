@@ -9,6 +9,7 @@ export type ActiveTeamSlot = TeamPokemon & {
 export interface SelectedMoveWithOwner {
   pokemonId: number;
   pokemonName: string;
+  moveSlot: 1 | 2 | 3 | 4;
   move: Move;
 }
 
@@ -27,12 +28,12 @@ export function getPokemonTypes(slot: ActiveTeamSlot): PokemonType[] {
 export function getSelectedMovesWithOwners(team: Team): SelectedMoveWithOwner[] {
   return getActiveTeamSlots(team).flatMap((slot) =>
     slot.moves
-      .map((selectedMove) => selectedMove.move)
-      .filter((move): move is Move => move !== null)
-      .map((move) => ({
+      .filter((selectedMove): selectedMove is { slot: 1 | 2 | 3 | 4; move: Move } => selectedMove.move !== null)
+      .map((selectedMove) => ({
         pokemonId: slot.pokemon.id,
         pokemonName: slot.pokemon.name,
-        move,
+        moveSlot: selectedMove.slot,
+        move: selectedMove.move,
       })),
   );
 }

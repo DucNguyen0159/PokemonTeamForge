@@ -30,6 +30,7 @@ function sortEntriesByType<T extends { type?: PokemonType; targetType?: PokemonT
 }
 
 type CoverageTooltipRow = {
+  key: string;
   label: string;
   value?: string;
 };
@@ -50,7 +51,7 @@ const CoverageTooltip = memo(function CoverageTooltip({
     >
       <div className="space-y-1">
         {rows.map((row) => (
-          <div key={`${row.label}-${row.value ?? ""}`} className="flex items-center justify-between gap-3">
+          <div key={row.key} className="flex items-center justify-between gap-3">
             <span className="truncate text-muted-foreground">{row.label}</span>
             {row.value ? (
               <span className="shrink-0 font-medium tabular-nums text-foreground">{row.value}</span>
@@ -68,6 +69,7 @@ const DefensiveCoverageRow = memo(function DefensiveCoverageRow({
   entry: DefensiveCoverageEntry;
 }) {
   const tooltipRows = entry.affectedPokemon.map((match) => ({
+    key: `${entry.type}-${match.pokemonId}`,
     label: match.pokemonName,
     value: `${match.multiplier}x`,
   }));
@@ -106,10 +108,11 @@ const OffensiveCoverageRow = memo(function OffensiveCoverageRow({
     entry.matchingMoves.length > 0
       ? entry.matchingMoves
           .map((match) => ({
+            key: `${entry.targetType}-${match.pokemonId}-${match.moveId}-${match.moveSlot}`,
             label: match.pokemonName,
             value: `${match.moveName} (${match.moveType})`,
           }))
-      : [{ label: "No selected attacking move hits this type super-effectively." }];
+      : [{ key: `${entry.targetType}-empty`, label: "No selected attacking move hits this type super-effectively." }];
 
   return (
     <div

@@ -16,10 +16,11 @@ export function calculateOffensiveCoverage(team: Team): OffensiveCoverageResult 
   const entries: OffensiveCoverageEntry[] = ALL_POKEMON_TYPES.map((targetType) => {
     const matchingMoves = selectedMoves
       .filter(({ move }) => isSuperEffectiveAgainst(move.type, targetType))
-      .map(({ pokemonId, pokemonName, move }) => ({
+      .map(({ pokemonId, pokemonName, moveSlot, move }) => ({
         pokemonId,
         pokemonName,
         moveId: move.id,
+        moveSlot,
         moveName: move.name,
         moveType: move.type,
       }));

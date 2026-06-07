@@ -5,6 +5,7 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -52,11 +53,15 @@ function SlotSelectorComponent({
   noOptionsText = "No options found",
   searchable = true,
   hideOptionMeta = false,
-  autoFocusSearch = false,
+  autoFocusSearch = true,
 }: SlotSelectorProps) {
   const [search, setSearch] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const optionsListRef = useRef<HTMLUListElement | null>(null);
-  const selectedOptionRef = useRef<HTMLLIElement | null>(null);
+  const activeOptionRef = useRef<HTMLLIElement | null>(null);
+  const listId = useId();
 
   const handleToggle = useCallback(() => {
     if (!isOpen) {
@@ -74,20 +79,114 @@ function SlotSelectorComponent({
         : options,
     [normalizedSearch, options, searchable],
   );
+  const selectedIndex = useMemo(
+    () => (selected ? filtered.findIndex((opt) => opt.id === selected.id) : -1),
+    [filtered, selected],
+  );
+  const effectiveActiveIndex =
+    activeIndex >= 0 && activeIndex < filtered.length
+      ? activeIndex
+      : selectedIndex >= 0
+        ? selectedIndex
+        : 0;
 
   useEffect(() => {
-    if (!isOpen || !selected || !selectedOptionRef.current) {
+    if (!isOpen || !searchable || !autoFocusSearch) {
       return;
     }
+    searchInputRef.current?.focus();
+  }, [autoFocusSearch, isOpen, searchable]);
 
-    selectedOptionRef.current.scrollIntoView({ block: "center" });
-  }, [filtered, isOpen, selected]);
+  useEffect(() => {
+    if (!isOpen || !activeOptionRef.current) {
+      return;
+    }
+    activeOptionRef.current.scrollIntoView({ block: "nearest" });
+  }, [effectiveActiveIndex, isOpen]);
+
+  const closeDropdown = useCallback(() => {
+    if (!isOpen) {
+      return;
+    }
+    onToggle();
+    triggerRef.current?.focus();
+  }, [isOpen, onToggle]);
+
+  const selectActiveOption = useCallback(() => {
+    const option = filtered[effectiveActiveIndex];
+    if (!option) {
+      return;
+    }
+    onSelect(option);
+  }, [effectiveActiveIndex, filtered, onSelect]);
+
+  const handleTriggerKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (!isOpen && ["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
+        event.preventDefault();
+        handleToggle();
+        return;
+      }
+
+      if (!isOpen) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeDropdown();
+      }
+    },
+    [closeDropdown, handleToggle, isOpen],
+  );
+
+  const handleSearchKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (!isOpen) {
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveIndex((prev) =>
+          Math.min((prev >= 0 ? prev : effectiveActiveIndex) + 1, Math.max(filtered.length - 1, 0)),
+        );
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveIndex((prev) => Math.max((prev >= 0 ? prev : effectiveActiveIndex) - 1, 0));
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        selectActiveOption();
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeDropdown();
+      }
+    },
+    [closeDropdown, effectiveActiveIndex, filtered.length, isOpen, selectActiveOption],
+  );
+
+  const handleOptionMouseEnter = useCallback((index: number) => {
+    setActiveIndex(index);
+  }, []);
 
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={handleToggle}
+        onKeyDown={handleTriggerKeyDown}
+        aria-haspopup="listbox"
+        aria-controls={listId}
         aria-expanded={isOpen}
         className={cn(
           "flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors",
@@ -129,10 +228,15 @@ function SlotSelectorComponent({
             <div className="flex items-center gap-2 border-b border-border/40 px-2.5 py-2">
               <Search className="size-3.5 flex-shrink-0 text-muted-foreground" aria-hidden />
               <input
+                ref={searchInputRef}
                 autoFocus={autoFocusSearch}
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setActiveIndex(-1);
+                }}
+                onKeyDown={handleSearchKeyDown}
                 placeholder={`Search ${label.toLowerCase()}…`}
                 className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
               />
@@ -149,26 +253,32 @@ function SlotSelectorComponent({
             </div>
           ) : null}
 
-          <ul ref={optionsListRef} className="max-h-44 overflow-y-auto py-1" role="listbox">
+          <ul ref={optionsListRef} id={listId} className="max-h-44 overflow-y-auto py-1" role="listbox">
             {filtered.length === 0 ? (
               <li className="px-3 py-2.5 text-center text-xs text-muted-foreground">
                 {noOptionsText}
               </li>
             ) : (
-              filtered.map((opt) => (
+              filtered.map((opt, index) => (
                 <li
                   key={opt.id}
                   role="option"
                   aria-selected={selected?.id === opt.id}
-                  ref={selected?.id === opt.id ? selectedOptionRef : null}
+                  ref={effectiveActiveIndex === index ? activeOptionRef : null}
                 >
                   <button
                     type="button"
                     onClick={() => onSelect(opt)}
+                    onMouseEnter={() => handleOptionMouseEnter(index)}
                     className={cn(
                       "flex w-full items-center justify-between px-3 py-1.5 text-xs",
                       "transition-colors hover:bg-accent/60",
-                      selected?.id === opt.id && "bg-primary/10 text-primary",
+                      selected?.id === opt.id && "text-primary",
+                      effectiveActiveIndex === index
+                        ? "bg-primary/15 text-foreground"
+                        : selected?.id === opt.id
+                          ? "bg-primary/10"
+                          : "",
                     )}
                   >
                     <span className="min-w-0 flex-1 text-left font-medium">

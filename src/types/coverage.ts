@@ -31,6 +31,7 @@ export interface OffensiveMoveMatch {
   pokemonId: number;
   pokemonName: string;
   moveId: number;
+  moveSlot: 1 | 2 | 3 | 4;
   moveName: string;
   moveType: PokemonType;
 }
