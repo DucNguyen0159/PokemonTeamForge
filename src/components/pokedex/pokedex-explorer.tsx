@@ -943,6 +943,11 @@ export function PokedexExplorer({ initialReturnState = {} }: PokedexExplorerProp
                     <div className="flex flex-wrap gap-1">
                       <TypeBadge type={pokemon.primaryType} />
                       {pokemon.secondaryType ? <TypeBadge type={pokemon.secondaryType} /> : null}
+                      {pokemon.formKind === "gigantamax" ? (
+                        <span className="rounded-full border border-sky-400/20 bg-sky-400/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-200">
+                          Dmax HP x1.5-2.0
+                        </span>
+                      ) : null}
                     </div>
                   </td>
                   <td className={cn("px-3 py-3 text-center text-sm font-semibold tabular-nums whitespace-nowrap", getSortCellClass("total"))}>

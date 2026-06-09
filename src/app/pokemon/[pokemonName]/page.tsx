@@ -25,6 +25,7 @@ import { PokemonTypeDefenseGrid } from "@/components/pokemon/pokemon-type-defens
 import { classifyPokemonFormFromSlug } from "@/lib/pokemon/pokemon-forms";
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { TypeBadge } from "@/components/shared/type-badge";
+import { PokemonDynamaxHpPreview } from "@/components/pokemon/pokemon-dynamax-hp-preview";
 
 type PokemonDetailPageProps = {
   params: Promise<{ pokemonName: string }>;
@@ -214,6 +215,7 @@ export default async function PokemonDetailPage({
               <PokemonBaseStatsTable stats={pokemon.stats} />
             </div>
           </div>
+          {formKind === "gigantamax" ? <PokemonDynamaxHpPreview baseHp={pokemon.stats.hp} /> : null}
         </div>
       </section>
 

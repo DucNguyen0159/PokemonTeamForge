@@ -17,6 +17,7 @@ import process from "node:process";
 
 import { parseCommonArgs, pokeApiGet, runImport } from "./lib/import-utils.mjs";
 import { applyPokemonFormMetadata } from "./lib/pokemon-form-metadata.mjs";
+import { resolveEffectiveMoveSlugs } from "./lib/showdown-learnset-resolver.mjs";
 
 const MAX_MOVES_PER_POKEMON = 200;
 const UPSERT_BATCH_SIZE = 500;
@@ -382,9 +383,17 @@ async function buildPokemonImportRows(ref, caches, moveTags) {
     };
   }).filter((row) => row.ability_id > 0);
 
-  const moveNames = rawPokemon.moves
+  const pokeApiMoveNames = rawPokemon.moves
     .map((entry) => entry.move.name)
     .slice(0, MAX_MOVES_PER_POKEMON);
+  const learnsetResolution = await resolveEffectiveMoveSlugs({
+    pokemonSlug: rawPokemon.name,
+    speciesSlug: rawSpecies.name,
+    pokeApiMoveSlugs: pokeApiMoveNames,
+    caches,
+    pokeApiGetFn: pokeApiGet,
+  });
+  const moveNames = learnsetResolution.moveSlugs.slice(0, MAX_MOVES_PER_POKEMON);
   const rawMoves = await Promise.all(
     moveNames.map((moveName) => fetchWithCache(caches.moves, `/move/${moveName}`)),
   );
@@ -406,6 +415,7 @@ async function buildPokemonImportRows(ref, caches, moveTags) {
     pokemonAbilityRows,
     moveRows,
     pokemonMoveRows,
+    learnsetResolution,
   };
 }
 
@@ -466,6 +476,12 @@ async function main() {
       pokemonAbilityRows: [],
       moveRows: [],
       pokemonMoveRows: [],
+      learnsetStats: {
+        showdownForm: 0,
+        showdownBaseInherit: 0,
+        pokeApiFallback: 0,
+        unresolvedShowdownMoveIds: 0,
+      },
     };
 
     for (const [index, ref] of refs.entries()) {
@@ -475,6 +491,14 @@ async function main() {
       aggregate.pokemonAbilityRows.push(...rows.pokemonAbilityRows);
       aggregate.moveRows.push(...rows.moveRows);
       aggregate.pokemonMoveRows.push(...rows.pokemonMoveRows);
+      if (rows.learnsetResolution.source === "showdown-form") {
+        aggregate.learnsetStats.showdownForm += 1;
+      } else if (rows.learnsetResolution.source === "showdown-base-inherit") {
+        aggregate.learnsetStats.showdownBaseInherit += 1;
+      } else {
+        aggregate.learnsetStats.pokeApiFallback += 1;
+      }
+      aggregate.learnsetStats.unresolvedShowdownMoveIds += rows.learnsetResolution.unresolvedShowdownMoveIds;
 
       if ((index + 1) % 10 === 0 || index === refs.length - 1) {
         console.log(`Prepared ${index + 1}/${refs.length} Pokemon.`);
@@ -499,6 +523,9 @@ async function main() {
     if (args.dryRun) {
       console.log(
         `[dry-run] Prepared ${aggregate.pokemonRows.length} Pokemon, ${aggregate.abilityRows.length} abilities, ${aggregate.moveRows.length} moves, ${aggregate.pokemonAbilityRows.length} Pokemon abilities, ${aggregate.pokemonMoveRows.length} Pokemon moves, and ${evolutionChainRows.length} evolution chains.`,
+      );
+      console.log(
+        `[dry-run] Learnset resolver stats: showdown-form=${aggregate.learnsetStats.showdownForm}, showdown-base-inherit=${aggregate.learnsetStats.showdownBaseInherit}, pokeapi-fallback=${aggregate.learnsetStats.pokeApiFallback}, unresolved-showdown-move-ids=${aggregate.learnsetStats.unresolvedShowdownMoveIds}`,
       );
     } else {
       await upsertInBatches(supabase, "abilities", aggregate.abilityRows, { onConflict: "id" });
@@ -525,6 +552,7 @@ async function main() {
         pokemonAbilityCount: aggregate.pokemonAbilityRows.length,
         pokemonMoveCount: aggregate.pokemonMoveRows.length,
         evolutionChainCount: evolutionChainRows.length,
+        learnsetStats: aggregate.learnsetStats,
       },
     };
   });

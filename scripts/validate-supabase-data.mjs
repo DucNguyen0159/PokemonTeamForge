@@ -366,6 +366,41 @@ async function validateDittoHasNoAlternateForms(supabase) {
   return [];
 }
 
+async function validateFormLearnsetCoverage(supabase, slug, { minMoves }) {
+  const issues = [];
+  const { data: pokemon, error: pokemonError } = await supabase
+    .from("pokemon")
+    .select("id, slug, form_kind")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (pokemonError) {
+    return [`learnset ${slug}: pokemon query failed: ${pokemonError.message}`];
+  }
+
+  if (!pokemon) {
+    return [`learnset ${slug}: missing pokemon row`];
+  }
+
+  const { count, error: moveCountError } = await supabase
+    .from("pokemon_moves")
+    .select("*", { count: "exact", head: true })
+    .eq("pokemon_id", pokemon.id);
+
+  if (moveCountError) {
+    return [`learnset ${slug}: move count query failed: ${moveCountError.message}`];
+  }
+
+  const moveCount = count ?? 0;
+  if (moveCount < minMoves) {
+    issues.push(
+      `learnset ${slug}: expected at least ${minMoves} moves for ${pokemon.form_kind}, got ${moveCount}`,
+    );
+  }
+
+  return issues;
+}
+
 async function countTable(supabase, table) {
   const { count, error } = await supabase
     .from(table)
@@ -629,6 +664,9 @@ async function main() {
     })),
   );
   issues.push(...(await validateDittoHasNoAlternateForms(supabase)));
+  issues.push(...(await validateFormLearnsetCoverage(supabase, "blastoise-mega", { minMoves: 20 })));
+  issues.push(...(await validateFormLearnsetCoverage(supabase, "blastoise-gmax", { minMoves: 20 })));
+  issues.push(...(await validateFormLearnsetCoverage(supabase, "arcanine-hisui", { minMoves: 20 })));
 
   for (const slug of args.abilities) {
     issues.push(...await validateAbility(supabase, slug));

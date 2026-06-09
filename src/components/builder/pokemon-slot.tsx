@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { CheckCircle2, RefreshCw, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, MoveRight, RefreshCw, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { cn } from "@/utils";
@@ -18,6 +18,7 @@ import { SlotSelector, type SelectorOption } from "./slot-selector";
 import { PokemonPicker } from "./pokemon-picker";
 import { buildBuilderPokemonDetailHref } from "@/lib/pokemon/pokemon-detail-query";
 import { EmptyPokemonSlot } from "./empty-pokemon-slot";
+import { buildGmaxPreviewRows } from "@/lib/pokemon/gmax-preview";
 
 type OpenPanel =
   | "pokemon-search"
@@ -79,6 +80,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
   const { slot, pokemon, selectedAbility, selectedItem, moves } = teamSlot;
 
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
+  const [showGmaxPreview, setShowGmaxPreview] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const addPokemon = useTeamStore((s) => s.addPokemon);
@@ -138,6 +140,15 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [pokemonMoves],
   );
+  const gmaxPreview = useMemo(
+    () => (pokemon ? buildGmaxPreviewRows(pokemon.slug, moves) : null),
+    [pokemon, moves],
+  );
+  const isGigantamax = gmaxPreview?.isGigantamax ?? false;
+
+  useEffect(() => {
+    setShowGmaxPreview(false);
+  }, [pokemon?.slug]);
 
   const itemOptions: SelectorOption[] = useMemo(
     () =>
@@ -416,6 +427,84 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
               );
             })}
           </div>
+
+          {isGigantamax && gmaxPreview ? (
+            <div className="relative flex flex-col gap-1.5 rounded-2xl border border-border/40 bg-background/20 p-2">
+              <button
+                type="button"
+                onClick={() => setShowGmaxPreview((prev) => !prev)}
+                className="flex min-h-11 w-full items-center justify-between rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-background/35"
+              >
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Gmax Preview
+                  </p>
+                  <p className="truncate text-[10px] text-muted-foreground/70">
+                    Shows battle-time move transformations
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                  {gmaxPreview.rows.length} conversions
+                  <ChevronDown
+                    className={cn("size-3 transition-transform", showGmaxPreview && "rotate-180")}
+                    aria-hidden
+                  />
+                </span>
+              </button>
+
+              <div
+                className={cn(
+                  "overflow-hidden transition-all duration-200 ease-out",
+                  showGmaxPreview ? "max-h-96 opacity-100" : "max-h-0 opacity-0",
+                )}
+              >
+                <div className="space-y-1.5 px-1 pb-1">
+                  {gmaxPreview.signatureMove ? (
+                    <div className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-background/50 px-2 py-0.5 text-[10px]">
+                      <span className="text-muted-foreground">Signature</span>
+                      <span className="font-medium text-foreground">{gmaxPreview.signatureMove.moveName}</span>
+                    </div>
+                  ) : null}
+
+                  <div className="overflow-hidden rounded-lg border border-border/30 bg-background/20">
+                    {gmaxPreview.rows.map((row, index) => (
+                      <div
+                        key={`${pokemon.slug}-gmax-preview-${row.slot}`}
+                        className={cn(
+                          "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-2 py-1.5 text-[10px]",
+                          index > 0 && "border-t border-border/20",
+                        )}
+                      >
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          {row.selectedMoveType ? (
+                            <TypeBadge type={row.selectedMoveType} size="sm" className="shrink-0 px-1.5 text-[9px]" />
+                          ) : null}
+                          <span className="truncate text-foreground" title={row.selectedMoveName}>
+                            {row.selectedMoveName}
+                          </span>
+                        </div>
+
+                        <MoveRight className="size-3 shrink-0 text-muted-foreground/70" aria-hidden />
+
+                        <div className="flex min-w-0 items-center justify-end gap-1.5">
+                          <span className="truncate text-right text-foreground" title={row.resultMoveName}>
+                            {row.resultMoveName}
+                          </span>
+                          {row.resultMoveType ? (
+                            <TypeBadge type={row.resultMoveType} size="sm" className="shrink-0 px-1.5 text-[9px]" />
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] text-muted-foreground/75">
+                    Preview only. Saved/exported moves stay unchanged.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </>
       )}
     </div>
