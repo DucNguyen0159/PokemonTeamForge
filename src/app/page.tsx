@@ -16,6 +16,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { HomeSupportSection } from "@/components/site/home-support-section";
 import {
   HOME_PREVIEW_GROUPS,
   PREVIEW_POKEMON_BY_SLUG,
@@ -651,6 +652,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <HomeSupportSection />
     </div>
   );
 }

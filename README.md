@@ -64,6 +64,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_SITE_CONTACT_EMAIL=
 NEXT_PUBLIC_GITHUB_PROFILE_URL=
 NEXT_PUBLIC_GITHUB_REPO_URL=
+NEXT_PUBLIC_KOFI_URL=
 ```
 
 Do not commit `.env.local`. The `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS and must only be used by trusted local import/validation scripts.
@@ -235,6 +236,14 @@ Review each upstream source's terms before using this project commercially or re
 Production hosting uses [Vercel](https://vercel.com) with env vars matching `.env.local` (use the publishable Supabase anon key for `NEXT_PUBLIC_SUPABASE_ANON_KEY`). Set Supabase **Site URL** and redirect URLs to your production domain. Do not deploy `SUPABASE_SERVICE_ROLE_KEY` to Vercel unless you add a dedicated server-only admin route.
 
 Public site: https://poketeamforge.com
+
+## Support
+
+PokemonTeamForge is free to use. Optional support helps cover domain, hosting, database/auth, and maintenance costs while keeping the app free for everyone.
+Support is optional and does not unlock paid features.
+
+- [Ko-fi](https://ko-fi.com/poketeamforge)
+- To show support buttons in-app, set `NEXT_PUBLIC_KOFI_URL` and/or `NEXT_PUBLIC_GITHUB_SPONSORS_URL`.
 
 ## Roadmap
 

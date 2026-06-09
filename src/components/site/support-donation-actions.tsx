@@ -2,10 +2,16 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { getSiteConfig } from "@/lib/site/site-config";
+import { buildTrackedSupportUrl } from "@/lib/site/support-links";
 
 export function SupportDonationActions() {
   const { kofiUrl, githubSponsorsUrl } = getSiteConfig();
-  const hasKofi = Boolean(kofiUrl);
+  const trackedKofiUrl = buildTrackedSupportUrl(kofiUrl, {
+    source: "poketeamforge",
+    medium: "support_page",
+    campaign: "support_actions",
+  });
+  const hasKofi = Boolean(trackedKofiUrl);
   const hasSponsors = Boolean(githubSponsorsUrl);
 
   if (!hasKofi && !hasSponsors) {
@@ -21,7 +27,7 @@ export function SupportDonationActions() {
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
       {hasKofi ? (
         <Button asChild className="h-10 rounded-xl px-5">
-          <Link href={kofiUrl} target="_blank" rel="noopener noreferrer">
+          <Link href={trackedKofiUrl} target="_blank" rel="noopener noreferrer">
             Support on Ko-fi
           </Link>
         </Button>
