@@ -27,7 +27,7 @@ export function TeamBuilder() {
 
   return (
     <TypeChartProvider context="builder">
-    <div className="mx-auto w-full max-w-[1400px] space-y-5 px-4 py-6">
+    <div suppressHydrationWarning className="mx-auto w-full max-w-[1400px] space-y-5 px-4 py-6">
       <PageIntro
         eyebrow="Builder"
         title="Build and Analyze Your Team"

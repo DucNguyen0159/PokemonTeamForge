@@ -15,6 +15,7 @@ export function EmptyPokemonSlot({ slot, onAdd, className }: EmptyPokemonSlotPro
     <button
       onClick={onAdd}
       aria-label={`Add Pokémon to slot ${slot}`}
+      suppressHydrationWarning
       className={cn(
         "group relative flex min-h-[220px] w-full flex-col items-center justify-center gap-3",
         "rounded-2xl border border-dashed border-border/50 bg-card/30",

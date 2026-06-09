@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -60,6 +60,15 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
   const sheetDragOffsetRef = useRef(0);
   const canDragSheetRef = useRef(false);
   const mobileSheetScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const closeMobileDetail = useCallback(() => {
+    setMobileDetailOpen(false);
+    setMobileSheetDragOffset(0);
+    setIsDraggingMobileSheet(false);
+    sheetTouchStartYRef.current = null;
+    sheetDragOffsetRef.current = 0;
+    canDragSheetRef.current = false;
+  }, []);
 
   const abilityListQuery = useQuery({
     queryKey: ["abilities", "browser"],
@@ -141,7 +150,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setMobileDetailOpen(false);
+        closeMobileDetail();
       }
     }
 
@@ -153,17 +162,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mobileDetailOpen]);
-
-  useEffect(() => {
-    if (!mobileDetailOpen) {
-      setMobileSheetDragOffset(0);
-      setIsDraggingMobileSheet(false);
-      sheetTouchStartYRef.current = null;
-      sheetDragOffsetRef.current = 0;
-      canDragSheetRef.current = false;
-    }
-  }, [mobileDetailOpen]);
+  }, [closeMobileDetail, mobileDetailOpen]);
 
   function handleMobileSheetTouchStart(event: React.TouchEvent<HTMLElement>) {
     const startY = event.touches[0]?.clientY;
@@ -217,7 +216,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
     canDragSheetRef.current = false;
 
     if (shouldClose) {
-      setMobileDetailOpen(false);
+      closeMobileDetail();
     }
   }
 
@@ -554,7 +553,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
           role="presentation"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
-              setMobileDetailOpen(false);
+              closeMobileDetail();
             }
           }}
         >
@@ -584,7 +583,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
               </div>
               <button
                 type="button"
-                onClick={() => setMobileDetailOpen(false)}
+                onClick={closeMobileDetail}
                 className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 aria-label="Close ability detail"
               >
@@ -656,7 +655,7 @@ export function AbilityBrowser({ initialAbility = "" }: AbilityBrowserProps) {
                         key={`${pokemon.slug}-${pokemon.isHidden ? "hidden" : "standard"}`}
                         href={`/pokemon/${pokemon.slug}?from=abilities&ability=${encodeURIComponent(selectedAbilitySummary.slug)}`}
                         className="group flex items-center gap-3 rounded-xl border border-border/45 bg-background/35 p-2 transition-colors hover:border-primary/35 hover:bg-background/55 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        onClick={() => setMobileDetailOpen(false)}
+                        onClick={closeMobileDetail}
                       >
                         <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-muted/50">
                           <PokemonSprite

@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
 
 import { cn } from "@/utils";
@@ -37,11 +37,12 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
   const activeEntryRef = useRef<HTMLButtonElement | null>(null);
 
   const pokemonQuery = useInfiniteQuery({
-    queryKey: ["builder-pokemon-picker", normalizedSearch],
+    queryKey: ["builder-pokemon-picker", normalizedSearch, currentSelectedSlug],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       fetchPokemonListFromApi({
         search: normalizedSearch || undefined,
+        anchorSlug: !normalizedSearch ? currentSelectedSlug ?? undefined : undefined,
         page: pageParam,
         limit: PICKER_PAGE_SIZE,
         sortBy: "id",
@@ -67,12 +68,68 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
       pokemonQuery.data?.pages.flatMap((page) => page.pokemon) ?? [],
     [pokemonQuery.data],
   );
-  const selectedIndex = useMemo(
-    () => filtered.findIndex((pokemon) => pokemon.slug === currentSelectedSlug),
+  const isCurrentSlugInLoadedPage = useMemo(
+    () => Boolean(currentSelectedSlug && filtered.some((pokemon) => pokemon.slug === currentSelectedSlug)),
     [currentSelectedSlug, filtered],
   );
+  const currentSelectionQuery = useQuery({
+    queryKey: ["builder-pokemon-picker-current", currentSelectedSlug],
+    queryFn: async () => {
+      const detail = await fetchPokemonDetailFromApi(currentSelectedSlug ?? "");
+      return {
+        id: detail.id,
+        name: detail.name,
+        slug: detail.slug,
+        generation: detail.generation,
+        region: detail.region,
+        primaryType: detail.primaryType,
+        secondaryType: detail.secondaryType,
+        hp: detail.stats.hp,
+        attack: detail.stats.attack,
+        defense: detail.stats.defense,
+        specialAttack: detail.stats.specialAttack,
+        specialDefense: detail.stats.specialDefense,
+        speed: detail.stats.speed,
+        total: detail.stats.total,
+        spriteNormal: detail.spriteNormal,
+        isLegendaryOrMythical: detail.isLegendaryOrMythical,
+        isFullyEvolved: detail.isFullyEvolved,
+        formKind: detail.formKind ?? "default",
+        baseSlug: detail.baseSlug ?? null,
+        pokedexDisplayNo: detail.pokedexDisplayNo ?? detail.id,
+        listSortRank: detail.pokedexDisplayNo ? detail.pokedexDisplayNo * 10 : detail.id * 10,
+      } satisfies PokemonListItem;
+    },
+    enabled: Boolean(currentSelectedSlug && !normalizedSearch && !isCurrentSlugInLoadedPage),
+    staleTime: 1000 * 60 * 5,
+  });
+  const displayedPokemon = useMemo<PokemonListItem[]>(() => {
+    if (!currentSelectedSlug) {
+      return filtered;
+    }
+
+    if (normalizedSearch) {
+      const pinnedCurrent =
+        filtered.find((pokemon) => pokemon.slug === currentSelectedSlug) ??
+        currentSelectionQuery.data;
+      if (!pinnedCurrent) {
+        return filtered;
+      }
+
+      return [
+        pinnedCurrent,
+        ...filtered.filter((pokemon) => pokemon.slug !== pinnedCurrent.slug),
+      ];
+    }
+
+    return filtered;
+  }, [currentSelectedSlug, currentSelectionQuery.data, filtered, normalizedSearch]);
+  const selectedIndex = useMemo(
+    () => displayedPokemon.findIndex((pokemon) => pokemon.slug === currentSelectedSlug),
+    [currentSelectedSlug, displayedPokemon],
+  );
   const effectiveActiveIndex =
-    activeIndex >= 0 && activeIndex < filtered.length
+    activeIndex >= 0 && activeIndex < displayedPokemon.length
       ? activeIndex
       : selectedIndex >= 0
         ? selectedIndex
@@ -84,7 +141,7 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
     }
 
     selectedEntryRef.current.scrollIntoView({ block: "center" });
-  }, [filtered, normalizedSearch]);
+  }, [displayedPokemon, normalizedSearch]);
 
   useEffect(() => {
     searchInputRef.current?.focus();
@@ -130,7 +187,7 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
       if (event.key === "ArrowDown") {
         event.preventDefault();
         setActiveIndex((prev) =>
-          Math.min((prev >= 0 ? prev : effectiveActiveIndex) + 1, Math.max(filtered.length - 1, 0)),
+          Math.min((prev >= 0 ? prev : effectiveActiveIndex) + 1, Math.max(displayedPokemon.length - 1, 0)),
         );
         return;
       }
@@ -143,7 +200,7 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
 
       if (event.key === "Enter") {
         event.preventDefault();
-        const current = filtered[effectiveActiveIndex];
+        const current = displayedPokemon[effectiveActiveIndex];
         if (current) {
           void handleSelect(current.slug);
         }
@@ -155,7 +212,7 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
         onCancel();
       }
     },
-    [effectiveActiveIndex, filtered, handleSelect, onCancel],
+    [displayedPokemon, effectiveActiveIndex, handleSelect, onCancel],
   );
 
   return (
@@ -215,7 +272,7 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
           }}
           isRetrying={isFetching}
         />
-      ) : filtered.length === 0 ? (
+      ) : displayedPokemon.length === 0 ? (
         <p className="py-4 text-center text-xs text-muted-foreground">
           No Pokémon found. Try another name or type.
         </p>
@@ -226,7 +283,7 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
           style={{ maxHeight: "280px" }}
           onScroll={handleListScroll}
         >
-          {filtered.map((pokemon, entryIndex) => {
+          {displayedPokemon.map((pokemon, entryIndex) => {
             const { showPill } = getPokemonListNameMeta(pokemon);
             const isCurrentSelected = currentSelectedSlug === pokemon.slug;
             const isActive = effectiveActiveIndex === entryIndex;
@@ -283,6 +340,11 @@ function PokemonPickerComponent({ onSelect, onCancel, currentSelectedSlug = null
                 <div className="mt-0.5 flex gap-1">
                   <TypeBadge type={pokemon.primaryType} />
                   {pokemon.secondaryType && <TypeBadge type={pokemon.secondaryType} />}
+                  {isCurrentSelected ? (
+                    <span className="rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0 text-[9px] font-medium text-primary">
+                      Current
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </button>

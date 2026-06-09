@@ -11,6 +11,7 @@ type PokemonListQuery = {
   limit?: number;
   sortBy?: PokemonListSortKey;
   sortDirection?: PokemonListSortDirection;
+  anchorSlug?: string;
 };
 
 type ApiPayload<T> = {
@@ -45,6 +46,9 @@ export function buildPokemonListSearchParams(query: PokemonListQuery): URLSearch
   }
   if (query.sortDirection) {
     params.set("sortDirection", query.sortDirection);
+  }
+  if (query.anchorSlug) {
+    params.set("anchorSlug", query.anchorSlug);
   }
 
   return params;

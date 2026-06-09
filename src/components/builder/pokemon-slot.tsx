@@ -80,7 +80,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
   const { slot, pokemon, selectedAbility, selectedItem, moves } = teamSlot;
 
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
-  const [showGmaxPreview, setShowGmaxPreview] = useState(false);
+  const [previewOpenSlug, setPreviewOpenSlug] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const addPokemon = useTeamStore((s) => s.addPokemon);
@@ -145,10 +145,7 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
     [pokemon, moves],
   );
   const isGigantamax = gmaxPreview?.isGigantamax ?? false;
-
-  useEffect(() => {
-    setShowGmaxPreview(false);
-  }, [pokemon?.slug]);
+  const showGmaxPreview = Boolean(pokemon && previewOpenSlug === pokemon.slug);
 
   const itemOptions: SelectorOption[] = useMemo(
     () =>
@@ -432,7 +429,12 @@ function PokemonSlotComponent({ teamSlot, className }: PokemonSlotProps) {
             <div className="relative flex flex-col gap-1.5 rounded-2xl border border-border/40 bg-background/20 p-2">
               <button
                 type="button"
-                onClick={() => setShowGmaxPreview((prev) => !prev)}
+                onClick={() => {
+                  if (!pokemon) {
+                    return;
+                  }
+                  setPreviewOpenSlug((prev) => (prev === pokemon.slug ? null : pokemon.slug));
+                }}
                 className="flex min-h-11 w-full items-center justify-between rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-background/35"
               >
                 <div className="min-w-0">

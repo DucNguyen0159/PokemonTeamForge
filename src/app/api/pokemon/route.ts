@@ -57,6 +57,7 @@ export async function GET(request: Request) {
     limit: parseNumberQuery(searchParams.get("limit")),
     sortBy,
     sortDirection: parseSortDirection(searchParams.get("sortDirection")),
+    anchorSlug: searchParams.get("anchorSlug") ?? undefined,
   };
 
   try {

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground antialiased">
+      <body suppressHydrationWarning className="min-h-screen bg-background text-foreground antialiased">
         <AppProviders>
           <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
             <div className="absolute left-1/2 top-[-18rem] h-[34rem] w-[52rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />

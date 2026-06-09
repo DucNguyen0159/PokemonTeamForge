@@ -143,6 +143,7 @@ export function TeamCardGenerator() {
   const [activeTab, setActiveTab] = useState<StudioTab>("style");
   const [previewZoom, setPreviewZoom] = useState<PreviewZoom>("fit");
   const [isMobileStudio, setIsMobileStudio] = useState(false);
+  const effectivePreviewZoom: PreviewZoom = isMobileStudio ? "fit" : previewZoom;
 
   const selectedBackground =
     TEAM_CARD_BACKGROUND_ASSETS.find((entry) => entry.slug === config.backgroundSlug) ??
@@ -223,13 +224,6 @@ export function TeamCardGenerator() {
       mediaQuery.removeEventListener("change", syncMobileStudio);
     };
   }, []);
-
-  useEffect(() => {
-    if (!isMobileStudio || previewZoom === "fit") {
-      return;
-    }
-    setPreviewZoom("fit");
-  }, [isMobileStudio, previewZoom]);
 
   useEffect(() => {
     if (!isConfigHydrated) {
@@ -443,7 +437,7 @@ export function TeamCardGenerator() {
                         aria-pressed={previewZoom === option.id}
                         className={cn(
                           "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                          previewZoom === option.id
+                            effectivePreviewZoom === option.id
                             ? "bg-primary text-primary-foreground shadow-sm"
                             : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
                         )}
@@ -477,7 +471,7 @@ export function TeamCardGenerator() {
               <div
                 className={cn(
                   "relative mx-auto transition-[width,transform] duration-200",
-                  previewZoom === "fit" || isMobileStudio ? "w-full" : "w-[960px]",
+                  effectivePreviewZoom === "fit" ? "w-full" : "w-[960px]",
                 )}
               >
                 <TeamCardPreview

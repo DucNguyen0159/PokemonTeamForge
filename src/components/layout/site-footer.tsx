@@ -7,7 +7,7 @@ export function SiteFooter() {
   const { githubRepoUrl } = getSiteConfig();
 
   return (
-    <footer className="mt-auto border-t border-border/70">
+    <footer suppressHydrationWarning className="mt-auto border-t border-border/70">
       <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-9">
         <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground">
           PokemonTeamForge is a fan-made team builder. Not affiliated with Nintendo, Game Freak,

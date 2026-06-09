@@ -143,6 +143,12 @@ const evolutionChainCache = new Map<number, EvolutionStage[]>();
 const pokeApiSpeciesMetaCache = new Map<string, EvolutionStageMeta>();
 const pokemonListItemCache = new Map<string, PokemonListItem>();
 const abilityEffectCache = new Map<string, AbilityEffectText>();
+let supabasePokemonOrderIndexCache: Map<string, number> | null = null;
+type PokemonListCacheEntry = {
+  expiresAt: number;
+  data: PokemonListPayload;
+};
+const pokemonListQueryCache = new Map<string, PokemonListCacheEntry>();
 
 let pokemonIndexCache: PokemonRef[] | null = null;
 let recommendationPoolCache: { expiresAt: number; data: Pokemon[] } | null = null;
@@ -151,6 +157,8 @@ const generationSpeciesNamesCache = new Map<number, string[]>();
 const abilitySlugCache = new Map<string, Set<string>>();
 const RECOMMENDATION_POOL_CACHE_TTL_MS = 1000 * 60 * 15;
 const RECOMMENDATION_POOL_LIMIT = 1200;
+const POKEMON_LIST_CACHE_TTL_MS = 1000 * 20;
+const POKEMON_LIST_CACHE_MAX_ENTRIES = 400;
 const ROLE_MOVE_TAGS: Partial<Record<TeamRole, MoveTag[]>> = {
   hazard_setter: ["entry_hazard"],
   hazard_remover: ["hazard_removal"],
@@ -430,6 +438,63 @@ export interface PokemonListQuery {
   limit?: number;
   sortBy?: PokemonListSortKey;
   sortDirection?: PokemonListSortDirection;
+  anchorSlug?: string;
+}
+
+async function resolveSupabaseAnchorPage(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  anchorSlug: string,
+  limit: number,
+): Promise<number | null> {
+  const normalizedAnchor = normalizePokemonName(anchorSlug);
+  if (!normalizedAnchor) {
+    return null;
+  }
+
+  if (!supabasePokemonOrderIndexCache) {
+    const batchSize = 400;
+    let offset = 0;
+    const nextCache = new Map<string, number>();
+
+    while (true) {
+      const { data, error } = await supabase
+        .from("pokemon")
+        .select("slug, pokedex_display_no, list_sort_rank, id")
+        .order("pokedex_display_no", { ascending: true })
+        .order("list_sort_rank", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + batchSize - 1);
+
+      if (error) {
+        console.error("[Pokemon Supabase Anchor]", error);
+        return null;
+      }
+
+      const rows = (data as Array<{ slug: string }> | null) ?? [];
+      if (rows.length === 0) {
+        break;
+      }
+
+      rows.forEach((row, indexInBatch) => {
+        nextCache.set(row.slug, offset + indexInBatch);
+      });
+
+      if (rows.length < batchSize) {
+        break;
+      }
+
+      offset += batchSize;
+    }
+
+    supabasePokemonOrderIndexCache = nextCache;
+  }
+
+  const globalIndex = supabasePokemonOrderIndexCache.get(normalizedAnchor);
+  if (globalIndex === undefined) {
+    return null;
+  }
+
+  return Math.floor(globalIndex / limit) + 1;
 }
 
 async function pokeApiFetch<T>(pathOrUrl: string): Promise<T> {
@@ -488,6 +553,70 @@ function extractPokemonIdFromUrl(url: string): number {
 
 function normalizeSearchQuery(term: string): string {
   return term.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function normalizedCacheString(value: string | undefined): string {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function buildPokemonListCacheKey({
+  query,
+  page,
+  limit,
+  sortBy,
+  sortDirection,
+}: {
+  query: PokemonListQuery;
+  page: number;
+  limit: number;
+  sortBy: PokemonListSortKey;
+  sortDirection: PokemonListSortDirection;
+}): string {
+  return [
+    `search=${query.search ? normalizeSearchQuery(query.search) : ""}`,
+    `generation=${query.generation ?? ""}`,
+    `type=${normalizedCacheString(query.type)}`,
+    `ability=${query.ability ? normalizePokemonName(query.ability) : ""}`,
+    `region=${normalizedCacheString(query.region)}`,
+    `legendary=${query.legendary === undefined ? "" : query.legendary ? "1" : "0"}`,
+    `anchor=${query.anchorSlug ? normalizePokemonName(query.anchorSlug) : ""}`,
+    `page=${page}`,
+    `limit=${limit}`,
+    `sortBy=${sortBy}`,
+    `sortDirection=${sortDirection}`,
+  ].join("|");
+}
+
+function getPokemonListCache(cacheKey: string): PokemonListPayload | null {
+  const cached = pokemonListQueryCache.get(cacheKey);
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    pokemonListQueryCache.delete(cacheKey);
+    return null;
+  }
+
+  // Touch the key so recently used entries stay in cache.
+  pokemonListQueryCache.delete(cacheKey);
+  pokemonListQueryCache.set(cacheKey, cached);
+  return cached.data;
+}
+
+function setPokemonListCache(cacheKey: string, payload: PokemonListPayload): void {
+  pokemonListQueryCache.set(cacheKey, {
+    expiresAt: Date.now() + POKEMON_LIST_CACHE_TTL_MS,
+    data: payload,
+  });
+
+  while (pokemonListQueryCache.size > POKEMON_LIST_CACHE_MAX_ENTRIES) {
+    const oldestKey = pokemonListQueryCache.keys().next().value as string | undefined;
+    if (!oldestKey) {
+      break;
+    }
+    pokemonListQueryCache.delete(oldestKey);
+  }
 }
 
 function matchesSearch(slug: string, search?: string): boolean {
@@ -1191,8 +1320,9 @@ export async function getPokemonRecommendationPool(): Promise<Pokemon[]> {
 }
 
 export async function getPokemonList(query: PokemonListQuery): Promise<PokemonListPayload> {
-  const page = clampPagination(query.page, 1, 10_000);
+  const requestedPage = clampPagination(query.page, 1, 10_000);
   const limit = clampPagination(query.limit, 24, 100);
+  let page = requestedPage;
 
   const sortBy = query.sortBy ?? "id";
   const sortDirection = query.sortDirection ?? "asc";
@@ -1206,14 +1336,42 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
     };
   }
 
-  const supabasePayload = await getPokemonListFromSupabase(
+  const shouldResolveAnchorPage =
+    Boolean(query.anchorSlug) &&
+    !query.search &&
+    query.type === undefined &&
+    query.ability === undefined &&
+    query.generation === undefined &&
+    query.region === undefined &&
+    query.legendary === undefined &&
+    sortBy === "id" &&
+    sortDirection === "asc" &&
+    requestedPage === 1 &&
+    hasSupabaseServerEnv();
+
+  if (shouldResolveAnchorPage) {
+    const supabase = getSupabaseServerClient();
+    const anchoredPage = await resolveSupabaseAnchorPage(supabase, query.anchorSlug ?? "", limit);
+    if (anchoredPage) {
+      page = anchoredPage;
+    }
+  }
+
+  const cacheKey = buildPokemonListCacheKey({
     query,
     page,
     limit,
     sortBy,
     sortDirection,
-  );
+  });
+  const cachedPayload = getPokemonListCache(cacheKey);
+  if (cachedPayload) {
+    return cachedPayload;
+  }
+
+  const supabasePayload = await getPokemonListFromSupabase(query, page, limit, sortBy, sortDirection);
   if (supabasePayload) {
+    setPokemonListCache(cacheKey, supabasePayload);
     return supabasePayload;
   }
 
@@ -1254,12 +1412,14 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
       )
     ).sort((a, b) => comparePokemonListItems(a, b, sortBy, sortDirection));
 
-    return {
+    const payload = {
       pokemon: hydratedAll.slice(start, start + limit),
       total,
       page,
       limit,
     };
+    setPokemonListCache(cacheKey, payload);
+    return payload;
   }
 
   const orderedRefs = [...matchingRefs].sort((a, b) => comparePokemonRefs(a, b, sortBy, sortDirection));
@@ -1268,12 +1428,14 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
   const hydrated = await Promise.all(pageSlugs.map((slug) => hydratePokemonListItem(slug)));
   const pokemon = hydrated.filter((entry): entry is PokemonListItem => Boolean(entry));
 
-  return {
+  const payload = {
     pokemon,
     total,
     page,
     limit,
   };
+  setPokemonListCache(cacheKey, payload);
+  return payload;
 }
 
 export async function getPokemonByName(pokemonName: string): Promise<PokemonDetail | null> {
