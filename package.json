@@ -12,7 +12,8 @@
     "import:item-data": "node scripts/import-item-data.mjs",
     "import:pokemon-data": "node scripts/import-pokemon-data.mjs",
     "import:all-data": "node scripts/import-all-data.mjs",
-    "validate:supabase-data": "node scripts/validate-supabase-data.mjs"
+    "validate:supabase-data": "node scripts/validate-supabase-data.mjs",
+    "audit:mega-abilities": "node scripts/audit-mega-abilities.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.5",

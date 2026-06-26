@@ -120,6 +120,33 @@ export async function pokeApiGet(pathOrUrl) {
   return response.json();
 }
 
+export async function pokeApiGetAbility(slugOrUrl) {
+  if (slugOrUrl.startsWith("http://") || slugOrUrl.startsWith("https://")) {
+    return pokeApiGet(slugOrUrl);
+  }
+
+  const slug = String(slugOrUrl)
+    .trim()
+    .replace(/^\/ability\//, "")
+    .replace(/\/$/, "");
+  const candidates = [
+    `${POKEAPI_BASE_URL}/ability/${slug}`,
+    `${POKEAPI_BASE_URL}/ability/${slug}/`,
+  ];
+
+  let lastError = new Error(`PokéAPI ability request failed for ${slug}`);
+  for (const url of candidates) {
+    const response = await fetch(url);
+    if (response.ok) {
+      return response.json();
+    }
+
+    lastError = new Error(`PokéAPI request failed: ${response.status} ${response.statusText} (${url})`);
+  }
+
+  throw lastError;
+}
+
 export function slugify(input) {
   return String(input)
     .trim()

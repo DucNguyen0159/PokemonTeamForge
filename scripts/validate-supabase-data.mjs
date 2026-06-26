@@ -9,7 +9,7 @@
 
 import process from "node:process";
 
-import { getSupabaseReadClient, pokeApiGet } from "./lib/import-utils.mjs";
+import { getSupabaseReadClient, pokeApiGet, pokeApiGetAbility } from "./lib/import-utils.mjs";
 import { FORM_KIND_RANK } from "./lib/pokemon-form-metadata.mjs";
 
 const DEFAULT_POKEMON_SAMPLES = ["bulbasaur", "charizard", "pikachu", "amoonguss", "landorus-therian"];
@@ -491,7 +491,7 @@ async function validatePokemon(supabase, slug) {
 }
 
 async function validateAbility(supabase, slug) {
-  const rawAbility = await pokeApiGet(`/ability/${slug}`);
+  const rawAbility = await pokeApiGetAbility(slug);
   const { data, error } = await supabase
     .from("abilities")
     .select("id, slug, name, description")

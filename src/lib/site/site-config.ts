@@ -1,3 +1,6 @@
+/** Edit this after you push catalog-related updates. Leave empty to hide the footer line. */
+export const CATALOG_UPDATED_LABEL = "Last updated: Jun 25, 2026";
+
 export type SiteConfig = {
   contactEmail: string;
   siteUrl: string;
@@ -5,6 +8,7 @@ export type SiteConfig = {
   githubRepoUrl: string;
   kofiUrl: string;
   githubSponsorsUrl: string;
+  catalogUpdatedLabel: string;
 };
 
 function trimEnv(value: string | undefined): string {
@@ -24,5 +28,6 @@ export function getSiteConfig(): SiteConfig {
       "https://github.com/DucNguyen0159/PokemonTeamForge",
     kofiUrl: trimEnv(process.env.NEXT_PUBLIC_KOFI_URL),
     githubSponsorsUrl: trimEnv(process.env.NEXT_PUBLIC_GITHUB_SPONSORS_URL),
+    catalogUpdatedLabel: CATALOG_UPDATED_LABEL.trim(),
   };
 }

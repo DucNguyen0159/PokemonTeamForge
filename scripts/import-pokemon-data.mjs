@@ -369,7 +369,7 @@ async function buildPokemonImportRows(ref, caches, moveTags) {
 
   const rawAbilities = await Promise.all(
     rawPokemon.abilities.map((entry) =>
-      fetchWithCache(caches.abilities, `/ability/${entry.ability.name}`),
+      fetchWithCache(caches.abilities, entry.ability.url),
     ),
   );
   const abilityRows = rawAbilities.map(normalizeAbility);
