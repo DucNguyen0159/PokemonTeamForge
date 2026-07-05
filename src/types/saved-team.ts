@@ -12,6 +12,9 @@ export interface SavedTeamSummary {
   id: string;
   name: string;
   format: BattleFormat;
+  mode: "standard" | "champions";
+  formatSupport?: "single" | "double" | "both" | null;
+  rulesetId?: string | null;
   isPublic: boolean;
   createdAt: string;
   updatedAt: string;

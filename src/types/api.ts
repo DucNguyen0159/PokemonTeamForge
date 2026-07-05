@@ -1,4 +1,4 @@
-import type { PokemonDetail, PokemonListItem } from "./pokemon";
+import type { PokemonDetail, PokemonListItem, PokemonSummary } from "./pokemon";
 import type { AbilityDetail, AbilityListItem } from "./ability";
 import type { Item } from "./item";
 import type { RecommendationResponse } from "./recommendation";
@@ -22,6 +22,11 @@ export interface PokemonListPayload {
   limit: number;
 }
 
+export interface PokemonSummariesPayload {
+  summaries: PokemonSummary[];
+  missingSlugs: string[];
+}
+
 export interface ItemListPayload {
   items: Item[];
   total: number;
@@ -34,6 +39,7 @@ export interface AbilityListPayload {
 
 export type PokemonListResponse = ApiResponse<PokemonListPayload>;
 export type PokemonDetailResponse = ApiResponse<PokemonDetail>;
+export type PokemonSummariesResponse = ApiResponse<PokemonSummariesPayload>;
 export type AbilityListResponse = ApiResponse<AbilityListPayload>;
 export type AbilityDetailResponse = ApiResponse<AbilityDetail>;
 export type ItemListResponse = ApiResponse<ItemListPayload>;

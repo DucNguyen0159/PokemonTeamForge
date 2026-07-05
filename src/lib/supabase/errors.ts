@@ -198,3 +198,37 @@ export function toFriendlySupabaseMessage(
 
   return fallback;
 }
+
+export function toCommunityBrowseErrorMessage(error: unknown, fallback: string): string {
+  const typedError = toSupabaseLikeError(error);
+  if (!typedError) {
+    return fallback;
+  }
+
+  const message = combinedMessage(typedError);
+
+  if (
+    message.includes("failed to fetch") ||
+    message.includes("network") ||
+    message.includes("load failed") ||
+    typedError.status === 0
+  ) {
+    return "Unable to load community teams. Check your connection and try again.";
+  }
+
+  if (typedError.code === "PGRST301" || typedError.status === 401) {
+    return "Your session expired. Please sign in again to load community teams.";
+  }
+
+  if (
+    message.includes("jwt") ||
+    message.includes("row-level security") ||
+    message.includes("permission denied") ||
+    typedError.code === "42501" ||
+    typedError.status === 403
+  ) {
+    return "Community teams could not be loaded. Try signing out and back in, or browse while logged out.";
+  }
+
+  return toFriendlySupabaseMessage(error, fallback);
+}
