@@ -45,6 +45,16 @@ export default function CreditsPage() {
             — Pokémon Masters trainer sprites for Team Card exports (CC BY-NC-SA 2.5; non-commercial
             use).
           </li>
+          <li>
+            <Link
+              href="https://github.com/smogon/damage-calc"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Smogon damage-calc (`@smogon/calc`)
+            </Link>{" "}
+            — battle damage engine used by the Champions Damage Lab (MIT license).
+          </li>
         </ul>
       </InfoSection>
 
@@ -83,6 +93,14 @@ export default function CreditsPage() {
         <p>
           {LEGAL_OPERATOR} — application code, UI, recommendation scoring, ability tags, strategy
           presets, and related curated metadata.
+        </p>
+      </InfoSection>
+
+      <InfoSection title="Champions disclaimer">
+        <p>
+          PokemonTeamForge&apos;s Champions area is an unofficial fan-made planning workspace. It is
+          not affiliated with, endorsed by, or sponsored by Nintendo, Game Freak, Creatures, or
+          The Pokémon Company.
         </p>
       </InfoSection>
     </InfoPageShell>
