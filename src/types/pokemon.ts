@@ -58,6 +58,16 @@ export interface PokemonListItem {
   listSortRank: number;
 }
 
+/** Lightweight Champions catalog entry — sprite + typing only (no moves/abilities). */
+export interface PokemonSummary {
+  id: number;
+  name: string;
+  slug: string;
+  primaryType: PokemonType;
+  secondaryType?: PokemonType | null;
+  spriteNormal: string;
+}
+
 export interface EvolutionStage {
   speciesSlug: string;
   pokemonId: number;
