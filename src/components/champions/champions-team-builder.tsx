@@ -251,7 +251,8 @@ export function ChampionsTeamBuilder() {
     }
     try {
       if (team.id) {
-        await updateMutation.mutateAsync({ teamId: team.id, team });
+        const updated = await updateMutation.mutateAsync({ teamId: team.id, team });
+        loadTeam(updated);
         setFeedback("Champions cloud team updated.");
       } else {
         const saved = await saveMutation.mutateAsync(team);

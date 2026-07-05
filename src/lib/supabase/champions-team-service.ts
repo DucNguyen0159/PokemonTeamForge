@@ -84,8 +84,35 @@ function slotsToTokens(slots: number[] | null | undefined): string[] {
     .map((slot) => `slot-${slot}`);
 }
 
-function toBattlePlanRows(teamId: string, plans: ChampionsBattlePlan[]) {
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUuid(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
+function createPlanUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const random = (Math.random() * 16) | 0;
+    const value = char === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+/** Preset and forked plans may use slug ids; Postgres expects uuid. */
+function normalizeBattlePlanIds(plans: ChampionsBattlePlan[]): ChampionsBattlePlan[] {
   return plans.map((plan) => ({
+    ...plan,
+    id: isValidUuid(plan.id) ? plan.id : createPlanUuid(),
+  }));
+}
+
+function toBattlePlanRows(teamId: string, plans: ChampionsBattlePlan[]) {
+  const normalizedPlans = normalizeBattlePlanIds(plans);
+  const rows = normalizedPlans.map((plan) => ({
     id: plan.id,
     team_id: teamId,
     name: plan.name,
@@ -104,6 +131,7 @@ function toBattlePlanRows(teamId: string, plans: ChampionsBattlePlan[]) {
     avoid_note: plan.avoidNote ?? null,
     general_note: plan.generalNote ?? null,
   }));
+  return { rows, plans: normalizedPlans };
 }
 
 function toTeamFormat(formatSupport: ChampionsTeam["formatSupport"]): ChampionsTeam["format"] {
@@ -355,7 +383,10 @@ export async function saveChampionsTeam(
       }
     }
 
-    const planRows = toBattlePlanRows(createdTeam.id, team.battlePlans);
+    const { rows: planRows, plans: normalizedPlans } = toBattlePlanRows(
+      createdTeam.id,
+      team.battlePlans,
+    );
     if (planRows.length > 0) {
       const { error: planError } = await supabase
         .from("champions_battle_plans")
@@ -369,6 +400,7 @@ export async function saveChampionsTeam(
       ...team,
       id: createdTeam.id,
       userId: createdTeam.user_id,
+      battlePlans: normalizedPlans,
       isPublic: createdTeam.is_public ?? false,
       createdAt: createdTeam.created_at,
       updatedAt: createdTeam.updated_at,
@@ -384,7 +416,7 @@ export async function updateChampionsTeam(
   teamId: string,
   team: ChampionsTeam,
   trustedUserId?: string | null,
-): Promise<void> {
+): Promise<ChampionsTeam> {
   try {
     const supabase = getSupabaseBrowserClient();
     const userId = await resolveAuthenticatedUserId(trustedUserId);
@@ -431,7 +463,7 @@ export async function updateChampionsTeam(
       throw deletePlanError;
     }
 
-    const planRows = toBattlePlanRows(teamId, team.battlePlans);
+    const { rows: planRows, plans: normalizedPlans } = toBattlePlanRows(teamId, team.battlePlans);
     if (planRows.length > 0) {
       const { error: planError } = await supabase
         .from("champions_battle_plans")
@@ -440,6 +472,12 @@ export async function updateChampionsTeam(
         throw planError;
       }
     }
+
+    return {
+      ...team,
+      battlePlans: normalizedPlans,
+      updatedAt: new Date().toISOString(),
+    };
   } catch (error) {
     throw new Error(
       toFriendlySupabaseMessage(error, "Unable to update this Champions team right now."),
