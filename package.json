@@ -13,10 +13,14 @@
     "import:pokemon-data": "node scripts/import-pokemon-data.mjs",
     "import:all-data": "node scripts/import-all-data.mjs",
     "validate:supabase-data": "node scripts/validate-supabase-data.mjs",
+    "check:mega-stones": "node scripts/check-mega-stone-consistency.mjs",
+    "import:champion-presets": "node scripts/import-champion-presets.mjs",
+    "seed:champions-community": "node scripts/seed-champions-community.mjs",
     "audit:mega-abilities": "node scripts/audit-mega-abilities.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.5",
+    "@smogon/calc": "^0.11.0",
     "@supabase/supabase-js": "^2.108.1",
     "@tanstack/react-query": "^5.101.0",
     "class-variance-authority": "^0.7.1",
