@@ -28,6 +28,9 @@ Inspired by mypokemonteam.com and PokemonDB, but with a cleaner UX and a maintai
 Build team → Coverage + checklist → Recommendations / strategies → Team Card export
                     ↑ optional: Pokédex / Abilities research
                     ↑ signed in: save/load teams on Profile
+
+Champions (separate workspace):
+Build/load 6-mon roster → Battle plans → Damage Lab / Coach → Save / publish / community
 ```
 
 ## Shipped feature set (MVP+)
@@ -43,10 +46,11 @@ Build team → Coverage + checklist → Recommendations / strategies → Team Ca
 - **Type chart** — matrix overlay (FAB), not a standalone page (`/type-chart` redirects to Pokédex)
 - **Auth** — register, login, logout, forgot/reset password, profile saved teams, change password
 - **Home** — marketing page with local preview Pokémon assets
+- **Pokemon Champions** (`/champions`) — full Legends Z-A workspace: 6-mon builder, battle plans, damage lab (`@smogon/calc`), matchup coach, 30 presets, community browse/share (see doc 09)
 
 ## Explicitly out of scope (for now)
 
-- Damage calc, speed tiers, usage stats
+- Standard Builder damage calc, speed tiers, usage stats (Champions has its own Damage Lab)
 - REST CRUD for teams (`/api/teams` returns 501; teams use Supabase client from Profile)
 - Server-side team card storage (`team_cards` table exists; export is client-only)
 - Favorite strategies UI (`favorite_strategy_teams` table exists; unused in app)

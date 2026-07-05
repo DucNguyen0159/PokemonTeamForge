@@ -19,6 +19,22 @@
 | `/auth/callback` | Client | OAuth / email link code exchange |
 | `/profile` | Client | Saved teams CRUD, change password, logout |
 
+### Pokemon Champions (`/champions`)
+
+| Route | Rendering | Purpose |
+|-------|-----------|---------|
+| `/champions` | Client | Dashboard — identity bar, next step, saved teams, community preview |
+| `/champions/builder` | Client | 6-slot editor, legality, save/publish; `?tab=plans`, `?slot=N` |
+| `/champions/plans` | Redirect | → `/champions/builder?tab=plans` |
+| `/champions/damage` | Client | Damage Lab (`@smogon/calc` adapter) |
+| `/champions/coach` | Client | Matchup Coach analysis |
+| `/champions/presets` | Client | 30 curated preset explorer |
+| `/champions/presets/[presetId]` | Client | Preset detail + load into builder |
+| `/champions/community` | Client | Public team browse (sort, format, search) |
+| `/champions/community/[teamId]` | Client | Roster, plans, comments; star, fork; `?tab=plans\|comments` |
+
+Layout: `src/app/champions/layout.tsx` — desktop subnav + mobile sticky nav.
+
 Also: `error.tsx`, `globals.css`, shared `layout.tsx` metadata (OG/Twitter).
 
 ## Auth flows
@@ -54,5 +70,6 @@ Redirect helpers: `src/lib/auth/auth-utils.ts` (`appendAuthRedirectQuery`, `getP
 | `/api/teams` | GET | **501** — use Profile + `team-service` |
 | `/api/coverage` | GET | **501** — use builder `coverage-panel` |
 | `/api/checklist` | GET | **501** — use builder `checklist-panel` |
+| `/api/champions/pokemon-summaries` | GET | Batch Pokémon summary (types, sprites) for Champions catalog hooks |
 
 Responses use helpers in `src/lib/api/responses.ts`.
