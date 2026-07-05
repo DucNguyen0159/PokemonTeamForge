@@ -244,6 +244,10 @@ for delete
 to authenticated
 using (user_id = auth.uid());
 
+grant select, insert, update, delete on public.champions_battle_plans to authenticated;
+grant select, insert, delete on public.champions_team_stars to authenticated;
+grant select, insert, update, delete on public.champions_team_comments to authenticated;
+
 grant all on public.champions_battle_plans to service_role;
 grant all on public.champions_team_stars to service_role;
 grant all on public.champions_team_comments to service_role;

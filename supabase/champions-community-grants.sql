@@ -1,14 +1,19 @@
--- PokemonTeamForge - Community browse grants for anon + authenticated roles
+-- PokemonTeamForge - Champions grants for anon browse + authenticated save/social
 -- Run AFTER supabase/auth-saved-teams.sql and supabase/champions-extension.sql
--- RLS policies in champions-extension.sql already scope public champions rows.
--- authenticated already has SELECT on teams/team_pokemon/profiles from auth-saved-teams;
--- champions tables below were missing authenticated grants (logged-in browse failed).
+-- RLS policies in champions-extension.sql scope row access; these are table-level grants.
+-- authenticated already has SELECT/INSERT/UPDATE/DELETE on teams/team_pokemon from auth-saved-teams.
 
+-- Public community browse (read-only).
 grant select on public.teams to anon;
 grant select on public.team_pokemon to anon;
-grant select on public.champions_battle_plans to anon, authenticated;
-grant select on public.champions_team_stars to anon, authenticated;
-grant select on public.champions_team_comments to anon, authenticated;
+grant select on public.champions_battle_plans to anon;
+grant select on public.champions_team_stars to anon;
+grant select on public.champions_team_comments to anon;
+
+-- Logged-in Champions save/load, stars, and comments (RLS enforces ownership).
+grant select, insert, update, delete on public.champions_battle_plans to authenticated;
+grant select, insert, delete on public.champions_team_stars to authenticated;
+grant select, insert, update, delete on public.champions_team_comments to authenticated;
 
 -- Community display names (username only; no email).
 grant select on public.profiles to anon;
