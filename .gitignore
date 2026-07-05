@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local study notes
 Maintenance_Study/
+
+# dev seed script caches
+scripts/.champions-community-seed-users.json
