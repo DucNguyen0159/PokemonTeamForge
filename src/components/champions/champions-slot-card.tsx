@@ -6,7 +6,6 @@ import {
   ChevronRight,
   LayoutGrid,
   Loader2,
-  MoreHorizontal,
   RefreshCw,
   Trash2,
 } from "lucide-react";
@@ -22,7 +21,7 @@ import { SlotSelector, type SelectorOption } from "@/components/builder/slot-sel
 import { PokemonSprite } from "@/components/shared/pokemon-sprite";
 import { TypeBadge } from "@/components/shared/type-badge";
 import { Button } from "@/components/ui/button";
-import { CHAMPIONS_NATURES, formatNatureOptionLabel } from "@/data/champions-natures";
+import { CHAMPIONS_NATURES, formatNatureEffectMeta } from "@/data/champions-natures";
 import {
   getSlotFieldErrors,
   type SlotFieldError,
@@ -115,10 +114,8 @@ export function ChampionsSlotCard({
 
   const [openPokemonPicker, setOpenPokemonPicker] = useState(false);
   const [openPanel, setOpenPanel] = useState<ChampionsSlotPanel>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const cardRef = useRef<HTMLElement>(null);
   const spSectionRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const hasPokemon = Boolean(slot.pokemonId || slot.pokemonName.trim());
 
   const fieldErrors = useMemo(
@@ -140,7 +137,6 @@ export function ChampionsSlotCard({
 
   useEffect(() => {
     setOpenPanel(null);
-    setMenuOpen(false);
   }, [slot.slot]);
 
   useEffect(() => {
@@ -153,19 +149,18 @@ export function ChampionsSlotCard({
   }, [focusSp, slot.slot]);
 
   useEffect(() => {
-    if (!openPokemonPicker && !openPanel && !menuOpen) {
+    if (!openPokemonPicker && !openPanel) {
       return;
     }
     const handler = (event: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
         setOpenPokemonPicker(false);
         setOpenPanel(null);
-        setMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen, openPanel, openPokemonPicker]);
+  }, [openPanel, openPokemonPicker]);
 
   useEffect(() => {
     if (!isFocused || !hasPokemon) {
@@ -206,7 +201,7 @@ export function ChampionsSlotCard({
         id: index + 1,
         name: nature.name,
         slug: nature.name.toLowerCase(),
-        meta: formatNatureOptionLabel(nature),
+        meta: formatNatureEffectMeta(nature),
       })),
     [],
   );
@@ -248,7 +243,6 @@ export function ChampionsSlotCard({
     onClearSlot(slot.slot);
     setOpenPokemonPicker(false);
     setOpenPanel(null);
-    setMenuOpen(false);
   }, [clearSlot, onClearSlot, slot.slot]);
 
   const applySpread = useCallback(
@@ -393,37 +387,27 @@ export function ChampionsSlotCard({
         ) : (
           <span />
         )}
-        <div className="relative" ref={menuRef}>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 rounded-lg px-2 text-[11px]"
+            onClick={() => setOpenPokemonPicker(true)}
+          >
+            <RefreshCw className="size-3.5" aria-hidden />
+            <span className="hidden sm:inline">Change Pokémon</span>
+            <span className="sm:hidden">Change</span>
+          </Button>
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 w-7 rounded-lg p-0"
-            aria-label="Slot actions"
-            onClick={() => setMenuOpen((current) => !current)}
+            className="h-7 rounded-lg px-2 text-[11px] text-rose-300 hover:text-rose-200"
+            onClick={handleClear}
           >
-            <MoreHorizontal className="size-4" />
+            <Trash2 className="size-3.5" aria-hidden />
+            <span className="hidden sm:inline">Clear slot</span>
+            <span className="sm:hidden">Clear</span>
           </Button>
-          {menuOpen ? (
-            <div className="absolute right-0 top-full z-30 mt-1 w-40 rounded-xl border border-border/60 bg-card py-1 shadow-lg">
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-background/50"
-                onClick={() => {
-                  setOpenPokemonPicker(true);
-                  setMenuOpen(false);
-                }}
-              >
-                <RefreshCw className="size-3.5" /> Change Pokémon
-              </button>
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-rose-300 hover:bg-background/50"
-                onClick={handleClear}
-              >
-                <Trash2 className="size-3.5" /> Clear slot
-              </button>
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -491,13 +475,14 @@ export function ChampionsSlotCard({
                   setStatAlignmentBySlot(slot.slot, option.name);
                   setOpenPanel(null);
                 }}
-                searchable
-                renderOption={(option) => (
-                  <span className="flex w-full justify-between gap-2">
-                    <span>{option.name}</span>
-                    <span className="text-muted-foreground">{option.meta}</span>
-                  </span>
-                )}
+                searchable={false}
+                selectedSuffix={
+                  selectedNatureOption?.meta ? (
+                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
+                      {selectedNatureOption.meta}
+                    </span>
+                  ) : null
+                }
                 noOptionsText="No natures"
               />
             </div>

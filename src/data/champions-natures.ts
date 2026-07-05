@@ -40,3 +40,11 @@ export function formatNatureOptionLabel(nature: ChampionsNature): string {
   }
   return `${nature.name} (+${nature.increasedStat.toUpperCase()}, -${nature.decreasedStat.toUpperCase()})`;
 }
+
+/** Short effect hint for dropdown meta (name shown separately). */
+export function formatNatureEffectMeta(nature: ChampionsNature): string {
+  if (!nature.increasedStat || !nature.decreasedStat) {
+    return "(neutral)";
+  }
+  return `(+${nature.increasedStat.toUpperCase()}, -${nature.decreasedStat.toUpperCase()})`;
+}
