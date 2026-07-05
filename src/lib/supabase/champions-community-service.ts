@@ -544,6 +544,24 @@ export async function toggleCommunityTeamStar(teamId: string): Promise<boolean> 
   try {
     const supabase = getSupabaseBrowserClient();
     const userId = await resolveAuthenticatedUserId();
+
+    const { data: teamRow, error: teamError } = await supabase
+      .from("teams")
+      .select("user_id")
+      .eq("id", teamId)
+      .eq("mode", "champions")
+      .eq("is_public", true)
+      .maybeSingle();
+    if (teamError) {
+      throw teamError;
+    }
+    if (!teamRow) {
+      throw new Error("Community team not found.");
+    }
+    if (teamRow.user_id === userId) {
+      throw new Error("You can't star your own team.");
+    }
+
     const { data: existing, error: selectError } = await supabase
       .from("champions_team_stars")
       .select("team_id, user_id")

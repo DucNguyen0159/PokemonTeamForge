@@ -31,10 +31,12 @@ function TeamStarButton({
   teamId,
   hasStarred,
   disabled,
+  disabledReason,
 }: {
   teamId: string;
   hasStarred: boolean;
   disabled: boolean;
+  disabledReason?: string;
 }) {
   const mutation = useToggleChampionsTeamStarMutation(teamId);
 
@@ -47,7 +49,7 @@ function TeamStarButton({
         void mutation.mutateAsync();
       }}
       className="rounded-xl"
-      title={disabled ? "Log in to star teams" : undefined}
+      title={disabledReason}
     >
       {mutation.isPending ? (
         <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -105,6 +107,7 @@ const statChipInteractiveClassName =
 export function ChampionsCommunityTeamCard({
   team,
   isAuthenticated,
+  currentUserId = null,
   compact = false,
   isForking = false,
   onPreview,
@@ -113,6 +116,7 @@ export function ChampionsCommunityTeamCard({
 }: {
   team: ChampionsCommunityTeamSummary;
   isAuthenticated: boolean;
+  currentUserId?: string | null;
   compact?: boolean;
   isForking?: boolean;
   onPreview?: () => void;
@@ -122,6 +126,7 @@ export function ChampionsCommunityTeamCard({
   const filledMembers = team.pokemon.filter((member) => member.pokemonName.trim());
   const commentsHref = `${ROUTES.championsCommunity}/${team.id}?tab=comments`;
   const plansHref = `${ROUTES.championsCommunity}/${team.id}?tab=plans`;
+  const isOwnTeam = Boolean(currentUserId && team.userId === currentUserId);
 
   return (
     <article
@@ -217,7 +222,18 @@ export function ChampionsCommunityTeamCard({
             <Link href={`${ROUTES.championsCommunity}/${team.id}`}>View team</Link>
           </Button>
         )}
-        <TeamStarButton teamId={team.id} hasStarred={team.hasStarred} disabled={!isAuthenticated} />
+        <TeamStarButton
+          teamId={team.id}
+          hasStarred={team.hasStarred}
+          disabled={!isAuthenticated || isOwnTeam}
+          disabledReason={
+            isOwnTeam
+              ? "You can't star your own team"
+              : !isAuthenticated
+                ? "Log in to star teams"
+                : undefined
+          }
+        />
         {onFork ? (
           <Button
             size="sm"

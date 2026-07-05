@@ -48,6 +48,7 @@ export function ChampionsCommunityExplorer() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
   const sort = (searchParams.get("sort") as SortFilter) || "highest";
   const format = (searchParams.get("format") as FormatFilter) || "all";
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -237,6 +238,7 @@ export function ChampionsCommunityExplorer() {
                 key={team.id}
                 team={team}
                 isAuthenticated={isAuthenticated}
+                currentUserId={userId}
                 isForking={forkingTeamId === team.id}
                 onPreview={() => {
                   setPreviewFocus("roster");

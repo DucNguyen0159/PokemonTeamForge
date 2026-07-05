@@ -66,6 +66,7 @@ const WORKFLOW_CARDS = [
 export function ChampionsDashboard() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
   const loadTeam = useChampionsTeamStore((state) => state.loadTeam);
   const setSourcePreset = useChampionsTeamStore((state) => state.setSourcePreset);
   const { team, snapshot, nextStep } = useActiveTeamSnapshot();
@@ -260,6 +261,7 @@ export function ChampionsDashboard() {
                 key={entry.id}
                 team={entry}
                 isAuthenticated={isAuthenticated}
+                currentUserId={userId}
                 compact
                 isForking={forkingTeamId === entry.id}
                 onPreview={() => {

@@ -94,6 +94,7 @@ export default function ChampionsCommunityTeamDetailPage() {
   }, [searchParams]);
 
   const detail = detailQuery.data;
+  const isOwnTeam = Boolean(userId && detail?.userId === userId);
   const rosterPokemon = useMemo(
     () => (detail ? communityPreviewToRosterPokemon(detail.pokemon) : []),
     [detail],
@@ -110,6 +111,10 @@ export default function ChampionsCommunityTeamDetailPage() {
   async function handleToggleStar() {
     if (!isAuthenticated) {
       setError("Please log in to star community teams.");
+      return;
+    }
+    if (isOwnTeam) {
+      setError("You can't star your own team.");
       return;
     }
     setError(null);
@@ -387,10 +392,23 @@ export default function ChampionsCommunityTeamDetailPage() {
           {" · "}Updated {formatTimestamp(detail.updatedAt)}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant={detail.hasStarred ? "secondary" : "outline"} className="rounded-xl" onClick={() => void handleToggleStar()}>
-            {toggleStarMutation.isPending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Star className="size-3.5" aria-hidden />}
-            {detail.hasStarred ? "Starred" : "Star"}
-          </Button>
+          {isOwnTeam ? (
+            <span className="inline-flex items-center rounded-xl border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-muted-foreground">
+              Your team
+            </span>
+          ) : (
+            <Button
+              size="sm"
+              variant={detail.hasStarred ? "secondary" : "outline"}
+              className="rounded-xl"
+              onClick={() => void handleToggleStar()}
+              disabled={!isAuthenticated || toggleStarMutation.isPending}
+              title={!isAuthenticated ? "Log in to star teams" : undefined}
+            >
+              {toggleStarMutation.isPending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Star className="size-3.5" aria-hidden />}
+              {detail.hasStarred ? "Starred" : "Star"}
+            </Button>
+          )}
           <Button size="sm" variant="secondary" className="rounded-xl" onClick={() => void handleForkToBuilder()}>
             {forkMutation.isPending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
             Use in Builder
