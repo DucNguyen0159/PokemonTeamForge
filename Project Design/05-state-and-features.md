@@ -70,11 +70,11 @@ Components under `src/components/champions/`; state in `champions-team-store`.
 | Area | Key behavior |
 |------|----------------|
 | **Dashboard** | `buildActiveTeamSnapshot` + identity bar; next-step CTA; saved teams; community preview |
-| **Builder** | Slot-focused editing, overview mode, legality panel, load drawer, save/publish, plans tab |
+| **Builder** | Slot-focused editing, overview mode, legality panel, load drawer (your cloud teams), save/publish, plans tab; preset plan IDs normalized to UUID on save |
 | **Damage Lab** | `@smogon/calc` via `damage-calc-adapter.ts` (SP, mega, field) |
 | **Coach** | `matchup-coach-analysis.ts` — coverage, speed, threats, SP hints |
 | **Presets** | 30 static teams; load via `pending-champions-team.ts` |
-| **Community** | Supabase public teams; browse, star, comment, fork; seed script for dev |
+| **Community** | Supabase public teams; browse, star (not own team), comment, fork; publish/unpublish toggles `is_public` on same saved row; seed script for dev |
 
 Persistence:
 

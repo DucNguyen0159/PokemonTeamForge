@@ -45,12 +45,12 @@ PokemonTeamForge is designed around a simple loop:
 Dedicated **Legends Z-A / Mega Dimension** competitive workspace (not a reskin of the standard Builder):
 
 - **Dashboard** — active team identity bar, readiness-driven next step, saved teams, community preview.
-- **Team Builder** — 6 slots, Nature/SP/Mega item editing, legality panel, cloud save, publish/unpublish.
+- **Team Builder** — 6 slots, Nature/SP/Mega item editing, legality panel, cloud save/load (your saved teams), publish/unpublish.
 - **Battle Plans** — Singles 3v3 and Doubles 4v4 plans (builder `?tab=plans`; `/champions/plans` redirects there).
 - **Damage Lab** — `@smogon/calc` with Champions SP/IV/mega adapter, field/weather inputs.
 - **Matchup Coach** — defensive heatmap, offensive coverage, speed ladder, threats, SP hints, preset compare.
 - **Strategy Presets** — 30 curated full-roster teams with battle plans; load into Builder.
-- **Community Teams** — browse, preview, star, comment, fork to Builder; publish after cloud save.
+- **Community Teams** — browse, preview, star others' teams, comment, fork to Builder; publish after cloud save (authors cannot star their own team).
 
 Rules modeled: **Mega only**, **66 SP** (32 max/stat), **Singles 3v3 / Doubles 4v4**, regulation `regulation-m-a`.
 
@@ -119,7 +119,7 @@ PokemonTeamForge uses Supabase for catalog data (Pokédex, abilities, moves, ite
 | Order | File | Purpose |
 |------:|------|---------|
 | 6 | `supabase/champions-extension.sql` | Champions mode on `teams`/`team_pokemon`; `champions_battle_plans`, stars, comments; RLS |
-| 7 | `supabase/champions-community-grants.sql` | Public `SELECT` grants for anon/authenticated community browse |
+| 7 | `supabase/champions-community-grants.sql` | Community browse (`SELECT` for anon) + authenticated save/social grants on battle plans, stars, comments |
 | 8 | `supabase/champions-mega-stones.sql` | ~46 Mega Dimension stone rows in `items` |
 
 ```text
@@ -197,6 +197,8 @@ The app calls this RPC with the anon key only. Do not put `SUPABASE_SERVICE_ROLE
 | Delete account fails in Profile | Run `delete-own-account.sql` in Supabase |
 | API “table not found” / schema cache errors | Run `notify pgrst, 'reload schema';` after SQL changes |
 | Champions community browse fails when logged in | Run `champions-community-grants.sql` in Supabase |
+| Champions save fails (“session does not have access”) | Re-run `champions-community-grants.sql` — authenticated needs INSERT on `champions_battle_plans`; then `notify pgrst, 'reload schema';` |
+| Cannot star a published team | By design if it is **your** team — stars are for other trainers' teams only |
 | Mega stones missing in Champions Builder | Run `champions-mega-stones.sql`, restart dev server |
 | “Team unavailable” on old community URL | Re-seed changes team IDs — open team from `/champions/community` grid |
 

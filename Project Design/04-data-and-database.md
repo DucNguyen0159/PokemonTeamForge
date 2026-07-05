@@ -39,9 +39,12 @@ Optional Champions: `npm run import:champion-presets`, `npm run seed:champions-c
 | `champions_team_stars` | User stars on public Champions teams |
 | `champions_team_comments` | Discussion on public Champions teams |
 
-Public browse requires `champions-community-grants.sql` (`GRANT SELECT` for `anon` + `authenticated` on community tables and public profile usernames).
+`champions-community-grants.sql` grants:
 
-RLS: users read/write own rows; public can read `mode = 'champions' AND is_public = true` teams and related stars/comments/plans.
+- **anon** — `SELECT` on public community tables + profile usernames (browse while logged out).
+- **authenticated** — `SELECT`/`INSERT`/`UPDATE`/`DELETE` on `champions_battle_plans` (cloud save); `SELECT`/`INSERT`/`DELETE` on `champions_team_stars` and comments (RLS scopes rows).
+
+RLS: users read/write own team rows; public can read `mode = 'champions' AND is_public = true` teams and related stars/comments/plans. Stars: authenticated users may star **other** users' public teams only (`user_id <> auth.uid()`).
 
 ### Catalog (`app-data.sql`)
 

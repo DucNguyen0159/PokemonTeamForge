@@ -31,7 +31,8 @@ Champions Phases **1–11 are implemented** in code. `npm test` (42 files, 185 t
 - Matchup Coach auto-suggestions inside plan editor
 - Export/share battle plan as image or text card
 - Opponent archetype picker with curated threat hints
-- Load drawer “Recent” / “By ID” tabs; lazy detail fetch for non-focused Builder slots
+- Lazy detail fetch for non-focused Builder slots
+- Load drawer “Recent” tab (quick reopen of last edited teams)
 
 **Ops (production / fresh Supabase)**
 

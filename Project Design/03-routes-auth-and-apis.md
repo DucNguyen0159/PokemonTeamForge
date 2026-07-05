@@ -24,14 +24,14 @@
 | Route | Rendering | Purpose |
 |-------|-----------|---------|
 | `/champions` | Client | Dashboard — identity bar, next step, saved teams, community preview |
-| `/champions/builder` | Client | 6-slot editor, legality, save/publish; `?tab=plans`, `?slot=N` |
+| `/champions/builder` | Client | 6-slot editor, legality, save/load cloud teams, publish/unpublish; `?tab=plans`, `?slot=N` |
 | `/champions/plans` | Redirect | → `/champions/builder?tab=plans` |
 | `/champions/damage` | Client | Damage Lab (`@smogon/calc` adapter) |
 | `/champions/coach` | Client | Matchup Coach analysis |
 | `/champions/presets` | Client | 30 curated preset explorer |
 | `/champions/presets/[presetId]` | Client | Preset detail + load into builder |
 | `/champions/community` | Client | Public team browse (sort, format, search) |
-| `/champions/community/[teamId]` | Client | Roster, plans, comments; star, fork; `?tab=plans\|comments` |
+| `/champions/community/[teamId]` | Client | Roster, plans, comments; star others' teams, fork; `?tab=plans\|comments` |
 
 Layout: `src/app/champions/layout.tsx` — desktop subnav + mobile sticky nav.
 
