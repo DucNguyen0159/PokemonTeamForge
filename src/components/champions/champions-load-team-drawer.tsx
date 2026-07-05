@@ -8,9 +8,6 @@ import { useLoadChampionsTeamMutation } from "@/hooks/queries/use-champions-team
 import { useUserTeams } from "@/hooks/queries/use-user-teams";
 import { hasMeaningfulChampionsTeam } from "@/lib/champions/active-team-snapshot";
 import { useChampionsTeamStore } from "@/store/champions-team-store";
-import { cn } from "@/utils";
-
-type LoadTab = "your-teams" | "by-id";
 
 export function ChampionsLoadTeamDrawer({
   open,
@@ -26,8 +23,6 @@ export function ChampionsLoadTeamDrawer({
   const setSourcePreset = useChampionsTeamStore((state) => state.setSourcePreset);
   const loadMutation = useLoadChampionsTeamMutation();
   const teamsQuery = useUserTeams();
-  const [tab, setTab] = useState<LoadTab>("your-teams");
-  const [teamIdInput, setTeamIdInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirmOverwrite, setConfirmOverwrite] = useState<string | null>(null);
 
@@ -36,7 +31,7 @@ export function ChampionsLoadTeamDrawer({
     [teamsQuery.data],
   );
 
-  async function loadById(teamId: string) {
+  async function loadSavedTeam(teamId: string) {
     setError(null);
     try {
       const loaded = await loadMutation.mutateAsync(teamId.trim());
@@ -55,7 +50,7 @@ export function ChampionsLoadTeamDrawer({
       setConfirmOverwrite(teamId);
       return;
     }
-    void loadById(teamId);
+    void loadSavedTeam(teamId);
   }
 
   if (!open) {
@@ -90,24 +85,6 @@ export function ChampionsLoadTeamDrawer({
           </Button>
         </div>
 
-        <div className="mt-4 flex gap-2">
-          {(["your-teams", "by-id"] as LoadTab[]).map((entry) => (
-            <button
-              key={entry}
-              type="button"
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium",
-                tab === entry
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border/60 text-muted-foreground",
-              )}
-              onClick={() => setTab(entry)}
-            >
-              {entry === "your-teams" ? "Your teams" : "By ID"}
-            </button>
-          ))}
-        </div>
-
         {confirmOverwrite ? (
           <div className="mt-4 rounded-xl border border-amber-500/35 bg-amber-500/10 p-3">
             <p className="text-sm text-amber-100">
@@ -116,7 +93,7 @@ export function ChampionsLoadTeamDrawer({
             <div className="mt-2 flex gap-2">
               <Button
                 size="sm"
-                onClick={() => void loadById(confirmOverwrite)}
+                onClick={() => void loadSavedTeam(confirmOverwrite)}
                 disabled={loadMutation.isPending}
               >
                 {loadMutation.isPending ? (
@@ -137,60 +114,36 @@ export function ChampionsLoadTeamDrawer({
           </p>
         ) : null}
 
-        {tab === "your-teams" ? (
-          <div className="mt-4 space-y-2">
-            {teamsQuery.isPending ? (
-              <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Loading your teams...
-              </div>
-            ) : championsTeams.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
-                No saved Champions teams yet. Save from Team Builder first.
-              </p>
-            ) : (
-              championsTeams.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/55 bg-background/40 px-3 py-2 text-left hover:bg-background/60"
-                  onClick={() => requestLoad(entry.id)}
-                  disabled={loadMutation.isPending}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{entry.name}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {entry.filledSlotCount}/6 slots · {entry.formatSupport ?? entry.format}
-                    </p>
-                  </div>
-                  <span className="text-xs text-primary">Load</span>
-                </button>
-              ))
-            )}
-          </div>
-        ) : (
-          <div className="mt-4 space-y-2">
-            <label className="block space-y-1">
-              <span className="text-xs text-muted-foreground">Cloud team ID</span>
-              <input
-                value={teamIdInput}
-                onChange={(event) => setTeamIdInput(event.target.value)}
-                className="w-full rounded-xl border border-border/60 bg-background/45 px-3 py-2 text-sm"
-                placeholder="Paste team UUID..."
-              />
-            </label>
-            <Button
-              size="sm"
-              disabled={!teamIdInput.trim() || loadMutation.isPending}
-              onClick={() => requestLoad(teamIdInput.trim())}
-            >
-              {loadMutation.isPending ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              ) : null}
-              Load team
-            </Button>
-          </div>
-        )}
+        <div className="mt-4 space-y-2">
+          {teamsQuery.isPending ? (
+            <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Loading your teams...
+            </div>
+          ) : championsTeams.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
+              No saved Champions teams yet. Save from Team Builder first.
+            </p>
+          ) : (
+            championsTeams.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/55 bg-background/40 px-3 py-2 text-left hover:bg-background/60"
+                onClick={() => requestLoad(entry.id)}
+                disabled={loadMutation.isPending}
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">{entry.name}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {entry.filledSlotCount}/6 slots · {entry.formatSupport ?? entry.format}
+                  </p>
+                </div>
+                <span className="text-xs text-primary">Load</span>
+              </button>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
