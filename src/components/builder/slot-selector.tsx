@@ -37,6 +37,9 @@ type SlotSelectorProps = {
   searchable?: boolean;
   hideOptionMeta?: boolean;
   autoFocusSearch?: boolean;
+  layout?: "inline" | "stacked";
+  hasError?: boolean;
+  preserveSelectedName?: boolean;
 };
 
 function SlotSelectorComponent({
@@ -54,6 +57,9 @@ function SlotSelectorComponent({
   searchable = true,
   hideOptionMeta = false,
   autoFocusSearch = true,
+  layout = "inline",
+  hasError = false,
+  preserveSelectedName = false,
 }: SlotSelectorProps) {
   const [search, setSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -179,7 +185,10 @@ function SlotSelectorComponent({
   }, []);
 
   return (
-    <div className="relative">
+    <div className={cn("relative", layout === "stacked" && "space-y-1")}>
+      {layout === "stacked" ? (
+        <span className="block text-xs text-muted-foreground">{label}</span>
+      ) : null}
       <button
         ref={triggerRef}
         type="button"
@@ -188,26 +197,41 @@ function SlotSelectorComponent({
         aria-haspopup="listbox"
         aria-controls={listId}
         aria-expanded={isOpen}
+        aria-label={layout === "stacked" ? label : undefined}
         className={cn(
           "flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors",
           "border border-border/40 bg-background/40",
           "hover:border-border/70 hover:bg-background/60",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           isOpen && "border-primary/40 bg-background/60",
+          hasError && "border-rose-500/50 ring-1 ring-rose-500/30",
         )}
       >
-        <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
-        <div className="flex min-w-0 items-center gap-1.5">
+        {layout === "inline" ? (
+          <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
+        ) : null}
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-1.5",
+            layout === "stacked" ? "justify-between" : "justify-end",
+          )}
+        >
           {selected && selectedPrefix ? (
             <span className="shrink-0">{selectedPrefix}</span>
           ) : null}
           <span
+            title={selected?.name}
             className={cn(
-              "min-w-0 max-w-[120px] truncate text-xs",
+              "min-w-0 text-xs",
+              layout === "stacked"
+                ? preserveSelectedName
+                  ? "flex-1 text-left leading-snug"
+                  : "flex-1 truncate text-left"
+                : "max-w-[120px] truncate",
               selected ? "text-foreground/90" : "text-muted-foreground/50",
             )}
           >
-            {selected ? selected.name : `— ${label} —`}
+            {selected ? selected.name : layout === "stacked" ? `Select ${label.toLowerCase()}` : `— ${label} —`}
           </span>
           {selected && selectedSuffix ? (
             <span className="shrink-0">{selectedSuffix}</span>

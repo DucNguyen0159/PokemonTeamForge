@@ -5,7 +5,7 @@
 ```bash
 npm run lint
 npx tsc --noEmit
-npm test          # vitest run — 29 files, 131 tests (May 2026)
+npm test          # vitest run — 42 files, 185 tests (July 2026)
 npm run build
 ```
 
@@ -19,6 +19,7 @@ npm run build
 | Calculations | type-matchup matrix |
 | Recommendation | scoring |
 | Supabase | errors, team-service auth assumptions |
+| Champions | legality, SP budget, battle-plan utils, active-team snapshot, mega stones, damage adapter, coach analysis |
 | Data/scripts | ability-tags, form metadata import helpers, team-card config |
 
 ## What tests do not cover
@@ -36,7 +37,9 @@ npm run build
 - `team_cards` and `favorite_strategy_teams` tables have no app UI yet
 - Strategy data is static TS, not admin-editable in DB
 - No middleware-based route protection — pages gate on client auth state
-- Battle formats are simplified (singles/doubles/triples)
+- Battle formats are simplified (singles/doubles/triples); Champions adds Singles 3v3 / Doubles 4v4 with SP rules
+- Champions community has no moderation/reporting UI
+- Profile saved teams use generic cards, not Champions identity bar / community card styling
 
 ## Operational docs (outside this folder)
 

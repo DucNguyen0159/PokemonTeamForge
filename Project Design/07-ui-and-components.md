@@ -12,7 +12,7 @@
 
 | Component | Role |
 |-----------|------|
-| `site-header` | Nav: Builder, Pokédex, Abilities, Strategies, Team Card, auth/profile |
+| `site-header` | Nav: Builder, **Champions**, Pokédex, Abilities, Strategies, Team Card, auth/profile |
 | `brand-mark` | Logo mark |
 | `page-intro` | Eyebrow + title + description on feature pages |
 | `auth-layout` | Centered auth card + `PasswordInput` |
@@ -33,6 +33,7 @@
 | `team-card/` | Generator, preview, backgrounds, trainers, export, pickers |
 | `auth/` | `auth-initializer`, `auth-layout`, `auth-pending-notice`, `guest-team-sync-prompt`, `auth-page-fallback` |
 | `profile/` | `profile-change-password-panel` |
+| `champions/` | Dashboard, builder, damage lab, coach, presets, community; `champions-shell`, `champions-subnav`, identity bar, roster tiles, community cards, preview drawer |
 | `shared/` | `type-badge`, `pokemon-sprite` |
 | `error/` | `error-boundary`, `error-message` |
 

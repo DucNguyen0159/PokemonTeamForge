@@ -1,5 +1,5 @@
 import type { PokemonListSortDirection, PokemonListSortKey } from "@/constants/pokemon-list-sort";
-import type { PokemonListPayload } from "@/types/api";
+import type { PokemonListPayload, PokemonSummariesPayload } from "@/types/api";
 import type { PokemonDetail } from "@/types/pokemon";
 
 type PokemonListQuery = {
@@ -72,6 +72,42 @@ export async function fetchPokemonListFromApi(query: PokemonListQuery): Promise<
 
   if (!response.ok || !payload?.success || !payload.data) {
     throw new Error(payload?.error?.message ?? "Unable to load Pokémon right now.");
+  }
+
+  return payload.data;
+}
+
+export function buildPokemonSummariesSearchParams(slugs: string[]): URLSearchParams {
+  const params = new URLSearchParams();
+  params.set("slugs", slugs.join(","));
+  return params;
+}
+
+export async function fetchPokemonSummariesFromApi(
+  slugs: string[],
+): Promise<PokemonSummariesPayload> {
+  const uniqueSlugs = [...new Set(slugs.map((slug) => slug.trim()).filter(Boolean))];
+  if (uniqueSlugs.length === 0) {
+    return { summaries: [], missingSlugs: [] };
+  }
+
+  let response: Response;
+  try {
+    const params = buildPokemonSummariesSearchParams(uniqueSlugs);
+    response = await fetch(`/api/champions/pokemon-summaries?${params.toString()}`);
+  } catch {
+    throw new Error("You seem to be offline. Please check your connection.");
+  }
+
+  let payload: ApiPayload<PokemonSummariesPayload> | null = null;
+  try {
+    payload = (await response.json()) as ApiPayload<PokemonSummariesPayload>;
+  } catch {
+    throw new Error("Pokémon summaries are temporarily unavailable.");
+  }
+
+  if (!response.ok || !payload?.success || !payload.data) {
+    throw new Error(payload?.error?.message ?? "Could not load Pokémon summaries.");
   }
 
   return payload.data;

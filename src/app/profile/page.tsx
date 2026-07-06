@@ -19,6 +19,8 @@ import {
   useRenameTeamMutation,
   useUserTeams,
 } from "@/hooks/queries/use-user-teams";
+import { useLoadChampionsTeamMutation } from "@/hooks/queries/use-champions-teams";
+import { savePendingLoadedChampionsTeam } from "@/lib/team/pending-champions-team";
 import { useResilientLogout } from "@/hooks/use-resilient-logout";
 import { savePendingLoadedTeam } from "@/lib/team/pending-team";
 import {
@@ -33,6 +35,7 @@ import {
 import { selectIsSessionReady, useAuthStore } from "@/store/auth-store";
 import { useTeamStore } from "@/store/team-store";
 import { cn } from "@/utils";
+import type { SavedTeamSummary } from "@/types/saved-team";
 
 function formatUpdatedAt(value: string): string {
   try {
@@ -79,6 +82,7 @@ export default function ProfilePage() {
 
   const teamsQuery = useUserTeams();
   const loadTeamMutation = useLoadTeamMutation();
+  const loadChampionsTeamMutation = useLoadChampionsTeamMutation();
   const deleteTeamMutation = useDeleteTeamMutation();
   const renameTeamMutation = useRenameTeamMutation();
 
@@ -142,16 +146,23 @@ export default function ProfilePage() {
     setIsChangingPassword(false);
   }
 
-  async function handleLoadTeam(teamId: string) {
+  async function handleLoadTeam(team: SavedTeamSummary) {
     setFeedback(null);
     setError(null);
     setConfirmingLoadTeamId(null);
 
     try {
-      const loadedTeam = await loadTeamMutation.mutateAsync(teamId);
-      savePendingLoadedTeam(loadedTeam);
-      setFeedback("Team loaded. Redirecting to builder...");
-      router.push("/builder");
+      if (team.mode === "champions") {
+        const loadedTeam = await loadChampionsTeamMutation.mutateAsync(team.id);
+        savePendingLoadedChampionsTeam(loadedTeam);
+        setFeedback("Champions team loaded. Redirecting to Champions Builder...");
+        router.push("/champions/builder");
+      } else {
+        const loadedTeam = await loadTeamMutation.mutateAsync(team.id);
+        savePendingLoadedTeam(loadedTeam);
+        setFeedback("Team loaded. Redirecting to builder...");
+        router.push("/builder");
+      }
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -642,6 +653,7 @@ export default function ProfilePage() {
                                     </span>
                                   </div>
                                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs capitalize text-muted-foreground">
+                                    <span>{team.mode}</span>
                                     <span>{team.format} format</span>
                                     <span>{formatFilledSlots(team.filledSlotCount)}</span>
                                     <span>Updated {formatUpdatedAt(team.updatedAt)}</span>
@@ -719,7 +731,9 @@ export default function ProfilePage() {
                               {isConfirmingLoad ? (
                                 <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3">
                                   <p className="text-xs leading-relaxed text-amber-100">
-                                    {warnsBeforeLoad
+                                    {team.mode === "champions"
+                                      ? "This Champions cloud team will open in Champions Builder and replace the current Champions draft workspace."
+                                      : warnsBeforeLoad
                                       ? `Your current Builder team has ${localTeamSummary.pokemonCount}/6 Pokémon${localTeamSummary.moveCount > 0 ? ` and ${localTeamSummary.moveCount} selected moves` : ""}. Loading this cloud team will replace the Builder workspace. Save the current team first if you want to keep it.`
                                       : "This cloud team will be opened in Builder. Your current Builder workspace does not have separate unsaved team content at risk."}
                                   </p>
@@ -727,16 +741,18 @@ export default function ProfilePage() {
                                     <Button
                                       size="sm"
                                       className="rounded-xl"
-                                      onClick={() => {
-                                        void handleLoadTeam(team.id);
-                                      }}
-                                      disabled={loadTeamMutation.isPending}
+                                    onClick={() => {
+                                      void handleLoadTeam(team);
+                                    }}
+                                    disabled={loadTeamMutation.isPending || loadChampionsTeamMutation.isPending}
                                     >
-                                      {loadTeamMutation.isPending
+                                      {loadTeamMutation.isPending || loadChampionsTeamMutation.isPending
                                         ? "Loading..."
                                         : warnsBeforeLoad
                                           ? "Replace Builder Team"
-                                          : "Open in Builder"}
+                                          : team.mode === "champions"
+                                            ? "Open in Champions Builder"
+                                            : "Open in Builder"}
                                     </Button>
                                     <Button
                                       size="sm"

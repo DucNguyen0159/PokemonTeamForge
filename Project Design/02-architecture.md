@@ -10,13 +10,17 @@
 | Server/cache | TanStack Query 5 (saved teams, prefetch on login) |
 | Backend data | Supabase (Postgres + Auth + Storage) |
 | Tests | Vitest 4 |
+| Champions calc | `@smogon/calc` (Damage Lab) |
 
 ## Repo layout
 
 ```text
 src/app/              Routes (pages + route handlers under api/)
-src/components/       Feature UI (builder, pokedex, auth, …)
-src/data/             Static presets, tags, type chart, strategy teams
+src/app/champions/    Pokemon Champions workspace (9 routes)
+src/components/       Feature UI (builder, pokedex, auth, champions, …)
+src/components/champions/  Champions UI (~48 files)
+src/data/             Static presets, tags, type chart, strategy teams, champions-presets
+src/lib/champions/    Legality, SP, damage adapter, coach analysis, battle plans
 src/lib/              Business logic, services, calculations, Supabase helpers
 src/store/            Zustand stores
 src/types/            Shared TypeScript types
@@ -46,9 +50,9 @@ Global chrome: `SiteHeader` on every page.
 | Pattern | Where |
 |---------|--------|
 | Server Components | Home, Pokédex list shell, Pokémon detail fetch, Abilities list shell |
-| Client components | Builder, Team Card, Profile, all auth forms, strategy explorer |
-| Route handlers | Read-only catalog APIs + recommendation POST; no custom auth API |
-| Direct Supabase browser client | Auth, profile, team save/load/rename/delete |
+| Client components | Builder, Team Card, Profile, all auth forms, strategy explorer, **all Champions pages** |
+| Route handlers | Read-only catalog APIs + recommendation POST + `champions/pokemon-summaries`; no custom auth API |
+| Direct Supabase browser client | Auth, profile, team save/load/rename/delete, Champions community browse |
 
 Auth pages using `useSearchParams()` split into `*-form.tsx` wrapped by server `page.tsx` + `<Suspense>` + `AuthPageFallback`.
 
@@ -56,8 +60,11 @@ Auth pages using `useSearchParams()` split into `*-form.tsx` wrapped by server `
 
 - Pokémon names in URLs: slugified (`format-slug` / detail routes)
 - Current team: Zustand `team-store` persisted to `localStorage` key `pokemon-team-forge-current-team`
+- Champions active team: `champions-team-store` → `localStorage` (separate from standard builder)
 - Saved teams: Supabase `teams` + `team_pokemon` via `src/lib/supabase/team-service.ts`
+- Champions cloud: same tables with `mode = 'champions'` + `champions_battle_plans`; community via `champions-community-service.ts`
 - Strategy presets: **not** in DB — `src/data/strategy-teams.ts` + `strategy-service.ts`
+- Champions presets: **not** in DB — `src/data/champions-presets.ts` (30 teams)
 - Errors: `ErrorMessage` + `toFriendlySupabaseMessage` for auth/Supabase UX
 
 ## Environment

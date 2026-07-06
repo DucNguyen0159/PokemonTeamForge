@@ -2,6 +2,8 @@
 
 Battle-focused Pokemon team building app for planning teams, analyzing type coverage, browsing competitive Pokemon data, exploring abilities, using strategy presets, getting recommendations, and exporting shareable team cards.
 
+**Pokemon Champions (Legends Z-A)** has a dedicated workspace: 6-Pokémon rosters, Singles 3v3 / Doubles 4v4 battle plans, Mega-only rules, SP spreads, damage lab, matchup coach, 30 curated presets, and community team browse/share.
+
 ## Project Status
 
 PokemonTeamForge is in active development. The current app focuses on practical team-building workflows: build a team, analyze its strengths and weaknesses, improve it with data-driven recommendations, and share it with polished team card exports.
@@ -19,6 +21,13 @@ PokemonTeamForge is designed around a simple loop:
 3. Improve the team with strategy presets, ability insights, and recommendations.
 4. Share the result with an exportable team card.
 
+**Champions loop** (separate workspace at `/champions`):
+
+1. Build or load a 6-Pokémon Champions roster (presets, community fork, or scratch).
+2. Author Singles/Doubles battle plans and fix legality (SP budget, duplicates, Mega items).
+3. Analyze with Damage Lab and Matchup Coach.
+4. Save to cloud, publish to Community, star/comment on others' teams.
+
 ## Core Features
 
 - Team Builder with Pokemon, ability, item, move, shiny, and battle format support.
@@ -30,6 +39,20 @@ PokemonTeamForge is designed around a simple loop:
 - Strategy presets for common team archetypes and editable starting points.
 - Team Card generator with style presets, backgrounds, trainer details, layouts, export sizes, sprite options, and shareable image export.
 - Static home page previews using local curated Pokemon preview assets for fast loading.
+
+### Pokemon Champions (`/champions`)
+
+Dedicated **Legends Z-A / Mega Dimension** competitive workspace (not a reskin of the standard Builder):
+
+- **Dashboard** — active team identity bar, readiness-driven next step, saved teams, community preview.
+- **Team Builder** — 6 slots, Nature/SP/Mega item editing, legality panel, cloud save/load (your saved teams), publish/unpublish.
+- **Battle Plans** — Singles 3v3 and Doubles 4v4 plans (builder `?tab=plans`; `/champions/plans` redirects there).
+- **Damage Lab** — `@smogon/calc` with Champions SP/IV/mega adapter, field/weather inputs.
+- **Matchup Coach** — defensive heatmap, offensive coverage, speed ladder, threats, SP hints, preset compare.
+- **Strategy Presets** — 30 curated full-roster teams with battle plans; load into Builder.
+- **Community Teams** — browse, preview, star others' teams, comment, fork to Builder; publish after cloud save (authors cannot star their own team).
+
+Rules modeled: **Mega only**, **66 SP** (32 max/stat), **Singles 3v3 / Doubles 4v4**, regulation `regulation-m-a`.
 
 ## Tech Stack
 
@@ -91,15 +114,26 @@ PokemonTeamForge uses Supabase for catalog data (Pokédex, abilities, moves, ite
 | 4 | `supabase/pokemon-forms.sql` | Form columns on `pokemon` (Mega, G-Max, regional grouping, Pokédex sort) |
 | 5 | `supabase/evolution-chains.sql` | `evolution_chains` table + `pokemon.evolution_chain_id` for detail pages |
 
+**Champions** (after steps 1–5; required for `/champions` cloud save + community):
+
+| Order | File | Purpose |
+|------:|------|---------|
+| 6 | `supabase/champions-extension.sql` | Champions mode on `teams`/`team_pokemon`; `champions_battle_plans`, stars, comments; RLS |
+| 7 | `supabase/champions-community-grants.sql` | Community browse (`SELECT` for anon) + authenticated save/social grants on battle plans, stars, comments |
+| 8 | `supabase/champions-mega-stones.sql` | ~46 Mega Dimension stone rows in `items` |
+
 ```text
 supabase/auth-saved-teams.sql
 supabase/app-data.sql
 supabase/app-storage.sql
 supabase/pokemon-forms.sql
 supabase/evolution-chains.sql
+supabase/champions-extension.sql
+supabase/champions-community-grants.sql
+supabase/champions-mega-stones.sql
 ```
 
-**Existing project that only ran steps 1–3?** Run files 4 and 5, then `notify pgrst`, then re-run import + validate so form metadata and evolution data populate.
+**Existing project that only ran steps 1–3?** Run files 4 and 5, then Champions files 6–8 if using Champions, then `notify pgrst`, then re-run import + validate so form metadata and evolution data populate.
 
 ### Reload schema (after any SQL change)
 
@@ -146,6 +180,14 @@ The app calls this RPC with the anon key only. Do not put `SUPABASE_SERVICE_ROLE
 7. Run `delete-own-account.sql` before enabling Profile → Delete account in production.
 8. Register locally, confirm Profile saved-teams state, and save a cloud team from Builder.
 
+**Champions first-run (optional):**
+
+9. Run SQL files **6–8** (above), then `notify pgrst, 'reload schema';`.
+10. Restart dev server after mega-stones SQL (competitive items cache).
+11. `npm run check:mega-stones -- --strict` — stone catalog consistency.
+12. `npm run import:champion-presets` — regenerate preset sprite/type display data.
+13. `npm run seed:champions-community` — 10 public dev community teams (requires `SUPABASE_SERVICE_ROLE_KEY`).
+
 ### Troubleshooting (data)
 
 | Symptom | Fix |
@@ -154,6 +196,11 @@ The app calls this RPC with the anon key only. Do not put `SUPABASE_SERVICE_ROLE
 | Empty evolution tree on Pokémon detail | Run `evolution-chains.sql`, `notify pgrst`, re-run `npm run import:pokemon-data` (or `import:all-data`) |
 | Delete account fails in Profile | Run `delete-own-account.sql` in Supabase |
 | API “table not found” / schema cache errors | Run `notify pgrst, 'reload schema';` after SQL changes |
+| Champions community browse fails when logged in | Run `champions-community-grants.sql` in Supabase |
+| Champions save fails (“session does not have access”) | Re-run `champions-community-grants.sql` — authenticated needs INSERT on `champions_battle_plans`; then `notify pgrst, 'reload schema';` |
+| Cannot star a published team | By design if it is **your** team — stars are for other trainers' teams only |
+| Mega stones missing in Champions Builder | Run `champions-mega-stones.sql`, restart dev server |
+| “Team unavailable” on old community URL | Re-seed changes team IDs — open team from `/champions/community` grid |
 
 ## Available Scripts
 
@@ -168,6 +215,9 @@ npm run import:item-data
 npm run import:all-data
 npm run validate:supabase-data
 npm run download:masters-trainers
+npm run check:mega-stones
+npm run import:champion-presets
+npm run seed:champions-community
 ```
 
 ## Testing and Validation
@@ -200,14 +250,18 @@ npm run validate:supabase-data
 
 ```text
 src/app/                 Next.js app routes and API routes
+src/app/champions/       Pokemon Champions workspace (dashboard, builder, coach, etc.)
 src/components/          UI components by feature area
+src/components/champions/ Champions-specific UI
 src/constants/           Shared route and sort constants
 src/data/                Static app metadata, tags, presets, and preview data
+src/data/champions-presets.ts   30 curated Champions teams
+src/lib/champions/       Champions legality, damage adapter, coach analysis, etc.
 src/lib/                 Services, calculations, normalizers, and data access
-src/store/               Zustand stores
+src/store/               Zustand stores (incl. champions-team-store)
 src/types/               Shared TypeScript types
 scripts/                 Import, validation, and asset scripts
-supabase/                SQL schema (auth, catalog, storage, forms, evolution, delete RPC)
+supabase/                SQL schema (auth, catalog, storage, forms, evolution, Champions, delete RPC)
 public/                  Static assets
 Project Design/          Frozen architecture reference (see README there)
 ```
@@ -230,6 +284,8 @@ Review each upstream source's terms before using this project commercially or re
 - Data freshness depends on running the import and validation scripts.
 - Some visual preview assets are curated local examples rather than live database queries.
 - Battle formats are simplified around app-supported singles, doubles, and triples workflows.
+- **Standard Builder** has no damage calc; **Champions Damage Lab** uses `@smogon/calc` with simplified SP/IV assumptions — not a full VGC simulator.
+- Community moderation (reporting, admin review) is not implemented; users can delete their own comments only.
 
 ## Deployment
 
@@ -251,6 +307,7 @@ Support is optional and does not unlock paid features.
 - Expand ability, strategy, move, and item metadata.
 - Improve team sharing, import, and export flows.
 - Add more polished mobile interactions across complex builder screens.
+- Champions follow-ups: community moderation, per-species mega stone filtering in item picker, Profile visual parity with Champions cards.
 
 ## Disclaimer
 

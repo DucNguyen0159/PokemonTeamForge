@@ -13,6 +13,9 @@ type TeamRow = {
   user_id: string;
   name: string;
   format: string;
+  mode: "standard" | "champions" | null;
+  format_support: "single" | "double" | "both" | null;
+  champions_ruleset_id: string | null;
   is_public: boolean | null;
   created_at: string;
   updated_at: string;
@@ -151,6 +154,9 @@ function mapTeamRowToSummary(
     id: row.id,
     name: row.name,
     format: toBattleFormat(row.format),
+    mode: row.mode === "champions" ? "champions" : "standard",
+    formatSupport: row.format_support,
+    rulesetId: row.champions_ruleset_id,
     isPublic: row.is_public ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -266,7 +272,7 @@ export async function listUserTeams(trustedUserId?: string | null): Promise<Save
     const { data, error } = await supabase
       .from("teams")
       .select(
-        "id, user_id, name, format, is_public, created_at, updated_at, team_pokemon(slot, pokemon_id)",
+        "id, user_id, name, format, mode, format_support, champions_ruleset_id, is_public, created_at, updated_at, team_pokemon(slot, pokemon_id)",
       )
       .order("updated_at", { ascending: false });
 
@@ -342,9 +348,10 @@ export async function saveTeam(team: Team): Promise<SavedTeamSummary> {
         user_id: userId,
         name: team.name.trim() || "Untitled Team",
         format: team.format,
+        mode: "standard",
         is_public: false,
       })
-      .select("id, user_id, name, format, is_public, created_at, updated_at")
+      .select("id, user_id, name, format, mode, format_support, champions_ruleset_id, is_public, created_at, updated_at")
       .single();
 
     if (teamError || !createdTeam) {
@@ -386,6 +393,7 @@ export async function updateSavedTeam(teamId: string, team: Team): Promise<void>
       .update({
         name: team.name.trim() || "Untitled Team",
         format: team.format,
+        mode: "standard",
         updated_at: new Date().toISOString(),
       })
       .eq("id", teamId);

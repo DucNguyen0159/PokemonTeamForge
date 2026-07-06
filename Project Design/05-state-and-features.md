@@ -9,10 +9,14 @@
 | `filter-store` | Pokédex + strategy list filters, global recommendation role |
 | `recommendation-store` | Panel filters, results, loading, error |
 | `ui-store` | Menus/modals, theme preference |
+| `champions-team-store` | Active Champions `ChampionsTeam` (6 slots + battle plans); **persisted** `localStorage` |
 
 ## React Query
 
 - `use-user-teams` — list saved teams for Profile
+- `use-champions-teams` — Champions cloud save/load
+- `use-champions-community` — community list/detail, stars, comments, publish, fork
+- `use-pokemon-catalog` — `useChampionsRosterCatalog`, batch summaries for Champions UI
 - Prefetch on successful login/reset when session ready
 
 ## Feature areas
@@ -59,15 +63,41 @@ Components: `team-builder`, `team-slots`, `pokemon-slot`, `pokemon-picker`, `bui
 
 - Static marketing; curated `preview-pokemon` sprites
 
+### Pokemon Champions (`/champions`)
+
+Components under `src/components/champions/`; state in `champions-team-store`.
+
+| Area | Key behavior |
+|------|----------------|
+| **Dashboard** | `buildActiveTeamSnapshot` + identity bar; next-step CTA; saved teams; community preview |
+| **Builder** | Slot-focused editing, overview mode, legality panel, load drawer (your cloud teams), save/publish, plans tab; preset plan IDs normalized to UUID on save |
+| **Damage Lab** | `@smogon/calc` via `damage-calc-adapter.ts` (SP, mega, field) |
+| **Coach** | `matchup-coach-analysis.ts` — coverage, speed, threats, SP hints |
+| **Presets** | 30 static teams; load via `pending-champions-team.ts` |
+| **Community** | Supabase public teams; browse, star (not own team), comment, fork; publish/unpublish toggles `is_public` on same saved row; seed script for dev |
+
+Persistence:
+
+```text
+Active Champions team  → champions-team-store → localStorage
+Saved Champions teams  → teams (mode=champions) + team_pokemon + champions_battle_plans
+Community social       → champions_team_stars, champions_team_comments
+Preset loads           → pending-champions-team → Builder on mount
+```
+
 ## Persistence model
 
 ```text
 Guest current team     → team-store → localStorage
+Champions active team  → champions-team-store → localStorage
 Signed-in saved teams  → teams + team_pokemon (Supabase, client SDK)
+Champions cloud teams  → teams (mode=champions) + champions_battle_plans
 Strategy presets       → src/data (not DB)
+Champions presets      → src/data/champions-presets.ts (not DB)
 Team card designs      → ephemeral in browser (not team_cards table)
+Community seed teams   → scripts/seed-champions-community.mjs (dev only)
 ```
 
 ## Types (`src/types/`)
 
-Key modules: `team.ts`, `pokemon.ts`, `coverage.ts`, `strategy.ts`, `team-card.ts`, `saved-team.ts`, `api.ts`, `shared.ts` (formats, roles, tiers).
+Key modules: `team.ts`, `pokemon.ts`, `coverage.ts`, `strategy.ts`, `team-card.ts`, `saved-team.ts`, `api.ts`, `shared.ts` (formats, roles, tiers), `champions.ts`, `champions-community.ts`.

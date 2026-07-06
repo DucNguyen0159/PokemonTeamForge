@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildPokemonListSearchParams,
+  buildPokemonSummariesSearchParams,
   fetchPokemonListFromApi,
+  fetchPokemonSummariesFromApi,
 } from "@/lib/pokemon/data-access";
 
 describe("pokemon data access", () => {
@@ -68,5 +70,48 @@ describe("pokemon data access", () => {
     expect(payload.pokemon.length).toBe(25);
     expect(payload.limit).toBe(60);
     expect(payload.total).toBe(1025);
+  });
+
+  it("builds batch summary query params", () => {
+    const params = buildPokemonSummariesSearchParams(["pelipper", "incineroar"]);
+    expect(params.get("slugs")).toBe("pelipper,incineroar");
+  });
+
+  it("returns summary batch payload from champions API", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: {
+          summaries: [
+            {
+              id: 279,
+              name: "Pelipper",
+              slug: "pelipper",
+              primaryType: "water",
+              secondaryType: "flying",
+              spriteNormal: "/pelipper.png",
+            },
+          ],
+          missingSlugs: ["missing-mon"],
+        },
+      }),
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+    const payload = await fetchPokemonSummariesFromApi(["pelipper", "pelipper", "missing-mon"]);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(payload.summaries).toHaveLength(1);
+    expect(payload.missingSlugs).toEqual(["missing-mon"]);
+  });
+
+  it("returns empty payload when no slugs are provided", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const payload = await fetchPokemonSummariesFromApi(["", "  "]);
+    expect(payload).toEqual({ summaries: [], missingSlugs: [] });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

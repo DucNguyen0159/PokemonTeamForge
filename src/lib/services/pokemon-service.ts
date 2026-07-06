@@ -14,7 +14,7 @@ import {
   type AlternateForm,
   type PokemonFormKind,
 } from "@/lib/pokemon/pokemon-forms";
-import type { EvolutionStage, Pokemon, PokemonDetail, PokemonListItem } from "@/types/pokemon";
+import type { EvolutionStage, Pokemon, PokemonDetail, PokemonListItem, PokemonSummary } from "@/types/pokemon";
 import {
   buildEvolutionRootsFromPokeApiChain,
   collectSpeciesSlugsFromPokeApiChain,
@@ -25,6 +25,10 @@ import {
   type EvolutionStageMeta,
   type PokeApiEvolutionChainNode,
 } from "@/lib/pokemon/evolution-chain";
+import { resolvePokemonSlug } from "@/lib/pokemon/pokemon-slug-aliases";
+import { POKEMON_SUMMARIES_BATCH_MAX } from "@/lib/pokemon/query-keys";
+import { summaryFromDetail, summaryFromListItem } from "@/lib/pokemon/pokemon-catalog-utils";
+import type { PokemonSummariesPayload } from "@/types/api";
 import type { Ability } from "@/types/ability";
 import type { Move, MoveTag } from "@/types/move";
 
@@ -142,6 +146,7 @@ const pokemonDetailCache = new Map<string, PokemonDetail>();
 const evolutionChainCache = new Map<number, EvolutionStage[]>();
 const pokeApiSpeciesMetaCache = new Map<string, EvolutionStageMeta>();
 const pokemonListItemCache = new Map<string, PokemonListItem>();
+const pokemonSummaryCache = new Map<string, PokemonSummary>();
 const abilityEffectCache = new Map<string, AbilityEffectText>();
 let supabasePokemonOrderIndexCache: Map<string, number> | null = null;
 type PokemonListCacheEntry = {
@@ -225,6 +230,27 @@ function resolveFormKindFromRow(row: PokemonRow): PokemonFormKind {
   }
 
   return "default";
+}
+
+function toPokemonSummaryFromRow(
+  row: Pick<PokemonRow, "id" | "slug" | "name" | "primary_type" | "secondary_type" | "sprite_normal_url">,
+): PokemonSummary {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    primaryType: row.primary_type,
+    secondaryType: row.secondary_type,
+    spriteNormal: row.sprite_normal_url ?? "",
+  };
+}
+
+function cachePokemonSummary(keys: string[], summary: PokemonSummary): void {
+  for (const key of keys) {
+    if (key) {
+      pokemonSummaryCache.set(key, summary);
+    }
+  }
 }
 
 function toPokemonListItemFromRow(row: PokemonRow): PokemonListItem {
@@ -528,8 +554,20 @@ async function pokeApiFetchWithRetry<T>(pathOrUrl: string, attempts = 3): Promis
   throw lastError instanceof Error ? lastError : new Error("PokéAPI request failed.");
 }
 
-function normalizePokemonName(input: string): string {
+function rawNormalizePokemonName(input: string): string {
   return input.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function normalizePokemonName(input: string): string {
+  return resolvePokemonSlug(input);
+}
+
+function cachePokemonDetail(keys: string[], detail: PokemonDetail): void {
+  for (const key of keys) {
+    if (key) {
+      pokemonDetailCache.set(key, detail);
+    }
+  }
 }
 
 function clampPagination(value: number | undefined, fallback: number, max: number): number {
@@ -995,6 +1033,80 @@ export async function getPokemonListItemsBySlugs(slugs: string[]): Promise<Pokem
     .filter((item): item is PokemonListItem => Boolean(item));
 }
 
+export async function getPokemonSummariesBySlugs(
+  slugs: string[],
+): Promise<PokemonSummariesPayload> {
+  const normalizedSlugs = Array.from(
+    new Set(slugs.map((slug) => normalizePokemonName(slug)).filter(Boolean)),
+  );
+
+  if (normalizedSlugs.length === 0) {
+    return { summaries: [], missingSlugs: [] };
+  }
+
+  if (normalizedSlugs.length > POKEMON_SUMMARIES_BATCH_MAX) {
+    throw new Error(`Batch size exceeds maximum of ${POKEMON_SUMMARIES_BATCH_MAX} slugs.`);
+  }
+
+  const cachedBySlug = new Map<string, PokemonSummary>();
+
+  normalizedSlugs.forEach((slug) => {
+    const cachedSummary = pokemonSummaryCache.get(slug);
+    if (cachedSummary) {
+      cachedBySlug.set(slug, cachedSummary);
+      return;
+    }
+
+    const cachedDetail = pokemonDetailCache.get(slug);
+    if (cachedDetail) {
+      const summary = summaryFromDetail(cachedDetail);
+      cachePokemonSummary([slug, summary.slug], summary);
+      cachedBySlug.set(slug, summary);
+    }
+  });
+
+  const missingAfterMemory = normalizedSlugs.filter((slug) => !cachedBySlug.has(slug));
+
+  if (missingAfterMemory.length > 0 && hasSupabaseServerEnv()) {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("pokemon")
+      .select("id, slug, name, primary_type, secondary_type, sprite_normal_url")
+      .in("slug", missingAfterMemory);
+
+    if (error) {
+      console.error("[Pokemon Supabase Summaries Batch]", error);
+    } else {
+      (data as Pick<
+        PokemonRow,
+        "id" | "slug" | "name" | "primary_type" | "secondary_type" | "sprite_normal_url"
+      >[] | null)?.forEach((row) => {
+        const summary = toPokemonSummaryFromRow(row);
+        cachePokemonSummary([summary.slug], summary);
+        cachedBySlug.set(summary.slug, summary);
+      });
+    }
+  }
+
+  const stillMissingSlugs = normalizedSlugs.filter((slug) => !cachedBySlug.has(slug));
+  if (stillMissingSlugs.length > 0) {
+    const listItems = await getPokemonListItemsBySlugs(stillMissingSlugs);
+    listItems.forEach((item) => {
+      const summary = summaryFromListItem(item);
+      cachePokemonSummary([item.slug, summary.slug], summary);
+      cachedBySlug.set(item.slug, summary);
+    });
+  }
+
+  const summaries = normalizedSlugs
+    .map((slug) => cachedBySlug.get(slug) ?? null)
+    .filter((summary): summary is PokemonSummary => Boolean(summary));
+
+  const missingSlugs = normalizedSlugs.filter((slug) => !cachedBySlug.has(slug));
+
+  return { summaries, missingSlugs };
+}
+
 type PokeApiEvolutionChainResponse = {
   id: number;
   chain: PokeApiEvolutionChainNode;
@@ -1439,21 +1551,21 @@ export async function getPokemonList(query: PokemonListQuery): Promise<PokemonLi
 }
 
 export async function getPokemonByName(pokemonName: string): Promise<PokemonDetail | null> {
+  const requestedKey = rawNormalizePokemonName(pokemonName);
   const slug = normalizePokemonName(pokemonName);
 
   if (!slug) {
     return null;
   }
 
-  const cached = pokemonDetailCache.get(slug);
+  const cached = pokemonDetailCache.get(slug) ?? pokemonDetailCache.get(requestedKey);
   if (cached) {
     return cached;
   }
 
   const supabasePokemon = await getPokemonDetailFromSupabase(slug);
   if (supabasePokemon) {
-    pokemonDetailCache.set(slug, supabasePokemon);
-    pokemonDetailCache.set(supabasePokemon.slug, supabasePokemon);
+    cachePokemonDetail([slug, requestedKey, supabasePokemon.slug], supabasePokemon);
     return supabasePokemon;
   }
 
@@ -1515,7 +1627,6 @@ export async function getPokemonByName(pokemonName: string): Promise<PokemonDeta
       buildTypeDefenseEntries(normalized.primaryType, normalized.secondaryType),
   };
 
-  pokemonDetailCache.set(slug, detail);
-  pokemonDetailCache.set(detail.slug, detail);
+  cachePokemonDetail([slug, requestedKey, detail.slug], detail);
   return detail;
 }
