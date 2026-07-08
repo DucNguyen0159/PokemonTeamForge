@@ -38,8 +38,13 @@ export function useChampionsCommunityList(
     queryKey: communityListQueryKey(sort, format),
     queryFn: () => listCommunityChampionsTeams({ sort, format }),
     staleTime: 60_000,
-    retry: (failureCount, error) =>
-      failureCount < 1 && !(error instanceof Error && error.message.includes("sign in")),
+    retry: (failureCount, error) => {
+      if (error instanceof Error && error.message.includes("sign in")) {
+        return false;
+      }
+      return failureCount < 2 && isRetryableSupabaseError(error);
+    },
+    retryDelay: (attempt) => Math.min(750 * 2 ** attempt, 3_000),
   });
 }
 
