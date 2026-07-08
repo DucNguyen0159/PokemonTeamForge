@@ -9,54 +9,63 @@ export const POKEMON_SPRITE_BUCKET = "pokemon-sprites";
 
 const HOSTED_SPRITE_PATH = `/storage/v1/object/public/${POKEMON_SPRITE_BUCKET}/`;
 const GITHUB_SPRITE_PREFIX = "https://raw.githubusercontent.com/PokeAPI/sprites/master/";
-const JSDELIVR_SPRITE_PREFIX = "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/";
 
-export function toPokemonSpriteDownloadUrls(sourceUrl) {
+export function toPokemonSpriteDownloadUrls(sourceUrl, { slug, speciesSlug } = {}) {
   if (!sourceUrl) {
     return [];
   }
 
-  if (sourceUrl.startsWith(GITHUB_SPRITE_PREFIX)) {
-    return [sourceUrl.replace(GITHUB_SPRITE_PREFIX, JSDELIVR_SPRITE_PREFIX)];
+  const pathSuffix = sourceUrl.includes("/PokeAPI/sprites/master/")
+    ? sourceUrl.split("/PokeAPI/sprites/master/")[1]
+    : null;
+
+  if (!pathSuffix) {
+    return [sourceUrl];
   }
 
-  if (sourceUrl.includes("raw.githubusercontent.com/PokeAPI/sprites/")) {
-    return [
-      sourceUrl.replace(
-        "https://raw.githubusercontent.com/PokeAPI/sprites/master/",
-        JSDELIVR_SPRITE_PREFIX,
-      ),
-    ];
+  const urls = ["cdn.jsdelivr.net", "fastly.jsdelivr.net", "gcore.jsdelivr.net"].map(
+    (host) => `https://${host}/gh/PokeAPI/sprites@master/${pathSuffix}`,
+  );
+
+  urls.push(`${GITHUB_SPRITE_PREFIX}${pathSuffix}`);
+
+  if (slug && !pathSuffix.includes("/shiny/")) {
+    const dbSlug = (speciesSlug || slug).toLowerCase();
+    urls.push(`https://img.pokemondb.net/artwork/large/${dbSlug}.jpg`);
   }
 
-  return [sourceUrl];
+  return [...new Set(urls)];
 }
 
-const RETRYABLE_SPRITE_STATUSES = new Set([403, 429, 503]);
-
-async function downloadSpriteSource(sourceUrl, slug, variant) {
-  const candidates = toPokemonSpriteDownloadUrls(sourceUrl);
+async function downloadSpriteSource(sourceUrl, slug, variant, meta = {}) {
+  const candidates = toPokemonSpriteDownloadUrls(sourceUrl, meta);
 
   for (const candidateUrl of candidates) {
-    for (let attempt = 0; attempt < 8; attempt += 1) {
+    const host = new URL(candidateUrl).hostname;
+    const isJsDelivr = host.endsWith("jsdelivr.net");
+    const maxAttempts = isJsDelivr ? 1 : 3;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const response = await fetch(candidateUrl);
       if (response.ok) {
         return response;
       }
 
-      if (RETRYABLE_SPRITE_STATUSES.has(response.status)) {
-        const delayMs = Math.min(60_000, 1_000 * 2 ** attempt);
-        const host = new URL(candidateUrl).hostname;
+      if (response.status === 403) {
+        console.warn(`[sprite] 403 for ${slug}/${variant} via ${host}, trying next mirror`);
+        break;
+      }
+
+      if (response.status === 429 || response.status === 503) {
+        const delayMs = Math.min(8_000, 1_000 * 2 ** attempt);
         console.warn(
-          `[sprite] ${response.status} for ${slug}/${variant} via ${host}, retrying in ${delayMs}ms (attempt ${attempt + 1}/8)`,
+          `[sprite] ${response.status} for ${slug}/${variant} via ${host}, retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxAttempts})`,
         );
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         continue;
       }
 
-      console.warn(
-        `[sprite] ${response.status} for ${slug}/${variant} via ${new URL(candidateUrl).hostname}`,
-      );
+      console.warn(`[sprite] ${response.status} for ${slug}/${variant} via ${host}`);
       break;
     }
   }
@@ -91,7 +100,7 @@ export function isHostedPokemonSpriteUrl(url) {
 
 export async function uploadPokemonSprite(
   supabase,
-  { slug, variant, sourceUrl },
+  { slug, variant, sourceUrl, speciesSlug },
   args,
 ) {
   if (!sourceUrl) {
@@ -111,7 +120,7 @@ export async function uploadPokemonSprite(
     }
   }
 
-  let response = await downloadSpriteSource(sourceUrl, slug, variant);
+  let response = await downloadSpriteSource(sourceUrl, slug, variant, { speciesSlug, slug });
 
   if (!response?.ok) {
     console.warn(
@@ -146,14 +155,14 @@ export async function hydratePokemonRowSpriteUrl(supabase, row, args) {
 
   row.sprite_normal_url = await uploadPokemonSprite(
     supabase,
-    { slug: row.slug, variant: "normal", sourceUrl: normalSource },
+    { slug: row.slug, variant: "normal", sourceUrl: normalSource, speciesSlug: row.species_slug },
     args,
   );
 
   if (shinySource && args.includeShinySprites) {
     row.sprite_shiny_url = await uploadPokemonSprite(
       supabase,
-      { slug: row.slug, variant: "shiny", sourceUrl: shinySource },
+      { slug: row.slug, variant: "shiny", sourceUrl: shinySource, speciesSlug: row.species_slug },
       args,
     );
   }
@@ -194,7 +203,7 @@ export async function hydratePokemonRowSpriteUrls(supabase, pokemonRows, args) {
       console.log(`Uploaded/hosted sprites for ${index + 1}/${pokemonRows.length} Pokemon.`);
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    await new Promise((resolve) => setTimeout(resolve, 900));
   }
 
   return { uploaded, skipped, failed };

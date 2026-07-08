@@ -501,7 +501,7 @@ async function main() {
       if (!args.dryRun && supabase) {
         for (const row of rows.pokemonRows) {
           await hydratePokemonRowSpriteUrl(supabase, row, args);
-          await new Promise((resolve) => setTimeout(resolve, 350));
+          await new Promise((resolve) => setTimeout(resolve, 900));
         }
       }
 
