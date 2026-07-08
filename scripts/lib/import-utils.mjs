@@ -5,6 +5,132 @@ import { createClient } from "@supabase/supabase-js";
 
 export const POKEAPI_BASE_URL = "https://pokeapi.co/api/v2";
 export const ITEM_ICON_BUCKET = "item-icons";
+export const POKEMON_SPRITE_BUCKET = "pokemon-sprites";
+
+const HOSTED_SPRITE_PATH = `/storage/v1/object/public/${POKEMON_SPRITE_BUCKET}/`;
+
+export function pickPokeApiSpriteUrl(pokemon, variant = "normal") {
+  const officialArtwork = pokemon.sprites?.other?.["official-artwork"];
+  const home = pokemon.sprites?.other?.home;
+  if (variant === "shiny") {
+    return officialArtwork?.front_shiny ?? home?.front_shiny ?? pokemon.sprites?.front_shiny ?? "";
+  }
+
+  return officialArtwork?.front_default ?? home?.front_default ?? pokemon.sprites?.front_default ?? "";
+}
+
+export function isHostedPokemonSpriteUrl(url) {
+  return Boolean(url && url.includes(HOSTED_SPRITE_PATH));
+}
+
+export async function uploadPokemonSprite(
+  supabase,
+  { slug, variant, sourceUrl },
+  args,
+) {
+  if (!sourceUrl) {
+    return "";
+  }
+
+  if (args.dryRun) {
+    return sourceUrl;
+  }
+
+  const storagePath = `${slug}/${variant}.png`;
+  const { data: existingPublicUrl } = supabase.storage
+    .from(POKEMON_SPRITE_BUCKET)
+    .getPublicUrl(storagePath);
+
+  if (!args.force && existingPublicUrl.publicUrl && isHostedPokemonSpriteUrl(existingPublicUrl.publicUrl)) {
+    const headResponse = await fetch(existingPublicUrl.publicUrl, { method: "HEAD" });
+    if (headResponse.ok) {
+      return existingPublicUrl.publicUrl;
+    }
+  }
+
+  let response = null;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    response = await fetch(sourceUrl);
+    if (response.ok) {
+      break;
+    }
+
+    if (response.status === 429 || response.status === 503) {
+      const delayMs = Math.min(30_000, 750 * 2 ** attempt);
+      console.warn(
+        `[sprite] ${response.status} for ${slug}/${variant}, retrying in ${delayMs}ms (attempt ${attempt + 1}/6)`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      continue;
+    }
+
+    break;
+  }
+
+  if (!response?.ok) {
+    console.warn(
+      `[sprite] Download failed (${response?.status ?? "unknown"}) for ${slug}/${variant}: ${sourceUrl}`,
+    );
+    return sourceUrl;
+  }
+
+  const contentType = response.headers.get("content-type") || "image/png";
+  const body = await response.arrayBuffer();
+
+  const { error } = await supabase.storage.from(POKEMON_SPRITE_BUCKET).upload(storagePath, body, {
+    contentType,
+    upsert: args.force,
+  });
+
+  if (error && !String(error.message).toLowerCase().includes("already exists")) {
+    throw error;
+  }
+
+  const { data } = supabase.storage.from(POKEMON_SPRITE_BUCKET).getPublicUrl(storagePath);
+  return data.publicUrl || sourceUrl;
+}
+
+export async function hydratePokemonRowSpriteUrls(supabase, pokemonRows, args) {
+  if (args.dryRun) {
+    return { uploaded: 0, skipped: pokemonRows.length };
+  }
+
+  let uploaded = 0;
+  let skipped = 0;
+
+  for (const [index, row] of pokemonRows.entries()) {
+    const normalSource = row.sprite_normal_url;
+    const shinySource = row.sprite_shiny_url;
+
+    if (isHostedPokemonSpriteUrl(normalSource) && (!shinySource || isHostedPokemonSpriteUrl(shinySource))) {
+      skipped += 1;
+    } else {
+      row.sprite_normal_url = await uploadPokemonSprite(
+        supabase,
+        { slug: row.slug, variant: "normal", sourceUrl: normalSource },
+        args,
+      );
+      if (shinySource) {
+        row.sprite_shiny_url = await uploadPokemonSprite(
+          supabase,
+          { slug: row.slug, variant: "shiny", sourceUrl: shinySource },
+          args,
+        );
+      }
+      uploaded += 1;
+    }
+
+    if ((index + 1) % 25 === 0 || index === pokemonRows.length - 1) {
+      console.log(`Uploaded/hosted sprites for ${index + 1}/${pokemonRows.length} Pokemon.`);
+    }
+
+    if ((index + 1) % 10 === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+
+  return { uploaded, skipped };
+}
 
 function parseEnvLine(line) {
   const trimmed = line.trim();

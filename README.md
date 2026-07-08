@@ -110,7 +110,7 @@ PokemonTeamForge uses Supabase for catalog data (Pokédex, abilities, moves, ite
 |------:|------|---------|
 | 1 | `supabase/auth-saved-teams.sql` | Profiles, teams, team slots, RLS for per-user cloud sync |
 | 2 | `supabase/app-data.sql` | Public catalog tables (`pokemon`, `abilities`, `moves`, `items`, …) |
-| 3 | `supabase/app-storage.sql` | Storage bucket `item-icons` (public read for item sprites) |
+| 3 | `supabase/app-storage.sql` | Storage buckets `item-icons` and `pokemon-sprites` (public read) |
 | 4 | `supabase/pokemon-forms.sql` | Form columns on `pokemon` (Mega, G-Max, regional grouping, Pokédex sort) |
 | 5 | `supabase/evolution-chains.sql` | `evolution_chains` table + `pokemon.evolution_chain_id` for detail pages |
 
@@ -134,6 +134,8 @@ supabase/champions-mega-stones.sql
 ```
 
 **Existing project that only ran steps 1–3?** Run files 4 and 5, then Champions files 6–8 if using Champions, then `notify pgrst`, then re-run import + validate so form metadata and evolution data populate.
+
+**Existing project missing self-hosted Pokemon sprites?** Run `supabase/pokemon-sprites-storage.sql` (or re-run `app-storage.sql` if setting up fresh), then `npm run import:pokemon-data -- --force`, then `npm run import:champion-presets`, then `npm run check:sprite-hosts -- --strict`.
 
 ### Reload schema (after any SQL change)
 
@@ -201,6 +203,7 @@ The app calls this RPC with the anon key only. Do not put `SUPABASE_SERVICE_ROLE
 | Cannot star a published team | By design if it is **your** team — stars are for other trainers' teams only |
 | Mega stones missing in Champions Builder | Run `champions-mega-stones.sql`, restart dev server |
 | “Team unavailable” on old community URL | Re-seed changes team IDs — open team from `/champions/community` grid |
+| Missing / flickering Pokemon sprites (HTTP 429 on GitHub) | Run `pokemon-sprites-storage.sql`, `npm run import:pokemon-data -- --force`, `npm run import:champion-presets`, redeploy with `NEXT_PUBLIC_SUPABASE_URL` set at build time |
 
 ## Available Scripts
 
@@ -216,6 +219,7 @@ npm run import:all-data
 npm run validate:supabase-data
 npm run download:masters-trainers
 npm run check:mega-stones
+npm run check:sprite-hosts
 npm run import:champion-presets
 npm run seed:champions-community
 ```

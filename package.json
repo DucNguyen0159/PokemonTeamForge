@@ -14,6 +14,7 @@
     "import:all-data": "node scripts/import-all-data.mjs",
     "validate:supabase-data": "node scripts/validate-supabase-data.mjs",
     "check:mega-stones": "node scripts/check-mega-stone-consistency.mjs",
+    "check:sprite-hosts": "node scripts/check-sprite-url-hosts.mjs",
     "import:champion-presets": "node scripts/import-champion-presets.mjs",
     "seed:champions-community": "node scripts/seed-champions-community.mjs",
     "audit:mega-abilities": "node scripts/audit-mega-abilities.mjs"

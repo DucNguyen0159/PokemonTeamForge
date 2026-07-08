@@ -2,7 +2,8 @@
  * Imports PokéAPI Pokemon, ability, move, and join data into Supabase.
  *
  * Prerequisites:
- *   Run supabase/pokemon-forms.sql in Supabase, then:
+ *   Run supabase/pokemon-forms.sql and ensure pokemon-sprites storage exists
+ *   (supabase/app-storage.sql or supabase/pokemon-sprites-storage.sql), then:
  *   notify pgrst, 'reload schema';
  *
  * Usage:
@@ -15,7 +16,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
-import { parseCommonArgs, pokeApiGet, runImport } from "./lib/import-utils.mjs";
+import { parseCommonArgs, pokeApiGet, runImport, pickPokeApiSpriteUrl, hydratePokemonRowSpriteUrls } from "./lib/import-utils.mjs";
 import { applyPokemonFormMetadata } from "./lib/pokemon-form-metadata.mjs";
 import { resolveEffectiveMoveSlugs } from "./lib/showdown-learnset-resolver.mjs";
 
@@ -80,13 +81,7 @@ function getGenerationNumber(generationName) {
 }
 
 function pickPokeApiSprite(pokemon, variant) {
-  const officialArtwork = pokemon.sprites?.other?.["official-artwork"];
-  const home = pokemon.sprites?.other?.home;
-  if (variant === "shiny") {
-    return officialArtwork?.front_shiny ?? home?.front_shiny ?? pokemon.sprites?.front_shiny ?? "";
-  }
-
-  return officialArtwork?.front_default ?? home?.front_default ?? pokemon.sprites?.front_default ?? "";
+  return pickPokeApiSpriteUrl(pokemon, variant);
 }
 
 function getEnglishAbilityDescription(ability) {
@@ -517,6 +512,14 @@ async function main() {
     );
     applyPokemonFormMetadata(aggregate.pokemonRows);
     const pokemonIds = aggregate.pokemonRows.map((row) => row.id);
+
+    if (!args.dryRun) {
+      console.log("Uploading Pokemon sprites to Supabase Storage...");
+      const spriteStats = await hydratePokemonRowSpriteUrls(supabase, aggregate.pokemonRows, args);
+      console.log(
+        `Sprite upload complete: ${spriteStats.uploaded} uploaded/refreshed, ${spriteStats.skipped} already hosted.`,
+      );
+    }
 
     const evolutionChainRows = await buildEvolutionChainRows(aggregate.pokemonRows, caches);
 
