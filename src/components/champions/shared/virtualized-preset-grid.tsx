@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import { cn } from "@/utils";
 
-const ROW_HEIGHT_ESTIMATE = 460;
+const ROW_HEIGHT_ESTIMATE = 720;
 const OVERSCAN_ROWS = 2;
-const VIRTUALIZE_THRESHOLD = 30;
+// Preset cards are taller than a fixed row estimate; keep virtualization off until dynamic measure exists.
+const VIRTUALIZE_THRESHOLD = 48;
 
 function useColumnCount(breakpoint = 1024) {
   const [columns, setColumns] = useState(1);

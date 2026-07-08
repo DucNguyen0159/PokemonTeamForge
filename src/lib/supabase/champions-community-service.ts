@@ -164,6 +164,10 @@ async function fetchResolvedSlotRefs(rows: CommunityTeamPokemonRow[]): Promise<R
       : Promise.resolve({ data: [], error: null }),
   ]);
 
+  if (pokemonResult.error) {
+    throw pokemonResult.error;
+  }
+
   (pokemonResult.data as Array<{ id: number; name: string; sprite_normal_url: string | null }> | null)?.forEach(
     (pokemon) => {
       pokemonById.set(pokemon.id, { name: pokemon.name, sprite_normal_url: pokemon.sprite_normal_url });
@@ -362,12 +366,7 @@ export async function listCommunityChampionsTeams(options?: {
     const teamIds = rows.map((row) => row.id);
     const allPokemonRows = rows.flatMap((row) => row.team_pokemon ?? []);
 
-    const refs = await safe(fetchResolvedSlotRefs(allPokemonRows), {
-      pokemonById: new Map(),
-      abilityById: new Map(),
-      itemById: new Map(),
-      moveById: new Map(),
-    });
+    const refs = await fetchResolvedSlotRefs(allPokemonRows);
 
     const [starCounts, commentCounts, battlePlanCounts, userStarSet, usernames] = await Promise.all([
       safe(fetchStarCounts(teamIds), new Map<string, number>()),
@@ -440,12 +439,7 @@ export async function getCommunityChampionsTeamById(
     };
 
     const pokemonRows = row.team_pokemon ?? [];
-    const refs = await safe(fetchResolvedSlotRefs(pokemonRows), {
-      pokemonById: new Map(),
-      abilityById: new Map(),
-      itemById: new Map(),
-      moveById: new Map(),
-    });
+    const refs = await fetchResolvedSlotRefs(pokemonRows);
 
     const [starCounts, commentCounts, userStarSet, comments, usernames, battlePlans] =
       await Promise.all([
