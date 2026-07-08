@@ -8,6 +8,72 @@ export const ITEM_ICON_BUCKET = "item-icons";
 export const POKEMON_SPRITE_BUCKET = "pokemon-sprites";
 
 const HOSTED_SPRITE_PATH = `/storage/v1/object/public/${POKEMON_SPRITE_BUCKET}/`;
+const GITHUB_SPRITE_PREFIX = "https://raw.githubusercontent.com/PokeAPI/sprites/master/";
+const JSDELIVR_SPRITE_PREFIX = "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/";
+
+export function toPokemonSpriteDownloadUrls(sourceUrl) {
+  if (!sourceUrl) {
+    return [];
+  }
+
+  if (sourceUrl.startsWith(GITHUB_SPRITE_PREFIX)) {
+    return [sourceUrl.replace(GITHUB_SPRITE_PREFIX, JSDELIVR_SPRITE_PREFIX)];
+  }
+
+  if (sourceUrl.includes("raw.githubusercontent.com/PokeAPI/sprites/")) {
+    return [
+      sourceUrl.replace(
+        "https://raw.githubusercontent.com/PokeAPI/sprites/master/",
+        JSDELIVR_SPRITE_PREFIX,
+      ),
+    ];
+  }
+
+  return [sourceUrl];
+}
+
+const RETRYABLE_SPRITE_STATUSES = new Set([403, 429, 503]);
+
+async function downloadSpriteSource(sourceUrl, slug, variant) {
+  const candidates = toPokemonSpriteDownloadUrls(sourceUrl);
+
+  for (const candidateUrl of candidates) {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const response = await fetch(candidateUrl);
+      if (response.ok) {
+        return response;
+      }
+
+      if (RETRYABLE_SPRITE_STATUSES.has(response.status)) {
+        const delayMs = Math.min(60_000, 1_000 * 2 ** attempt);
+        const host = new URL(candidateUrl).hostname;
+        console.warn(
+          `[sprite] ${response.status} for ${slug}/${variant} via ${host}, retrying in ${delayMs}ms (attempt ${attempt + 1}/8)`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+
+      console.warn(
+        `[sprite] ${response.status} for ${slug}/${variant} via ${new URL(candidateUrl).hostname}`,
+      );
+      break;
+    }
+  }
+
+  return null;
+}
+
+async function getStoredSpritePublicUrl(supabase, slug, variant) {
+  const storagePath = `${slug}/${variant}.png`;
+  const { data } = supabase.storage.from(POKEMON_SPRITE_BUCKET).getPublicUrl(storagePath);
+  if (!data.publicUrl || !isHostedPokemonSpriteUrl(data.publicUrl)) {
+    return null;
+  }
+
+  const headResponse = await fetch(data.publicUrl, { method: "HEAD" });
+  return headResponse.ok ? data.publicUrl : null;
+}
 
 export function pickPokeApiSpriteUrl(pokemon, variant = "normal") {
   const officialArtwork = pokemon.sprites?.other?.["official-artwork"];
@@ -37,35 +103,15 @@ export async function uploadPokemonSprite(
   }
 
   const storagePath = `${slug}/${variant}.png`;
-  const { data: existingPublicUrl } = supabase.storage
-    .from(POKEMON_SPRITE_BUCKET)
-    .getPublicUrl(storagePath);
 
-  if (!args.force && existingPublicUrl.publicUrl && isHostedPokemonSpriteUrl(existingPublicUrl.publicUrl)) {
-    const headResponse = await fetch(existingPublicUrl.publicUrl, { method: "HEAD" });
-    if (headResponse.ok) {
-      return existingPublicUrl.publicUrl;
+  if (!args.refreshSprites) {
+    const existingHostedUrl = await getStoredSpritePublicUrl(supabase, slug, variant);
+    if (existingHostedUrl) {
+      return existingHostedUrl;
     }
   }
 
-  let response = null;
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    response = await fetch(sourceUrl);
-    if (response.ok) {
-      break;
-    }
-
-    if (response.status === 429 || response.status === 503) {
-      const delayMs = Math.min(30_000, 750 * 2 ** attempt);
-      console.warn(
-        `[sprite] ${response.status} for ${slug}/${variant}, retrying in ${delayMs}ms (attempt ${attempt + 1}/6)`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-      continue;
-    }
-
-    break;
-  }
+  let response = await downloadSpriteSource(sourceUrl, slug, variant);
 
   if (!response?.ok) {
     console.warn(
@@ -79,7 +125,7 @@ export async function uploadPokemonSprite(
 
   const { error } = await supabase.storage.from(POKEMON_SPRITE_BUCKET).upload(storagePath, body, {
     contentType,
-    upsert: args.force,
+    upsert: true,
   });
 
   if (error && !String(error.message).toLowerCase().includes("already exists")) {
@@ -90,46 +136,68 @@ export async function uploadPokemonSprite(
   return data.publicUrl || sourceUrl;
 }
 
+export async function hydratePokemonRowSpriteUrl(supabase, row, args) {
+  const normalSource = row.sprite_normal_url;
+  const shinySource = row.sprite_shiny_url;
+
+  if (isHostedPokemonSpriteUrl(normalSource)) {
+    return "skipped";
+  }
+
+  row.sprite_normal_url = await uploadPokemonSprite(
+    supabase,
+    { slug: row.slug, variant: "normal", sourceUrl: normalSource },
+    args,
+  );
+
+  if (shinySource && args.includeShinySprites) {
+    row.sprite_shiny_url = await uploadPokemonSprite(
+      supabase,
+      { slug: row.slug, variant: "shiny", sourceUrl: shinySource },
+      args,
+    );
+  }
+
+  return isHostedPokemonSpriteUrl(row.sprite_normal_url) ? "uploaded" : "failed";
+}
+
 export async function hydratePokemonRowSpriteUrls(supabase, pokemonRows, args) {
   if (args.dryRun) {
-    return { uploaded: 0, skipped: pokemonRows.length };
+    return { uploaded: 0, skipped: pokemonRows.length, failed: 0 };
   }
 
   let uploaded = 0;
   let skipped = 0;
+  let failed = 0;
 
   for (const [index, row] of pokemonRows.entries()) {
     const normalSource = row.sprite_normal_url;
     const shinySource = row.sprite_shiny_url;
 
-    if (isHostedPokemonSpriteUrl(normalSource) && (!shinySource || isHostedPokemonSpriteUrl(shinySource))) {
+    if (
+      isHostedPokemonSpriteUrl(normalSource) &&
+      (!args.includeShinySprites || !shinySource || isHostedPokemonSpriteUrl(shinySource))
+    ) {
       skipped += 1;
     } else {
-      row.sprite_normal_url = await uploadPokemonSprite(
-        supabase,
-        { slug: row.slug, variant: "normal", sourceUrl: normalSource },
-        args,
-      );
-      if (shinySource) {
-        row.sprite_shiny_url = await uploadPokemonSprite(
-          supabase,
-          { slug: row.slug, variant: "shiny", sourceUrl: shinySource },
-          args,
-        );
+      const result = await hydratePokemonRowSpriteUrl(supabase, row, args);
+      if (result === "skipped") {
+        skipped += 1;
+      } else if (result === "uploaded") {
+        uploaded += 1;
+      } else {
+        failed += 1;
       }
-      uploaded += 1;
     }
 
     if ((index + 1) % 25 === 0 || index === pokemonRows.length - 1) {
       console.log(`Uploaded/hosted sprites for ${index + 1}/${pokemonRows.length} Pokemon.`);
     }
 
-    if ((index + 1) % 10 === 0) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
+    await new Promise((resolve) => setTimeout(resolve, 400));
   }
 
-  return { uploaded, skipped };
+  return { uploaded, skipped, failed };
 }
 
 function parseEnvLine(line) {
@@ -179,6 +247,8 @@ export function parseCommonArgs(argv = process.argv) {
     dryRun: false,
     limit: Infinity,
     force: false,
+    includeShinySprites: false,
+    refreshSprites: false,
   };
 
   for (let index = 2; index < argv.length; index += 1) {
@@ -187,6 +257,10 @@ export function parseCommonArgs(argv = process.argv) {
       args.dryRun = true;
     } else if (arg === "--force") {
       args.force = true;
+    } else if (arg === "--include-shiny-sprites") {
+      args.includeShinySprites = true;
+    } else if (arg === "--refresh-sprites") {
+      args.refreshSprites = true;
     } else if (arg === "--limit" && argv[index + 1]) {
       args.limit = Number(argv[index + 1]);
       index += 1;

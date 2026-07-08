@@ -9,6 +9,9 @@
  * Usage:
  *   node scripts/import-pokemon-data.mjs --dry-run --limit 20
  *   npm run import:pokemon-data
+ *   npm run import:pokemon-data -- --force
+ *   npm run import:pokemon-data -- --force --refresh-sprites
+ *   npm run import:pokemon-data -- --force --include-shiny-sprites
  *   npm run validate:supabase-data
  */
 
@@ -16,7 +19,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
-import { parseCommonArgs, pokeApiGet, runImport, pickPokeApiSpriteUrl, hydratePokemonRowSpriteUrls } from "./lib/import-utils.mjs";
+import { parseCommonArgs, pokeApiGet, runImport, pickPokeApiSpriteUrl, hydratePokemonRowSpriteUrl, hydratePokemonRowSpriteUrls, isHostedPokemonSpriteUrl } from "./lib/import-utils.mjs";
 import { applyPokemonFormMetadata } from "./lib/pokemon-form-metadata.mjs";
 import { resolveEffectiveMoveSlugs } from "./lib/showdown-learnset-resolver.mjs";
 
@@ -495,6 +498,13 @@ async function main() {
       }
       aggregate.learnsetStats.unresolvedShowdownMoveIds += rows.learnsetResolution.unresolvedShowdownMoveIds;
 
+      if (!args.dryRun && supabase) {
+        for (const row of rows.pokemonRows) {
+          await hydratePokemonRowSpriteUrl(supabase, row, args);
+          await new Promise((resolve) => setTimeout(resolve, 350));
+        }
+      }
+
       if ((index + 1) % 10 === 0 || index === refs.length - 1) {
         console.log(`Prepared ${index + 1}/${refs.length} Pokemon.`);
       }
@@ -514,11 +524,18 @@ async function main() {
     const pokemonIds = aggregate.pokemonRows.map((row) => row.id);
 
     if (!args.dryRun) {
-      console.log("Uploading Pokemon sprites to Supabase Storage...");
-      const spriteStats = await hydratePokemonRowSpriteUrls(supabase, aggregate.pokemonRows, args);
-      console.log(
-        `Sprite upload complete: ${spriteStats.uploaded} uploaded/refreshed, ${spriteStats.skipped} already hosted.`,
+      const pendingSpriteRows = aggregate.pokemonRows.filter(
+        (row) => !isHostedPokemonSpriteUrl(row.sprite_normal_url),
       );
+      if (pendingSpriteRows.length > 0) {
+        console.log(`Retrying ${pendingSpriteRows.length} sprites that are not hosted yet...`);
+        const spriteStats = await hydratePokemonRowSpriteUrls(supabase, pendingSpriteRows, args);
+        console.log(
+          `Sprite upload complete: ${spriteStats.uploaded} uploaded, ${spriteStats.skipped} skipped, ${spriteStats.failed} failed.`,
+        );
+      } else {
+        console.log("All Pokemon sprites are already hosted in Supabase Storage.");
+      }
     }
 
     const evolutionChainRows = await buildEvolutionChainRows(aggregate.pokemonRows, caches);
