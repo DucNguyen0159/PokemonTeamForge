@@ -5,7 +5,7 @@
 ```text
 1. supabase/auth-saved-teams.sql
 2. supabase/app-data.sql
-3. supabase/app-storage.sql
+3. supabase/app-storage.sql          (item-icons + pokemon-sprites buckets)
 4. supabase/pokemon-forms.sql         (after app-data)
 5. supabase/evolution-chains.sql      (after app-data)
 6. supabase/champions-extension.sql   (Champions mode, battle plans, stars, comments)
@@ -13,11 +13,15 @@
 8. supabase/champions-mega-stones.sql (Mega Dimension stone items)
 ```
 
+Standalone (existing projects missing sprite bucket only): `supabase/pokemon-sprites-storage.sql`
+
 Then: `notify pgrst, 'reload schema';`
 
 Import: `npm run import:all-data` → validate: `npm run validate:supabase-data`
 
-Optional Champions: `npm run import:champion-presets`, `npm run seed:champions-community` (dev QA, needs service role key)
+Sprite self-hosting (after step 3): `npm run import:pokemon-data -- --force` → optional `npm run fix:missing-sprites` → `npm run check:sprite-hosts -- --strict`
+
+Optional Champions: `npm run import:champion-presets` (after hosted sprites), `npm run seed:champions-community` (dev QA, needs service role key)
 
 ## Tables
 
@@ -61,9 +65,14 @@ RLS: users read/write own team rows; public can read `mode = 'champions' AND is_
 - `evolution_chains` + `pokemon.evolution_chain_id`
 - Form columns: `form_kind`, `base_slug`, `pokedex_display_no`, `list_sort_rank`
 
-### Storage (`app-storage.sql`)
+### Storage (`app-storage.sql` / `pokemon-sprites-storage.sql`)
 
-- Bucket `item-icons` — public read for item sprites
+| Bucket | Purpose |
+|--------|---------|
+| `item-icons` | Public read; item sprites uploaded by `import:item-data` |
+| `pokemon-sprites` | Public read; Pokémon artwork uploaded by `import:pokemon-data` (`{slug}/normal.png`) |
+
+`pokemon.sprite_normal_url` stores public Supabase Storage URLs after import. Avoid hotlinking `raw.githubusercontent.com` at runtime (rate limits).
 
 ## Static app data (`src/data/`)
 
@@ -71,7 +80,7 @@ Not in Postgres:
 
 - `strategy-teams.ts` — strategy presets
 - `champions-presets.ts` — 30 curated Champions teams + battle plans
-- `champions-preset-display.ts` — generated sprites/types for preset cards (from `import:champion-presets`)
+- `champions-preset-display.ts` — generated sprites/types for preset cards (from `import:champion-presets`, reads Supabase `pokemon` table)
 - `champions-mega-stones.ts` — Mega Dimension stone catalog (source of truth)
 - `champions-battle-plan-templates.ts` — quick-start plan templates
 - `ability-tags.ts`, `format-rules.ts`, `stat-tiers.ts`, `type-chart.ts`
@@ -82,20 +91,24 @@ Not in Postgres:
 | npm script | Script | Role |
 |------------|--------|------|
 | `import:all-data` | `import-all-data.mjs` | Items then Pokémon pipeline |
-| `import:pokemon-data` | `import-pokemon-data.mjs` | PokéAPI → catalog tables |
+| `import:pokemon-data` | `import-pokemon-data.mjs` | PokéAPI → catalog tables; uploads sprites to `pokemon-sprites` |
 | `import:item-data` | `import-item-data.mjs` | Items + storage icons |
 | `validate:supabase-data` | `validate-supabase-data.mjs` | Spot-check vs PokéAPI |
+| `check:sprite-hosts` | `check-sprite-url-hosts.mjs` | Verify `pokemon.sprite_normal_url` points at Supabase Storage |
+| `fix:missing-sprites` | `fix-missing-pokemon-sprites.mjs` | Copy base-species sprites for forms with no PokéAPI artwork |
 | `download:masters-trainers` | `download-pokemon-masters-trainers.mjs` | CC BY-NC-SA trainer sprites → `public/team-card/trainers/masters/` |
 | `check:mega-stones` | `check-mega-stone-consistency.mjs` | Champions mega stone catalog vs DB |
-| `import:champion-presets` | `import-champion-presets.mjs` | Regenerate `champions-preset-display.ts` |
+| `import:champion-presets` | `import-champion-presets.mjs` | Regenerate `champions-preset-display.ts` from Supabase |
 | `seed:champions-community` | `seed-champions-community.mjs` | 10 public dev community teams |
 
 Shared helpers: `scripts/lib/import-utils.mjs`, `pokemon-form-metadata.mjs`.
 
+`import:pokemon-data` flags: `--force` (refresh DB rows), `--refresh-sprites` (re-download all sprites), `--include-shiny-sprites` (optional shiny upload).
+
 ## External sources
 
 - **PokéAPI** — primary catalog import
-- **PokeAPI sprites** — referenced URLs
+- **PokeAPI sprites** — downloaded at import time, self-hosted in Supabase Storage
 - **Bulbagarden** — Masters trainer sprites (non-commercial; see manifest)
 - **Curated internal** — ability tags, recommendation weights, team card presets
 
