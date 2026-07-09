@@ -145,6 +145,34 @@ export async function uploadPokemonSprite(
   return data.publicUrl || sourceUrl;
 }
 
+export async function copyHostedPokemonSprite(supabase, { fromSlug, toSlug, variant = "normal" }) {
+  const fromPath = `${fromSlug}/${variant}.png`;
+  const toPath = `${toSlug}/${variant}.png`;
+
+  const { data: file, error: downloadError } = await supabase.storage
+    .from(POKEMON_SPRITE_BUCKET)
+    .download(fromPath);
+
+  if (downloadError) {
+    throw new Error(`Failed to read ${fromPath}: ${downloadError.message}`);
+  }
+
+  const body = await file.arrayBuffer();
+  const contentType = file.type || "image/png";
+
+  const { error: uploadError } = await supabase.storage.from(POKEMON_SPRITE_BUCKET).upload(toPath, body, {
+    contentType,
+    upsert: true,
+  });
+
+  if (uploadError) {
+    throw new Error(`Failed to write ${toPath}: ${uploadError.message}`);
+  }
+
+  const { data } = supabase.storage.from(POKEMON_SPRITE_BUCKET).getPublicUrl(toPath);
+  return data.publicUrl;
+}
+
 export async function hydratePokemonRowSpriteUrl(supabase, row, args) {
   const normalSource = row.sprite_normal_url;
   const shinySource = row.sprite_shiny_url;

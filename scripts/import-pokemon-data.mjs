@@ -350,6 +350,26 @@ function uniqueByComposite(rows, keyFn) {
   return Array.from(new Map(rows.map((row) => [keyFn(row), row])).values());
 }
 
+async function resolvePokemonSpriteUrls(rawPokemon, rawSpecies, caches) {
+  let spriteNormal = pickPokeApiSprite(rawPokemon, "normal");
+  let spriteShiny = pickPokeApiSprite(rawPokemon, "shiny") || null;
+
+  if ((!spriteNormal || !spriteShiny) && rawPokemon.name !== rawSpecies.name) {
+    const basePokemon = await fetchWithCache(caches.pokemon, `/pokemon/${rawSpecies.name}`);
+    if (!spriteNormal) {
+      spriteNormal = pickPokeApiSprite(basePokemon, "normal");
+    }
+    if (!spriteShiny) {
+      spriteShiny = pickPokeApiSprite(basePokemon, "shiny") || null;
+    }
+  }
+
+  return {
+    sprite_normal_url: spriteNormal,
+    sprite_shiny_url: spriteShiny,
+  };
+}
+
 async function fetchWithCache(cache, path) {
   if (cache.has(path)) {
     return cache.get(path);
@@ -401,6 +421,9 @@ async function buildPokemonImportRows(ref, caches, moveTags) {
     move_id: move.id,
   }));
   const pokemonRow = normalizePokemon(rawPokemon, rawSpecies, moveRows, isFullyEvolved);
+  const sprites = await resolvePokemonSpriteUrls(rawPokemon, rawSpecies, caches);
+  pokemonRow.sprite_normal_url = sprites.sprite_normal_url;
+  pokemonRow.sprite_shiny_url = sprites.sprite_shiny_url;
   const evolutionChainId = parseEvolutionChainId(rawSpecies.evolution_chain?.url);
   if (evolutionChainId && rawSpecies.evolution_chain?.url) {
     caches.evolutionChainUrls.set(evolutionChainId, rawSpecies.evolution_chain.url);
@@ -463,6 +486,7 @@ async function main() {
     const moveTags = await loadMoveTags();
     const caches = {
       species: new Map(),
+      pokemon: new Map(),
       evolutionChains: new Map(),
       evolutionChainUrls: new Map(),
       abilities: new Map(),
