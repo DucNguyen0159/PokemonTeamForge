@@ -110,7 +110,7 @@ PokemonTeamForge uses Supabase for catalog data (Pokédex, abilities, moves, ite
 |------:|------|---------|
 | 1 | `supabase/auth-saved-teams.sql` | Profiles, teams, team slots, RLS for per-user cloud sync |
 | 2 | `supabase/app-data.sql` | Public catalog tables (`pokemon`, `abilities`, `moves`, `items`, …) |
-| 3 | `supabase/app-storage.sql` | Storage bucket `item-icons` (public read for item sprites) |
+| 3 | `supabase/app-storage.sql` | Storage buckets `item-icons` and `pokemon-sprites` (public read) |
 | 4 | `supabase/pokemon-forms.sql` | Form columns on `pokemon` (Mega, G-Max, regional grouping, Pokédex sort) |
 | 5 | `supabase/evolution-chains.sql` | `evolution_chains` table + `pokemon.evolution_chain_id` for detail pages |
 
@@ -134,6 +134,10 @@ supabase/champions-mega-stones.sql
 ```
 
 **Existing project that only ran steps 1–3?** Run files 4 and 5, then Champions files 6–8 if using Champions, then `notify pgrst`, then re-run import + validate so form metadata and evolution data populate.
+
+**Existing project missing self-hosted Pokemon sprites?** Run `supabase/pokemon-sprites-storage.sql` (or re-run `app-storage.sql` if setting up fresh), then `npm run import:pokemon-data -- --force`, optionally `npm run fix:missing-sprites`, then `npm run import:champion-presets`, then `npm run check:sprite-hosts -- --strict`.
+
+`import:pokemon-data` uploads sprites to the `pokemon-sprites` bucket during import (~1–2 hours for a full catalog). Re-runs reuse files already in Storage unless you pass `--refresh-sprites`.
 
 ### Reload schema (after any SQL change)
 
@@ -185,8 +189,9 @@ The app calls this RPC with the anon key only. Do not put `SUPABASE_SERVICE_ROLE
 9. Run SQL files **6–8** (above), then `notify pgrst, 'reload schema';`.
 10. Restart dev server after mega-stones SQL (competitive items cache).
 11. `npm run check:mega-stones -- --strict` — stone catalog consistency.
-12. `npm run import:champion-presets` — regenerate preset sprite/type display data.
-13. `npm run seed:champions-community` — 10 public dev community teams (requires `SUPABASE_SERVICE_ROLE_KEY`).
+12. Ensure hosted sprites exist: `npm run import:pokemon-data -- --force` (if not done in step 5), then `npm run fix:missing-sprites` if any forms lack artwork.
+13. `npm run import:champion-presets` — regenerate preset sprite/type display data (requires step 12).
+14. `npm run seed:champions-community` — 10 public dev community teams (requires `SUPABASE_SERVICE_ROLE_KEY`).
 
 ### Troubleshooting (data)
 
@@ -201,6 +206,11 @@ The app calls this RPC with the anon key only. Do not put `SUPABASE_SERVICE_ROLE
 | Cannot star a published team | By design if it is **your** team — stars are for other trainers' teams only |
 | Mega stones missing in Champions Builder | Run `champions-mega-stones.sql`, restart dev server |
 | “Team unavailable” on old community URL | Re-seed changes team IDs — open team from `/champions/community` grid |
+| Missing / flickering Pokemon sprites (HTTP 429 on GitHub) | Run `pokemon-sprites-storage.sql`, `npm run import:pokemon-data -- --force`, `npm run fix:missing-sprites`, `npm run import:champion-presets`, redeploy with `NEXT_PUBLIC_SUPABASE_URL` set at **build time** (required for `next.config.ts` image host patterns) |
+
+### Deploy notes (Vercel)
+
+Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel env. `NEXT_PUBLIC_SUPABASE_URL` must be present at **build time** so Next.js allows Supabase Storage image URLs. Do not add `SUPABASE_SERVICE_ROLE_KEY` to Vercel client env.
 
 ## Available Scripts
 
@@ -216,6 +226,8 @@ npm run import:all-data
 npm run validate:supabase-data
 npm run download:masters-trainers
 npm run check:mega-stones
+npm run check:sprite-hosts
+npm run fix:missing-sprites
 npm run import:champion-presets
 npm run seed:champions-community
 ```
@@ -244,7 +256,10 @@ Validate Supabase catalog data:
 
 ```bash
 npm run validate:supabase-data
+npm run check:sprite-hosts -- --strict
 ```
+
+`check:sprite-hosts` uses Supabase's default row limit (1000). After a full import of ~1351 Pokémon rows, also spot-check the app or query remaining rows if strict passes but sprites are missing for newer forms.
 
 ## Project Structure
 
@@ -271,7 +286,7 @@ Project Design/          Frozen architecture reference (see README there)
 PokemonTeamForge combines imported public Pokemon data, curated battle metadata, and local app assets.
 
 - [PokeAPI](https://pokeapi.co/) is the primary source for Pokemon, species, stats, types, abilities, moves, items, descriptions, effects, and sprite or official artwork references.
-- [PokeAPI sprites](https://github.com/PokeAPI/sprites) are used where sprite image URLs reference the public PokeAPI sprite repository.
+- [PokeAPI sprites](https://github.com/PokeAPI/sprites) are downloaded during `import:pokemon-data` and self-hosted in Supabase Storage (`pokemon-sprites` bucket). Runtime sprite URLs point at Supabase, not GitHub hotlinks.
 - [Bulbagarden Archives](https://archives.bulbagarden.net/wiki/Category:Pok%C3%A9mon_Masters_Trainer_sprites) is used by the local trainer asset download script for Pokemon Masters trainer sprites. These assets are listed as CC BY-NC-SA 2.5 / non-commercial in the generated manifest.
 - Supabase stores imported catalog data used by the app at runtime.
 - PokemonTeamForge includes curated internal metadata for ability tags, move tags, strategy presets, recommendation scoring, Team Card presets, and home page preview examples.

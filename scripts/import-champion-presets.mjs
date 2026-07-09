@@ -8,6 +8,8 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { getSupabaseReadClient, isHostedPokemonSpriteUrl } from "./lib/import-utils.mjs";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 const mdPath = join(root, "champion_presets.md");
@@ -32,25 +34,48 @@ function resolvePokemonSlug(input) {
   return POKEMON_SLUG_ALIASES[normalized] ?? normalized;
 }
 
-async function fetchDisplayFromPokeApi(slug) {
-  const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${slug}`);
-  if (!response.ok) {
+async function fetchDisplayFromSupabase(supabase, slug) {
+  const columns = "slug, sprite_normal_url, primary_type, secondary_type";
+
+  let { data, error } = await supabase.from("pokemon").select(columns).eq("slug", slug).maybeSingle();
+
+  if (!data && !error) {
+    const fallback = await supabase
+      .from("pokemon")
+      .select(columns)
+      .eq("species_slug", slug)
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    data = fallback.data;
+    error = fallback.error;
+  }
+
+  if (error) {
+    console.warn(`  [warn] Supabase lookup failed for ${slug}: ${error.message}`);
     return null;
   }
-  const data = await response.json();
-  const spriteNormal =
-    data.sprites?.other?.["official-artwork"]?.front_default ??
-    data.sprites?.front_default ??
-    "";
+
+  if (!data?.sprite_normal_url) {
+    return null;
+  }
+
+  if (!isHostedPokemonSpriteUrl(data.sprite_normal_url)) {
+    console.warn(
+      `  [warn] ${slug} still uses external sprite URL — run npm run import:pokemon-data first`,
+    );
+  }
+
   return {
-    displaySlug: slug,
-    spriteNormal,
-    primaryType: data.types?.[0]?.type?.name ?? "normal",
-    secondaryType: data.types?.[1]?.type?.name ?? null,
+    displaySlug: data.slug,
+    spriteNormal: data.sprite_normal_url,
+    primaryType: data.primary_type ?? "normal",
+    secondaryType: data.secondary_type ?? null,
   };
 }
 
 async function buildSpeciesDisplayCache(allSpeciesNames) {
+  const supabase = getSupabaseReadClient();
   let cache = {};
   if (existsSync(displayCachePath)) {
     try {
@@ -62,10 +87,11 @@ async function buildSpeciesDisplayCache(allSpeciesNames) {
 
   const slugs = [...new Set(allSpeciesNames.map(resolvePokemonSlug).filter(Boolean))];
   for (const slug of slugs) {
-    if (cache[slug]?.spriteNormal) {
+    const cached = cache[slug];
+    if (cached?.spriteNormal && isHostedPokemonSpriteUrl(cached.spriteNormal)) {
       continue;
     }
-    const display = await fetchDisplayFromPokeApi(slug);
+    const display = await fetchDisplayFromSupabase(supabase, slug);
     if (display) {
       cache[slug] = display;
       console.log(`  [display] ${slug}`);
@@ -422,7 +448,7 @@ const allSpeciesNames = teams.flatMap((team) =>
 );
 
 async function main() {
-  console.log("Building preset species display cache (PokeAPI)...");
+  console.log("Building preset species display cache (Supabase pokemon table)...");
   const displayCache = await buildSpeciesDisplayCache(allSpeciesNames);
   const allSlugs = [...new Set(allSpeciesNames.map(resolvePokemonSlug).filter(Boolean))].sort();
   emitPresetDisplayFile(displayCache, allSlugs);

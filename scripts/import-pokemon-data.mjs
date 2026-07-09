@@ -2,12 +2,16 @@
  * Imports PokéAPI Pokemon, ability, move, and join data into Supabase.
  *
  * Prerequisites:
- *   Run supabase/pokemon-forms.sql in Supabase, then:
+ *   Run supabase/pokemon-forms.sql and ensure pokemon-sprites storage exists
+ *   (supabase/app-storage.sql or supabase/pokemon-sprites-storage.sql), then:
  *   notify pgrst, 'reload schema';
  *
  * Usage:
  *   node scripts/import-pokemon-data.mjs --dry-run --limit 20
  *   npm run import:pokemon-data
+ *   npm run import:pokemon-data -- --force
+ *   npm run import:pokemon-data -- --force --refresh-sprites
+ *   npm run import:pokemon-data -- --force --include-shiny-sprites
  *   npm run validate:supabase-data
  */
 
@@ -15,7 +19,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
-import { parseCommonArgs, pokeApiGet, runImport } from "./lib/import-utils.mjs";
+import { parseCommonArgs, pokeApiGet, runImport, pickPokeApiSpriteUrl, hydratePokemonRowSpriteUrl, hydratePokemonRowSpriteUrls, isHostedPokemonSpriteUrl } from "./lib/import-utils.mjs";
 import { applyPokemonFormMetadata } from "./lib/pokemon-form-metadata.mjs";
 import { resolveEffectiveMoveSlugs } from "./lib/showdown-learnset-resolver.mjs";
 
@@ -80,13 +84,7 @@ function getGenerationNumber(generationName) {
 }
 
 function pickPokeApiSprite(pokemon, variant) {
-  const officialArtwork = pokemon.sprites?.other?.["official-artwork"];
-  const home = pokemon.sprites?.other?.home;
-  if (variant === "shiny") {
-    return officialArtwork?.front_shiny ?? home?.front_shiny ?? pokemon.sprites?.front_shiny ?? "";
-  }
-
-  return officialArtwork?.front_default ?? home?.front_default ?? pokemon.sprites?.front_default ?? "";
+  return pickPokeApiSpriteUrl(pokemon, variant);
 }
 
 function getEnglishAbilityDescription(ability) {
@@ -352,6 +350,26 @@ function uniqueByComposite(rows, keyFn) {
   return Array.from(new Map(rows.map((row) => [keyFn(row), row])).values());
 }
 
+async function resolvePokemonSpriteUrls(rawPokemon, rawSpecies, caches) {
+  let spriteNormal = pickPokeApiSprite(rawPokemon, "normal");
+  let spriteShiny = pickPokeApiSprite(rawPokemon, "shiny") || null;
+
+  if ((!spriteNormal || !spriteShiny) && rawPokemon.name !== rawSpecies.name) {
+    const basePokemon = await fetchWithCache(caches.pokemon, `/pokemon/${rawSpecies.name}`);
+    if (!spriteNormal) {
+      spriteNormal = pickPokeApiSprite(basePokemon, "normal");
+    }
+    if (!spriteShiny) {
+      spriteShiny = pickPokeApiSprite(basePokemon, "shiny") || null;
+    }
+  }
+
+  return {
+    sprite_normal_url: spriteNormal,
+    sprite_shiny_url: spriteShiny,
+  };
+}
+
 async function fetchWithCache(cache, path) {
   if (cache.has(path)) {
     return cache.get(path);
@@ -403,6 +421,9 @@ async function buildPokemonImportRows(ref, caches, moveTags) {
     move_id: move.id,
   }));
   const pokemonRow = normalizePokemon(rawPokemon, rawSpecies, moveRows, isFullyEvolved);
+  const sprites = await resolvePokemonSpriteUrls(rawPokemon, rawSpecies, caches);
+  pokemonRow.sprite_normal_url = sprites.sprite_normal_url;
+  pokemonRow.sprite_shiny_url = sprites.sprite_shiny_url;
   const evolutionChainId = parseEvolutionChainId(rawSpecies.evolution_chain?.url);
   if (evolutionChainId && rawSpecies.evolution_chain?.url) {
     caches.evolutionChainUrls.set(evolutionChainId, rawSpecies.evolution_chain.url);
@@ -465,6 +486,7 @@ async function main() {
     const moveTags = await loadMoveTags();
     const caches = {
       species: new Map(),
+      pokemon: new Map(),
       evolutionChains: new Map(),
       evolutionChainUrls: new Map(),
       abilities: new Map(),
@@ -500,6 +522,13 @@ async function main() {
       }
       aggregate.learnsetStats.unresolvedShowdownMoveIds += rows.learnsetResolution.unresolvedShowdownMoveIds;
 
+      if (!args.dryRun && supabase) {
+        for (const row of rows.pokemonRows) {
+          await hydratePokemonRowSpriteUrl(supabase, row, args);
+          await new Promise((resolve) => setTimeout(resolve, 900));
+        }
+      }
+
       if ((index + 1) % 10 === 0 || index === refs.length - 1) {
         console.log(`Prepared ${index + 1}/${refs.length} Pokemon.`);
       }
@@ -517,6 +546,21 @@ async function main() {
     );
     applyPokemonFormMetadata(aggregate.pokemonRows);
     const pokemonIds = aggregate.pokemonRows.map((row) => row.id);
+
+    if (!args.dryRun) {
+      const pendingSpriteRows = aggregate.pokemonRows.filter(
+        (row) => !isHostedPokemonSpriteUrl(row.sprite_normal_url),
+      );
+      if (pendingSpriteRows.length > 0) {
+        console.log(`Retrying ${pendingSpriteRows.length} sprites that are not hosted yet...`);
+        const spriteStats = await hydratePokemonRowSpriteUrls(supabase, pendingSpriteRows, args);
+        console.log(
+          `Sprite upload complete: ${spriteStats.uploaded} uploaded, ${spriteStats.skipped} skipped, ${spriteStats.failed} failed.`,
+        );
+      } else {
+        console.log("All Pokemon sprites are already hosted in Supabase Storage.");
+      }
+    }
 
     const evolutionChainRows = await buildEvolutionChainRows(aggregate.pokemonRows, caches);
 
