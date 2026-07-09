@@ -1,517 +1,517 @@
 {
   "pelipper": {
     "displaySlug": "pelipper",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/279.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/pelipper/normal.png",
     "primaryType": "water",
     "secondaryType": "flying"
   },
   "swampert": {
     "displaySlug": "swampert",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/260.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/swampert/normal.png",
     "primaryType": "water",
     "secondaryType": "ground"
   },
   "kingdra": {
     "displaySlug": "kingdra",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/230.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/kingdra/normal.png",
     "primaryType": "water",
     "secondaryType": "dragon"
   },
   "ferrothorn": {
     "displaySlug": "ferrothorn",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/598.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/ferrothorn/normal.png",
     "primaryType": "grass",
     "secondaryType": "steel"
   },
   "incineroar": {
     "displaySlug": "incineroar",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/727.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/incineroar/normal.png",
     "primaryType": "fire",
     "secondaryType": "dark"
   },
   "archaludon": {
     "displaySlug": "archaludon",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1018.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/archaludon/normal.png",
     "primaryType": "steel",
     "secondaryType": "dragon"
   },
   "torkoal": {
     "displaySlug": "torkoal",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/324.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/torkoal/normal.png",
     "primaryType": "fire",
     "secondaryType": null
   },
   "venusaur": {
     "displaySlug": "venusaur",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/3.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/venusaur/normal.png",
     "primaryType": "grass",
     "secondaryType": "poison"
   },
   "charizard": {
     "displaySlug": "charizard",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/charizard/normal.png",
     "primaryType": "fire",
     "secondaryType": "flying"
   },
   "corviknight": {
     "displaySlug": "corviknight",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/823.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/corviknight/normal.png",
     "primaryType": "flying",
     "secondaryType": "steel"
   },
   "rillaboom": {
     "displaySlug": "rillaboom",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/812.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/rillaboom/normal.png",
     "primaryType": "grass",
     "secondaryType": null
   },
   "cinderace": {
     "displaySlug": "cinderace",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/815.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/cinderace/normal.png",
     "primaryType": "fire",
     "secondaryType": null
   },
   "hatterene": {
     "displaySlug": "hatterene",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/858.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/hatterene/normal.png",
     "primaryType": "psychic",
     "secondaryType": "fairy"
   },
   "amoonguss": {
     "displaySlug": "amoonguss",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/591.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/amoonguss/normal.png",
     "primaryType": "grass",
     "secondaryType": "poison"
   },
   "conkeldurr": {
     "displaySlug": "conkeldurr",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/534.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/conkeldurr/normal.png",
     "primaryType": "fighting",
     "secondaryType": null
   },
   "chandelure": {
     "displaySlug": "chandelure",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/609.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/chandelure/normal.png",
     "primaryType": "ghost",
     "secondaryType": "fire"
   },
   "dusclops": {
     "displaySlug": "dusclops",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/356.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/dusclops/normal.png",
     "primaryType": "ghost",
     "secondaryType": null
   },
   "tyranitar": {
     "displaySlug": "tyranitar",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/248.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/tyranitar/normal.png",
     "primaryType": "rock",
     "secondaryType": "dark"
   },
   "excadrill": {
     "displaySlug": "excadrill",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/530.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/excadrill/normal.png",
     "primaryType": "ground",
     "secondaryType": "steel"
   },
   "garchomp": {
     "displaySlug": "garchomp",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/445.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/garchomp/normal.png",
     "primaryType": "dragon",
     "secondaryType": "ground"
   },
   "hippowdon": {
     "displaySlug": "hippowdon",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/450.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/hippowdon/normal.png",
     "primaryType": "ground",
     "secondaryType": null
   },
   "rotom-wash": {
     "displaySlug": "rotom-wash",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10009.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/rotom-wash/normal.png",
     "primaryType": "electric",
     "secondaryType": "water"
   },
   "ninetales-alola": {
     "displaySlug": "ninetales-alola",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10104.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/ninetales-alola/normal.png",
     "primaryType": "ice",
     "secondaryType": "fairy"
   },
   "baxcalibur": {
-    "displaySlug": "baxcalibur",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/998.png",
+    "displaySlug": "baxcalibur-mega",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/baxcalibur-mega/normal.png",
     "primaryType": "dragon",
     "secondaryType": "ice"
   },
   "weavile": {
     "displaySlug": "weavile",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/461.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/weavile/normal.png",
     "primaryType": "dark",
     "secondaryType": "ice"
   },
   "grimmsnarl": {
     "displaySlug": "grimmsnarl",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/861.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/grimmsnarl/normal.png",
     "primaryType": "dark",
     "secondaryType": "fairy"
   },
   "cloyster": {
     "displaySlug": "cloyster",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/91.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/cloyster/normal.png",
     "primaryType": "water",
     "secondaryType": "ice"
   },
   "hitmontop": {
     "displaySlug": "hitmontop",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/237.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/hitmontop/normal.png",
     "primaryType": "fighting",
     "secondaryType": null
   },
   "greninja": {
     "displaySlug": "greninja",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/658.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/greninja/normal.png",
     "primaryType": "water",
     "secondaryType": "dark"
   },
   "staraptor": {
     "displaySlug": "staraptor",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/398.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/staraptor/normal.png",
     "primaryType": "normal",
     "secondaryType": "flying"
   },
   "raichu": {
     "displaySlug": "raichu",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/26.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/raichu/normal.png",
     "primaryType": "electric",
     "secondaryType": null
   },
   "lucario": {
     "displaySlug": "lucario",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/448.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/lucario/normal.png",
     "primaryType": "fighting",
     "secondaryType": "steel"
   },
   "dragapult": {
     "displaySlug": "dragapult",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/887.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/dragapult/normal.png",
     "primaryType": "dragon",
     "secondaryType": "ghost"
   },
   "toxapex": {
     "displaySlug": "toxapex",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/748.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/toxapex/normal.png",
     "primaryType": "poison",
     "secondaryType": "water"
   },
   "gengar": {
     "displaySlug": "gengar",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/94.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/gengar/normal.png",
     "primaryType": "ghost",
     "secondaryType": "poison"
   },
   "meowstic-male": {
     "displaySlug": "meowstic-male",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/678.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/meowstic-male/normal.png",
     "primaryType": "psychic",
     "secondaryType": null
   },
   "mimikyu-disguised": {
     "displaySlug": "mimikyu-disguised",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/778.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/mimikyu-disguised/normal.png",
     "primaryType": "ghost",
     "secondaryType": "fairy"
   },
   "ribombee": {
     "displaySlug": "ribombee",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/743.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/ribombee/normal.png",
     "primaryType": "bug",
     "secondaryType": "fairy"
   },
   "gardevoir": {
     "displaySlug": "gardevoir",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/282.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/gardevoir/normal.png",
     "primaryType": "psychic",
     "secondaryType": "fairy"
   },
   "indeedee-female": {
     "displaySlug": "indeedee-female",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10186.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/indeedee-female/normal.png",
     "primaryType": "psychic",
     "secondaryType": "normal"
   },
   "azumarill": {
     "displaySlug": "azumarill",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/184.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/azumarill/normal.png",
     "primaryType": "water",
     "secondaryType": "fairy"
   },
   "victreebel": {
     "displaySlug": "victreebel",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/71.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/victreebel/normal.png",
     "primaryType": "grass",
     "secondaryType": "poison"
   },
   "ceruledge": {
     "displaySlug": "ceruledge",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/937.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/ceruledge/normal.png",
     "primaryType": "fire",
     "secondaryType": "ghost"
   },
   "basculegion-male": {
     "displaySlug": "basculegion-male",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/902.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/basculegion-male/normal.png",
     "primaryType": "water",
     "secondaryType": "ghost"
   },
   "haxorus": {
     "displaySlug": "haxorus",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/612.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/haxorus/normal.png",
     "primaryType": "dragon",
     "secondaryType": null
   },
   "aegislash-shield": {
     "displaySlug": "aegislash-shield",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/681.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/aegislash-shield/normal.png",
     "primaryType": "steel",
     "secondaryType": "ghost"
   },
   "gastrodon": {
     "displaySlug": "gastrodon",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/423.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/gastrodon/normal.png",
     "primaryType": "water",
     "secondaryType": "ground"
   },
   "floette": {
     "displaySlug": "floette",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/670.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/floette/normal.png",
     "primaryType": "fairy",
     "secondaryType": null
   },
   "gholdengo": {
     "displaySlug": "gholdengo",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1000.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/gholdengo/normal.png",
     "primaryType": "steel",
     "secondaryType": "ghost"
   },
   "milotic": {
     "displaySlug": "milotic",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/350.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/milotic/normal.png",
     "primaryType": "water",
     "secondaryType": null
   },
   "whimsicott": {
     "displaySlug": "whimsicott",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/547.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/whimsicott/normal.png",
     "primaryType": "grass",
     "secondaryType": "fairy"
   },
   "hawlucha": {
     "displaySlug": "hawlucha",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/701.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/hawlucha/normal.png",
     "primaryType": "fighting",
     "secondaryType": "flying"
   },
   "snorlax": {
     "displaySlug": "snorlax",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/143.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/snorlax/normal.png",
     "primaryType": "normal",
     "secondaryType": null
   },
   "vanilluxe": {
     "displaySlug": "vanilluxe",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/584.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/vanilluxe/normal.png",
     "primaryType": "ice",
     "secondaryType": null
   },
   "sinistcha": {
     "displaySlug": "sinistcha",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1013.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/sinistcha/normal.png",
     "primaryType": "grass",
     "secondaryType": "ghost"
   },
   "alakazam": {
     "displaySlug": "alakazam",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/65.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/alakazam/normal.png",
     "primaryType": "psychic",
     "secondaryType": null
   },
   "armarouge": {
     "displaySlug": "armarouge",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/936.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/armarouge/normal.png",
     "primaryType": "fire",
     "secondaryType": "psychic"
   },
   "farigiraf": {
     "displaySlug": "farigiraf",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/981.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/farigiraf/normal.png",
     "primaryType": "normal",
     "secondaryType": "psychic"
   },
   "meowscarada": {
     "displaySlug": "meowscarada",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/908.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/meowscarada/normal.png",
     "primaryType": "grass",
     "secondaryType": "dark"
   },
   "gallade": {
     "displaySlug": "gallade",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/475.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/gallade/normal.png",
     "primaryType": "psychic",
     "secondaryType": "fighting"
   },
   "tinkaton": {
     "displaySlug": "tinkaton",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/959.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/tinkaton/normal.png",
     "primaryType": "fairy",
     "secondaryType": "steel"
   },
   "scizor": {
     "displaySlug": "scizor",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/212.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/scizor/normal.png",
     "primaryType": "bug",
     "secondaryType": "steel"
   },
   "ursaluna": {
     "displaySlug": "ursaluna",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/901.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/ursaluna/normal.png",
     "primaryType": "ground",
     "secondaryType": "normal"
   },
   "breloom": {
     "displaySlug": "breloom",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/286.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/breloom/normal.png",
     "primaryType": "grass",
     "secondaryType": "fighting"
   },
   "heracross": {
     "displaySlug": "heracross",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/214.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/heracross/normal.png",
     "primaryType": "bug",
     "secondaryType": "fighting"
   },
   "cinccino": {
     "displaySlug": "cinccino",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/573.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/cinccino/normal.png",
     "primaryType": "normal",
     "secondaryType": null
   },
   "maushold-family-of-four": {
     "displaySlug": "maushold-family-of-four",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/925.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/maushold-family-of-four/normal.png",
     "primaryType": "normal",
     "secondaryType": null
   },
   "salamence": {
     "displaySlug": "salamence",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/373.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/salamence/normal.png",
     "primaryType": "dragon",
     "secondaryType": "flying"
   },
   "hydreigon": {
     "displaySlug": "hydreigon",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/635.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/hydreigon/normal.png",
     "primaryType": "dark",
     "secondaryType": "dragon"
   },
   "lopunny": {
     "displaySlug": "lopunny",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/428.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/lopunny/normal.png",
     "primaryType": "normal",
     "secondaryType": null
   },
   "kilowattrel": {
     "displaySlug": "kilowattrel",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/941.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/kilowattrel/normal.png",
     "primaryType": "electric",
     "secondaryType": "flying"
   },
   "pinsir": {
     "displaySlug": "pinsir",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/127.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/pinsir/normal.png",
     "primaryType": "bug",
     "secondaryType": null
   },
   "kingambit": {
     "displaySlug": "kingambit",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/983.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/kingambit/normal.png",
     "primaryType": "dark",
     "secondaryType": "steel"
   },
   "dragonite": {
     "displaySlug": "dragonite",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/149.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/dragonite/normal.png",
     "primaryType": "dragon",
     "secondaryType": "flying"
   },
   "porygon2": {
     "displaySlug": "porygon2",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/233.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/porygon2/normal.png",
     "primaryType": "normal",
     "secondaryType": null
   },
   "kangaskhan": {
     "displaySlug": "kangaskhan",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/115.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/kangaskhan/normal.png",
     "primaryType": "normal",
     "secondaryType": null
   },
   "gliscor": {
     "displaySlug": "gliscor",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/472.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/gliscor/normal.png",
     "primaryType": "ground",
     "secondaryType": "flying"
   },
   "mawile": {
     "displaySlug": "mawile",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/303.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/mawile/normal.png",
     "primaryType": "steel",
     "secondaryType": "fairy"
   },
   "arcanine": {
     "displaySlug": "arcanine",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/59.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/arcanine/normal.png",
     "primaryType": "fire",
     "secondaryType": null
   },
   "sableye": {
     "displaySlug": "sableye",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/302.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/sableye/normal.png",
     "primaryType": "dark",
     "secondaryType": "ghost"
   },
   "blissey": {
     "displaySlug": "blissey",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/242.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/blissey/normal.png",
     "primaryType": "normal",
     "secondaryType": null
   },
   "clodsire": {
     "displaySlug": "clodsire",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/980.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/clodsire/normal.png",
     "primaryType": "poison",
     "secondaryType": "ground"
   },
   "oranguru": {
     "displaySlug": "oranguru",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/765.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/oranguru/normal.png",
     "primaryType": "normal",
     "secondaryType": "psychic"
   },
   "camerupt": {
     "displaySlug": "camerupt",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/323.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/camerupt/normal.png",
     "primaryType": "fire",
     "secondaryType": "ground"
   },
   "clefable": {
     "displaySlug": "clefable",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/36.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/clefable/normal.png",
     "primaryType": "fairy",
     "secondaryType": null
   },
   "metagross": {
     "displaySlug": "metagross",
-    "spriteNormal": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/376.png",
+    "spriteNormal": "https://yajdmsuvphmdtuxroksv.supabase.co/storage/v1/object/public/pokemon-sprites/metagross/normal.png",
     "primaryType": "steel",
     "secondaryType": "psychic"
   }
