@@ -35,12 +35,21 @@ function resolvePokemonSlug(input) {
 }
 
 async function fetchDisplayFromSupabase(supabase, slug) {
-  const { data, error } = await supabase
-    .from("pokemon")
-    .select("slug, sprite_normal_url, primary_type, secondary_type")
-    .or(`slug.eq.${slug},species_slug.eq.${slug}`)
-    .limit(1)
-    .maybeSingle();
+  const columns = "slug, sprite_normal_url, primary_type, secondary_type";
+
+  let { data, error } = await supabase.from("pokemon").select(columns).eq("slug", slug).maybeSingle();
+
+  if (!data && !error) {
+    const fallback = await supabase
+      .from("pokemon")
+      .select(columns)
+      .eq("species_slug", slug)
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     console.warn(`  [warn] Supabase lookup failed for ${slug}: ${error.message}`);
