@@ -48,9 +48,11 @@ function RosterTile({
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-foreground">{name}</p>
         {display ? (
-          <div className="mt-0.5 flex gap-1">
-            <TypeBadge type={display.primaryType} />
-            {display.secondaryType ? <TypeBadge type={display.secondaryType} /> : null}
+          <div className="mt-0.5 flex flex-wrap gap-0.5">
+            <TypeBadge type={display.primaryType} className="px-1.5 text-[9px]" />
+            {display.secondaryType ? (
+              <TypeBadge type={display.secondaryType} className="px-1.5 text-[9px]" />
+            ) : null}
           </div>
         ) : null}
         {item?.trim() ? (
@@ -81,7 +83,7 @@ export function ChampionsPresetCard({
   return (
     <article
       className={cn(
-        "space-y-3 rounded-2xl border border-border/60 border-t-4 bg-card/70 p-4 shadow-sm transition-shadow hover:shadow-md",
+        "flex h-full flex-col gap-3 rounded-2xl border border-border/60 border-t-4 bg-card/70 p-4 shadow-sm transition-shadow hover:shadow-md",
         presetAccentClasses(preset.accentTheme),
       )}
     >
@@ -177,11 +179,11 @@ export function ChampionsPresetCard({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="mt-auto flex flex-col gap-2 pt-1 sm:flex-row">
         <Button
           type="button"
           size="sm"
-          className="h-9 flex-1 rounded-xl text-xs"
+          className="min-h-11 flex-1 rounded-xl text-xs sm:h-9 sm:min-h-0"
           onClick={onLoad}
           disabled={isLoading}
         >
@@ -198,7 +200,7 @@ export function ChampionsPresetCard({
           type="button"
           size="sm"
           variant="secondary"
-          className="h-9 flex-1 rounded-xl text-xs"
+          className="min-h-11 flex-1 rounded-xl text-xs sm:h-9 sm:min-h-0"
           onClick={onPreview}
         >
           Preview

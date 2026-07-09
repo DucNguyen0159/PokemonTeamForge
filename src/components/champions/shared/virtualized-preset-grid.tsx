@@ -97,7 +97,9 @@ export function VirtualizedPresetGrid<T>({
     return (
       <div className={cn("grid grid-cols-1 gap-4 lg:grid-cols-2", className)}>
         {items.map((item, index) => (
-          <div key={getKey(item, index)}>{renderItem(item, index)}</div>
+          <div key={getKey(item, index)} className="h-full">
+            {renderItem(item, index)}
+          </div>
         ))}
       </div>
     );
@@ -112,7 +114,7 @@ export function VirtualizedPresetGrid<T>({
         style={{ transform: `translateY(${offsetY}px)` }}
       >
         {visibleItems.map((item, index) => (
-          <div key={getKey(item, startIndex + index)} style={{ minHeight: ROW_HEIGHT_ESTIMATE }}>
+          <div key={getKey(item, startIndex + index)} className="h-full" style={{ minHeight: ROW_HEIGHT_ESTIMATE }}>
             {renderItem(item, startIndex + index)}
           </div>
         ))}
